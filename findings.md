@@ -33,8 +33,8 @@
 - Current Gateway smoke is credential-free and exercises the diagnostic/mock path. It proves the local HTTP surface and routing diagnostics, not live provider forwarding.
 - Live provider forwarding, real upstream streaming, real external MCP/tool approval, and final installer launch remain intentionally unclaimed without credentials, explicit permission, or a release machine with the required packaging privileges.
 
-## Parallel Audit Findings
+## Completion Audit Follow-Up Findings
 
-- UI/renderer audit found remaining low-risk frontend work: repair any residual mojibake, align chart colors and status badges to design tokens, add explicit error states instead of silent empty data, and check 1024x680 overflow on dense pages.
-- Security/main audit found low-risk hardening work: add a stricter external URL validator before `shell.openExternal`, make JSON storage read-modify-write atomic under the queue, sanitize `dialog:open` options, and expand path/IPC permission tests.
-- Tests/docs audit found process hardening work: add verification-matrix consistency checks, introduce a fast long-run test entry, normalize machine test artifacts versus handoff docs, and add packaging preflight/status consistency checks.
+- UI/renderer follow-up work: repair any residual low-visibility mojibake, align chart colors and status badges to design tokens, add explicit error states instead of silent empty data, and check 1024x680 overflow on dense pages.
+- Security/main follow-up work: add a stricter external URL validator before `shell.openExternal`, make JSON storage read-modify-write atomic under the queue, sanitize `dialog:open` options, and expand path/IPC permission tests.
+- Tests/docs follow-up work: add verification-matrix consistency checks, introduce a fast long-run test entry, normalize machine test artifacts versus handoff docs, and add packaging preflight/status consistency checks.

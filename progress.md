@@ -25,9 +25,8 @@
 - Reran current source gates after the E2E selector patch: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (26 files / 189 tests), `npm.cmd run lint` PASS (0 errors / 21 warnings), `npm.cmd run scan:mojibake` PASS, `npm.cmd run build` PASS, and `npm.cmd run verify` PASS (verify 131/131 plus smoke 213/213).
 - Ran current Gateway HTTP smoke against the Electron-started Gateway: PASS for `GET /health`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, `POST /responses`, and `POST /v1/messages`; result `D:\LocalAI Nexus\.codex-parallel\results\gateway-smoke-20260511135910.json`.
 - Updated `handoff/TEST_REPORT.md`, `PROJECT_PROGRESS.md`, `handoff/NEXT_STEPS.md`, `docs/PROJECT_STRUCTURE_AUDIT.md`, and the iteration plan archive with the current verification results and exact packaging blocker.
-- Started a cleanup/integration pass after the user required every code-modifying pass to be pushed to GitHub.
-- Ran three parallel read-only audits for UI/renderer, main/security/IPC, and tests/scripts/handoff. No subagent modified files.
-- UI audit recommended next: fix remaining renderer mojibake, chart/token cleanup, tokenized status colors, error-state banners, and 1024x680 overflow checks.
-- Security audit recommended next: validate external URLs before `shell.openExternal`, serialize JSON read-modify-write atomically, sanitize `dialog:open` options, improve path safety tests, and add IPC permission coverage.
-- Test/docs audit recommended next: add verification-matrix consistency checks, a fast long-run script entry, normalized test artifact policy, packaging preflight, and status cross-checking.
+- Added completion-audit follow-up backlog for the next optimization cycle across UI/renderer, main/security/IPC, and tests/scripts/handoff.
+- UI follow-up: fix any remaining low-visibility renderer mojibake, chart/token cleanup, tokenized status colors, error-state banners, and 1024x680 overflow checks.
+- Security follow-up: validate external URLs before `shell.openExternal`, serialize JSON read-modify-write atomically, sanitize `dialog:open` options, improve path safety tests, and add IPC permission coverage.
+- Test/docs follow-up: add verification-matrix consistency checks, a fast long-run script entry, normalized test artifact policy, packaging preflight, and status cross-checking.
 - Current cleanup verification passed: `git diff --check`, `npm.cmd run scan:mojibake`, `npm.cmd run typecheck`, `npm.cmd run test`, `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd run verify`, and `npm.cmd run test:e2e`.

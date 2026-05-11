@@ -10,8 +10,8 @@ The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`. The long-ter
 
 ## Next-Round Priorities
 
-0. **Worktree Discipline And Parallel Cadence**
-   - Keep at least three lanes active when doing broad optimization: UI/renderer, main/security, and tests/docs.
+0. **Worktree Discipline And Audit Cadence**
+   - Keep broad optimization reviews split into UI/renderer, main/security, and tests/docs lanes.
    - After any code change, finish with a verified commit and `git push` to `origin/refactor-localai-nexus`.
    - Treat dirty-tree cleanup as part of the deliverable, not a follow-up.
 
@@ -48,7 +48,7 @@ The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`. The long-ter
 - `npm.cmd run dist` currently builds and produces `release/win-unpacked/LocalAI Nexus.exe`, but final packaging is blocked when electron-builder extracts `winCodeSign-2.6.0.7z` and cannot create symlinks for bundled macOS libraries under the current Windows account.
 - Compatibility names remain for bridge/storage/launcher stability: `window.agentflow`, `agentflow-data`, `start-agentflow*.bat`.
 - Historical handoff/archive files still mention AgentFlow Studio; active top-level docs explain the evolution.
-- Current parallel audit backlog is intentionally split across UI/renderer, main/security, and tests/docs so future optimization can continue without blocking on one lane.
+- Current completion-audit backlog is intentionally split across UI/renderer, main/security, and tests/docs so future optimization can continue without blocking on one lane.
 
 ## Useful Continue Commands
 

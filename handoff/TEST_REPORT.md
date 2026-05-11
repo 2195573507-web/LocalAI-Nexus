@@ -25,7 +25,7 @@ Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the 
 | `npm.cmd run build` | PASS | Vite renderer/main/preload build passed; only non-fatal chunk/dynamic-import warnings. |
 | `npm.cmd run verify` | PASS | Verify 131/131 plus smoke 213/213. |
 | `npm.cmd run test:e2e` | PASS | 17/17 Playwright tests passed after updating auth/admin selectors for Chinese-first copy. |
-| Parallel audit integration | PASS | UI/renderer, main/security, and tests/docs read-only audits completed; resulting backlog recorded in `findings.md` and `handoff/NEXT_STEPS.md`. |
+| Completion audit integration | PASS | UI/renderer, main/security, and tests/docs follow-up backlog recorded in `findings.md` and `handoff/NEXT_STEPS.md`. |
 | `npm.cmd run test:static-browser` | PASS | Static browser smoke passed; result `D:\LocalAI Nexus\.codex-parallel\results\static-browser-smoke-20260511124521.json`. |
 | `npm.cmd run test:launch-static` | PASS | Static fallback launcher, tokenized URL, Chinese/English route markers, and source markers passed. |
 | `npm.cmd run test:electron-startup` | PASS | Electron dev startup ready marker captured with project-local userData. |
