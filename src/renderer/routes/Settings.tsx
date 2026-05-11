@@ -24,6 +24,7 @@ import { api } from '../lib/api';
 import { Badge, Button, EmptyState, SurfaceCard, Input, Modal } from '../components/';
 import type {
   AppSettings,
+  Language,
   MemoryInjectionMode,
   ProviderPreset,
   ProviderSetting,
@@ -32,6 +33,8 @@ import type {
 } from '../lib/types';
 import { PROVIDER_PRESETS, presetToProvider } from '../../shared/providerPresets';
 import { classNames, generateId } from '../lib/utils';
+import { useI18n } from '../lib/i18n';
+import { useThemePreference } from '../lib/theme';
 
 const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
 
@@ -41,6 +44,7 @@ function isMaskedApiKey(value: string): boolean {
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
+  language: 'zh',
   defaultProjectPath: '',
   defaultAITool: 'Claude Code',
   dataPath: '',
@@ -60,8 +64,9 @@ const emptyProviderForm = {
 };
 
 export default function Settings() {
+  const { language, setLanguage, t } = useI18n();
+  const { theme, setTheme } = useThemePreference();
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [theme, setTheme] = useState<ThemeMode>('system');
   const [providers, setProviders] = useState<ProviderSetting[]>([]);
   const [presets, setPresets] = useState<ProviderPreset[]>(PROVIDER_PRESETS);
   const [active, setActive] = useState({ providerRef: '', model: '', agentDefaultProviderRef: '' });
@@ -110,7 +115,6 @@ export default function Settings() {
         api.skills.registry().catch(() => []),
       ]);
       setSettings({ ...DEFAULT_SETTINGS, ...settingsResult });
-      setTheme((settingsResult.theme as ThemeMode) ?? 'system');
       setProviders(Array.isArray(providerList) ? providerList : []);
       if (Array.isArray(presetList) && presetList.length > 0) setPresets(presetList);
       if (!('error' in activeConfig)) {
@@ -129,18 +133,11 @@ export default function Settings() {
 
   useEffect(() => { void load(); }, [load]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    if (theme === 'system') root.classList.add(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    else root.classList.add(theme);
-  }, [theme]);
-
   const saveSettings = async () => {
     setSaving(true);
     try {
-      await api.settings.update({ ...settings, theme });
-      setMessage('设置已保存。');
+      await api.settings.update({ ...settings, theme, language });
+      setMessage(t('settings.saved'));
     } finally {
       setSaving(false);
       window.setTimeout(() => setMessage(null), 2200);
@@ -160,7 +157,7 @@ export default function Settings() {
       ? await api.providers.update(editingProvider.id, payload)
       : await api.providers.create(payload);
     if (saved && typeof saved === 'object' && 'error' in saved) {
-      setMessage(`Provider 保存失败：${saved.error}`);
+      setMessage(t('settings.providerSaveFailed', { error: String(saved.error) }));
       return;
     }
     setShowProviderModal(false);
@@ -188,24 +185,24 @@ export default function Settings() {
 
   const testProvider = async (provider: ProviderSetting) => {
     const result = await api.providers.testConnection(provider.id);
-    setMessage('error' in result ? `测试失败：${result.error}` : `${result.ok ? '测试通过' : '测试失败'}：${result.message}`);
+    setMessage('error' in result ? `${t('settings.providerTestFailed')}：${result.error}` : `${result.ok ? t('settings.providerTestPassed') : t('settings.providerTestFailed')}：${result.message}`);
     await load();
   };
 
   const switchProvider = async (provider: ProviderSetting) => {
     const result = await api.providers.setActive({ providerRef: provider.id, model: provider.modelName, scope: 'workspace' });
     if ('error' in result) {
-      setMessage(result.error === 'provider_secret_missing' ? '请先为该 Provider 配置 API Key。' : `切换失败：${result.error}`);
+      setMessage(result.error === 'provider_secret_missing' ? t('settings.providerSecretMissing') : t('settings.providerSwitchFailed', { error: result.error }));
       return;
     }
     setActive({ providerRef: result.providerRef, model: result.model, agentDefaultProviderRef: result.providerRef });
-    setMessage(`当前模型已切换到 ${provider.providerName} / ${provider.modelName}`);
+    setMessage(t('settings.providerSwitched', { provider: provider.providerName, model: provider.modelName }));
   };
 
   const exportConfig = async () => {
     const bundle = await api.config.exportAll();
     if (bundle && typeof bundle === 'object' && 'error' in bundle) {
-      setMessage(`导出失败：${bundle.error}`);
+      setMessage(t('settings.exportFailed', { error: bundle.error }));
       return;
     }
     await api.export.json(bundle, `localai-nexus-config-${Date.now()}.json`);
@@ -236,9 +233,9 @@ export default function Settings() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">设置</h1>
+        <h1 className="text-3xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{t('settings.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
-          管理主题、Provider、当前模型、MCP allowlist、Skills registry 和安全导入导出。
+          {t('settings.subtitle')}
         </p>
       </div>
 
@@ -250,45 +247,52 @@ export default function Settings() {
 
       <SurfaceCard className="p-6 space-y-5">
         <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-          <Settings2 className="h-5 w-5 text-blue-500" /> 通用设置
+          <Settings2 className="h-5 w-5 text-blue-500" /> {t('settings.general')}
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-            主题
+            {t('settings.theme')}
             <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeMode)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-              <option value="system">跟随系统</option>
-              <option value="light">浅色</option>
-              <option value="dark">深色</option>
+              <option value="system">{t('theme.system')}</option>
+              <option value="light">{t('theme.light')}</option>
+              <option value="dark">{t('theme.dark')}</option>
             </select>
           </label>
           <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-            默认项目路径
+            {t('settings.language')}
+            <select value={language} onChange={(event) => setLanguage(event.target.value as Language)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]">
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
+            {t('settings.defaultProjectPath')}
             <Input value={settings.defaultProjectPath} onChange={(event) => setSettings((prev) => ({ ...prev, defaultProjectPath: event.target.value }))} />
           </label>
           <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-            数据目录
+            {t('settings.dataPath')}
             <Input value={settings.dataPath} readOnly className="font-mono opacity-70" />
           </label>
           <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-            版本
+            {t('settings.version')}
             <Input value={settings.appVersion ?? settings.version ?? ''} readOnly className="font-mono tabular-nums opacity-70" />
           </label>
         </div>
-        <Button onClick={saveSettings} loading={saving} icon={<Check className="h-4 w-4" />}>保存设置</Button>
+        <Button onClick={saveSettings} loading={saving} icon={<Check className="h-4 w-4" />}>{t('settings.saveSettings')}</Button>
       </SurfaceCard>
 
       <SurfaceCard className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-              <SlidersHorizontal className="h-5 w-5 text-purple-500" /> 当前模型配置
+              <SlidersHorizontal className="h-5 w-5 text-purple-500" /> {t('settings.currentModel')}
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
-              当前：{activeProvider ? `${activeProvider.providerName} / ${active.model || activeProvider.modelName}` : '尚未选择 Provider'}
+              {t('settings.current', { value: activeProvider ? `${activeProvider.providerName} / ${active.model || activeProvider.modelName}` : t('settings.noProvider') })}
             </p>
           </div>
           <Button onClick={() => { setEditingProvider(null); resetProviderForm(); setShowProviderModal(true); }} icon={<Plus className="h-4 w-4" />}>
-            配置真实模型
+            {t('settings.addProvider')}
           </Button>
         </div>
 
@@ -299,9 +303,9 @@ export default function Settings() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{provider.providerName}</h3>
-                    {active.providerRef === provider.id && <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500">当前</Badge>}
-                    {provider.lastTestStatus === 'failure' && <Badge className="border-red-500/30 bg-red-500/15 text-red-400">测试失败</Badge>}
-                    {provider.apiKey === '' && provider.needsApiKey !== false && <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-500">缺少密钥</Badge>}
+                    {active.providerRef === provider.id && <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500">{t('settings.providerCurrent')}</Badge>}
+                    {provider.lastTestStatus === 'failure' && <Badge className="border-red-500/30 bg-red-500/15 text-red-400">{t('settings.providerTestFailed')}</Badge>}
+                    {provider.apiKey === '' && provider.needsApiKey !== false && <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-500">{t('settings.missingKey')}</Badge>}
                   </div>
                   <p className="mt-2 flex items-center gap-1 truncate text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
                     <Globe className="h-3 w-3" /> <span className="font-mono">{provider.baseUrl}</span>
@@ -313,9 +317,9 @@ export default function Settings() {
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" variant="ghost" onClick={() => void switchProvider(provider)}>一键切换</Button>
-                <Button size="sm" variant="ghost" onClick={() => void testProvider(provider)}>测试连接</Button>
-                <Button size="sm" variant="ghost" onClick={() => editProvider(provider)}>编辑</Button>
+                <Button size="sm" variant="ghost" onClick={() => void switchProvider(provider)}>{t('settings.switchProvider')}</Button>
+                <Button size="sm" variant="ghost" onClick={() => void testProvider(provider)}>{t('settings.testConnection')}</Button>
+                <Button size="sm" variant="ghost" onClick={() => editProvider(provider)}>{t('common.edit')}</Button>
                 <Button size="sm" variant="ghost" onClick={() => void api.providers.delete(provider.id).then(load)} className="text-red-500">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -324,13 +328,13 @@ export default function Settings() {
           ))}
         </div>
         {providers.length === 0 && (
-          <EmptyState icon={Server} title="暂无 Provider" description="可以先体验 Demo Agent，或选择一个 preset 配置真实模型。" actionLabel="添加 Provider" onAction={() => setShowProviderModal(true)} />
+          <EmptyState icon={Server} title={t('settings.noProviders')} description={t('settings.noProvidersBody')} actionLabel={t('settings.addProviderTitle')} onAction={() => setShowProviderModal(true)} />
         )}
       </SurfaceCard>
 
       <SurfaceCard className="p-6 space-y-5">
         <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-          <Server className="h-5 w-5 text-purple-500" /> Provider Preset Center
+          <Server className="h-5 w-5 text-purple-500" /> {t('settings.providerPresetCenter')}
         </h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {presets.map((preset) => (
@@ -343,7 +347,7 @@ export default function Settings() {
               <div className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{preset.displayName}</div>
               <div className="mt-2 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">{preset.docsHint}</div>
               <div className="mt-3 flex flex-wrap gap-1">
-                {preset.needsApiKey ? <Badge>API Key</Badge> : <Badge>本地无密钥</Badge>}
+                {preset.needsApiKey ? <Badge>API Key</Badge> : <Badge>{t('settings.localNoKey')}</Badge>}
                 {preset.supportsStreaming && <Badge>Streaming</Badge>}
                 {preset.supportsVision && <Badge>Vision</Badge>}
               </div>
@@ -354,27 +358,27 @@ export default function Settings() {
 
       <SurfaceCard className="p-6 space-y-5">
         <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-          <Shield className="h-5 w-5 text-emerald-500" /> MCP & Skills 管理
+          <Shield className="h-5 w-5 text-emerald-500" /> {t('settings.mcpSkills')}
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4">
-            <h3 className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">MCP allowlist</h3>
-            <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">当前只管理 allow/deny 规则和沙箱元数据，不直接执行外部工具。</p>
+            <h3 className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{t('settings.mcpAllowlist')}</h3>
+            <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">{t('settings.mcpAllowlistBody')}</p>
             <div className="mt-3 space-y-2">
               {mcpAllowlist.slice(0, 5).map((entry) => (
                 <div key={String(entry.id)} className="flex items-center justify-between rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-xs dark:bg-[var(--surface-muted)]">
                   <span className="font-mono">{String(entry.serverName)}:{String(entry.toolName)}</span>
-                  <Badge>{entry.enabled ? 'enabled' : 'disabled'}</Badge>
+                  <Badge>{entry.enabled ? t('common.enabled') : t('common.disabled')}</Badge>
                 </div>
               ))}
-              {mcpAllowlist.length === 0 && <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">暂无规则。MCP 调用默认由网关拒绝。</p>}
+              {mcpAllowlist.length === 0 && <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">{t('settings.mcpEmpty')}</p>}
             </div>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4">
             <h3 className="flex items-center gap-2 font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-              <Puzzle className="h-4 w-4" /> Skills registry
+              <Puzzle className="h-4 w-4" /> {t('settings.skillsRegistry')}
             </h3>
-            <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">本轮是本地管理骨架，不自动执行外部 skill。</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">{t('settings.skillsRegistryBody')}</p>
             <div className="mt-3 space-y-2">
               {skillsRegistry.map((skill) => (
                 <div key={skill.id} className="flex items-center justify-between gap-2 rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-xs dark:bg-[var(--surface-muted)]">
@@ -384,7 +388,7 @@ export default function Settings() {
                     className={classNames('rounded-md px-2 py-1', skill.enabled ? 'bg-emerald-500/15 text-emerald-500' : 'bg-[var(--surface-muted)] text-[var(--text-muted)]')}
                     onClick={() => void api.skills.toggleRegistry(skill.id, !skill.enabled).then(load)}
                   >
-                    {skill.enabled ? '启用' : '禁用'}
+                    {skill.enabled ? t('common.enabled') : t('common.disabled')}
                   </button>
                 </div>
               ))}
@@ -395,20 +399,20 @@ export default function Settings() {
 
       <SurfaceCard className="p-6 space-y-5">
         <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-          <HardDrive className="h-5 w-5 text-amber-500" /> 配置导入 / 导出
+          <HardDrive className="h-5 w-5 text-amber-500" /> {t('settings.importExport')}
         </h2>
         <p className="text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
-          导出包含 provider metadata、项目默认 provider 引用、Agent metadata、模板、MCP allowlist 和 skills registry；API Key 只会省略或脱敏。
+          {t('settings.importExportBody')}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Button variant="ghost" onClick={exportConfig} icon={<Download className="h-4 w-4" />}>导出安全配置</Button>
-          <Button variant="ghost" onClick={previewImport} icon={<AlertTriangle className="h-4 w-4" />}>预览导入风险</Button>
-          <Button variant="ghost" onClick={applyImport} icon={<Upload className="h-4 w-4" />}>应用导入</Button>
+          <Button variant="ghost" onClick={exportConfig} icon={<Download className="h-4 w-4" />}>{t('settings.exportSafeConfig')}</Button>
+          <Button variant="ghost" onClick={previewImport} icon={<AlertTriangle className="h-4 w-4" />}>{t('settings.previewImport')}</Button>
+          <Button variant="ghost" onClick={applyImport} icon={<Upload className="h-4 w-4" />}>{t('settings.applyImport')}</Button>
         </div>
         <textarea
           value={importText}
           onChange={(event) => setImportText(event.target.value)}
-          placeholder="粘贴 LocalAI Nexus 配置 JSON，导入前会校验 schema、大小、字段白名单和风险。"
+          placeholder={t('settings.importPlaceholder')}
           className="min-h-[120px] w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 font-mono text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]"
         />
         {(exportManifest || importPreview !== null) && (
@@ -421,13 +425,13 @@ export default function Settings() {
       <Modal
         open={showProviderModal}
         onClose={() => { setShowProviderModal(false); setEditingProvider(null); resetProviderForm(); }}
-        title={editingProvider ? '编辑 Provider' : '添加 Provider'}
+        title={editingProvider ? t('settings.editProviderTitle') : t('settings.addProviderTitle')}
         size="lg"
       >
         <div className="space-y-4">
           {!editingProvider && (
             <label className="block text-xs font-medium text-[var(--text-muted)]">
-              Provider preset
+              {t('settings.providerPreset')}
               <select
                 value={selectedPresetId}
                 onChange={(event) => resetProviderForm(event.target.value)}
@@ -438,27 +442,27 @@ export default function Settings() {
             </label>
           )}
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-xs font-medium text-[var(--text-muted)]">名称<Input value={providerForm.providerName} onChange={(event) => setProviderForm((prev) => ({ ...prev, providerName: event.target.value }))} /></label>
-            <label className="block text-xs font-medium text-[var(--text-muted)]">模型<Input value={providerForm.modelName} onChange={(event) => setProviderForm((prev) => ({ ...prev, modelName: event.target.value }))} /></label>
+            <label className="block text-xs font-medium text-[var(--text-muted)]">{t('settings.name')}<Input value={providerForm.providerName} onChange={(event) => setProviderForm((prev) => ({ ...prev, providerName: event.target.value }))} /></label>
+            <label className="block text-xs font-medium text-[var(--text-muted)]">{t('settings.model')}<Input value={providerForm.modelName} onChange={(event) => setProviderForm((prev) => ({ ...prev, modelName: event.target.value }))} /></label>
           </div>
           <label className="block text-xs font-medium text-[var(--text-muted)]">Base URL<Input value={providerForm.baseUrl} onChange={(event) => setProviderForm((prev) => ({ ...prev, baseUrl: event.target.value }))} className="font-mono" /></label>
           <label className="block text-xs font-medium text-[var(--text-muted)]">
-            API Key
+            {t('settings.apiKey')}
             <div className="relative mt-1.5">
-              <Input type={showApiKey ? 'text' : 'password'} value={providerForm.apiKey} onChange={(event) => setProviderForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="保存后只显示末四位，日志和导出不会包含明文。" className="font-mono pr-10" />
+              <Input type={showApiKey ? 'text' : 'password'} value={providerForm.apiKey} onChange={(event) => setProviderForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder={t('settings.apiKeyPlaceholder')} className="font-mono pr-10" />
               <button type="button" onClick={() => setShowApiKey((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </label>
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={providerForm.enabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, enabled: event.target.checked }))} /> 启用</label>
-            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={providerForm.memoryEnabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, memoryEnabled: event.target.checked }))} /> 记忆注入</label>
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={providerForm.enabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, enabled: event.target.checked }))} /> {t('settings.enabled')}</label>
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={providerForm.memoryEnabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, memoryEnabled: event.target.checked }))} /> {t('settings.memoryInjection')}</label>
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-          <Button variant="ghost" onClick={() => setShowProviderModal(false)}>取消</Button>
-          <Button onClick={saveProvider} icon={<Key className="h-4 w-4" />}>保存 Provider</Button>
+          <Button variant="ghost" onClick={() => setShowProviderModal(false)}>{t('common.cancel')}</Button>
+          <Button onClick={saveProvider} icon={<Key className="h-4 w-4" />}>{t('settings.saveProvider')}</Button>
         </div>
       </Modal>
     </div>

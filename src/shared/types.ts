@@ -25,6 +25,7 @@ export type MemoryStatus = 'active' | 'pending' | 'archived'
 export type MemoryInjectionMode = 'off' | 'minimal' | 'balanced' | 'full'
 export type RiskLevel = 'safe' | 'low' | 'medium' | 'high' | 'critical' | 'Safe' | 'Low' | 'Medium' | 'High' | 'Critical'
 export type ThemeMode = 'light' | 'dark' | 'system'
+export type Language = 'zh' | 'en'
 export type AITool = 'Claude Code' | 'Codex' | 'Cursor' | 'Other'
 export type { UserRole, UserStatus, AuthUser, StoredAuthUser, AuthSession, SessionUser, AuthSessionState, LoginRequest, LoginResult, ChangePasswordRequest, CreateUserRequest, ResetPasswordRequest, UpdateUserRequest, PublicUser } from './authTypes.js'
 export type { ResourceAcl, ResourceAclEntry, ResourceRole, ResourceType } from './authTypes.js'
@@ -347,6 +348,7 @@ export interface ProviderSetting {
 
 export interface AppSettings {
   theme: ThemeMode
+  language?: Language
   defaultProjectPath: string
   defaultAITool: AITool
   dataPath: string

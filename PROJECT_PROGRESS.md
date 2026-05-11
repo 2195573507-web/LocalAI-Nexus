@@ -11,6 +11,19 @@ LocalAI Nexus is the active product identity in the existing `D:\AgentFlowStudio
 
 This progress file reflects the closeout of both the previous lightweight UI plan and `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` Iteration 0-12.
 
+## 2026-05-11 Language And Theme Settings Repair
+
+- Reconfirmed the live Git root with `git rev-parse --show-toplevel`: `D:/AgentFlowStudio`.
+- Updated `origin` from the old AgentFlowStudio repository to `https://github.com/2195573507-web/LocalAI-Nexus.git`.
+- Added an app-wide renderer i18n provider with `agentflow.language` localStorage persistence plus IPC settings persistence.
+- Centralized theme ownership in the renderer theme provider with `agentflow.theme`, root `dark` class, and `data-theme` / `data-theme-preference` metadata.
+- Removed Settings route-level root theme class mutation and prevented Settings mount from overriding the current theme or language.
+- Changed main-process seeded defaults from `theme: dark` to `theme: system` and added seeded `language: zh`.
+- Added Settings language controls and translated primary navigation, topbar, Settings controls, status text, and common page chrome.
+- Added unit/E2E coverage for i18n helpers, theme persistence, Settings light/dark non-overwrite, reload persistence, and restart-like browser context persistence.
+- Checked Codex/GitHub integration state: GitHub plugin cache exists, but this Codex session only exposed Browser Use; `gh` was unavailable, and `winget install --id GitHub.cli -e` failed while opening the winget source.
+- Re-created the desktop shortcut and verified by COM readback that `LocalAI Nexus.lnk` targets the current built Electron entry in this root.
+
 ## Completed
 
 - Cleaned and reorganized the repository on 2026-05-11 after scanning package scripts, Electron/Vite config, source references, tests, launchers, and handoff dependencies.
@@ -64,11 +77,11 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 |---|---:|
 | `npm.cmd run typecheck` | PASS |
 | `npm.cmd run lint` | PASS, warnings under threshold |
-| `npm.cmd run test` | PASS |
+| `npm.cmd run test` | PASS, 26 files / 189 tests |
 | `npm.cmd run smoke` | PASS |
 | `npm.cmd run verify` | PASS |
 | `npm.cmd run build` | PASS |
-| `npm.cmd run test:e2e` | PASS |
+| `npm.cmd run test:e2e` | PASS, 17/17 |
 | `npm.cmd run test:static-browser` | PASS |
 | `npm.cmd run test:launch-static` | PASS |
 | `npm.cmd run test:electron-startup` | PASS |
@@ -91,5 +104,5 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 ## Current Commit Plan
 
 ```text
-feat: complete LocalAI Nexus iteration roadmap
+fix: repair language and theme settings behavior
 ```

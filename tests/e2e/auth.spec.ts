@@ -1,6 +1,14 @@
 import { expect, test } from 'playwright/test'
 
 test.describe('AgentFlow auth and admin gates', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem('agentflow.auth.session')
+      localStorage.setItem('agentflow.language', 'en')
+      localStorage.removeItem('agentflow.theme')
+    })
+  })
+
   test('protects routes until login and supports logout', async ({ page }) => {
     await page.addInitScript(() => {
       const admin = {
@@ -36,6 +44,11 @@ test.describe('AgentFlow auth and admin gates', () => {
           tasks: { list: async () => [] },
           prompts: { list: async () => [] },
           memory: { list: async () => [] },
+          settings: {
+            getAll: async () => ({ theme: 'system', language: 'en', defaultProjectPath: '', defaultAITool: 'Claude Code', dataPath: '', appVersion: '1.1.1' }),
+            get: async () => null,
+            set: async () => true,
+          },
         },
       })
     })
@@ -74,6 +87,11 @@ test.describe('AgentFlow auth and admin gates', () => {
             bootstrap: async () => ({ ok: true }),
             session: async () => ({ authenticated: true, user }),
             logout: async () => true,
+          },
+          settings: {
+            getAll: async () => ({ theme: 'system', language: 'en', defaultProjectPath: '', defaultAITool: 'Claude Code', dataPath: '', appVersion: '1.1.1' }),
+            get: async () => null,
+            set: async () => true,
           },
         },
       })
@@ -119,6 +137,11 @@ test.describe('AgentFlow auth and admin gates', () => {
           tasks: { list: async () => [] },
           prompts: { list: async () => [] },
           memory: { list: async () => [] },
+          settings: {
+            getAll: async () => ({ theme: 'system', language: 'en', defaultProjectPath: '', defaultAITool: 'Claude Code', dataPath: '', appVersion: '1.1.1' }),
+            get: async () => null,
+            set: async () => true,
+          },
         },
       })
     })
@@ -195,6 +218,11 @@ test.describe('AgentFlow auth and admin gates', () => {
             exportAll: async () => ({ auditLogs, exportedAt: new Date().toISOString() }),
           },
           export: { json: async () => 'audit.json' },
+          settings: {
+            getAll: async () => ({ theme: 'system', language: 'en', defaultProjectPath: '', defaultAITool: 'Claude Code', dataPath: '', appVersion: '1.1.1' }),
+            get: async () => null,
+            set: async () => true,
+          },
         },
       })
     })

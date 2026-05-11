@@ -1,9 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { classNames } from '../lib/utils';
-import type { ThemeMode } from '../lib/types';
-import type { Language } from '../lib/i18n';
-import { getLanguage, setLanguage as storeLanguage } from '../lib/i18n';
-import { applyTheme, getTheme, onSystemThemeChange, setStoredTheme, THEME_KEY } from '../lib/theme';
+import { useI18n } from '../lib/i18n';
+import { useThemePreference } from '../lib/theme';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
@@ -22,39 +20,8 @@ const Layout: React.FC<LayoutProps> = ({
   pageTitle,
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    if (typeof window !== 'undefined') {
-      const legacyTheme = localStorage.getItem('agentflow-theme');
-      if (!localStorage.getItem(THEME_KEY) && (legacyTheme === 'light' || legacyTheme === 'dark' || legacyTheme === 'system')) {
-        localStorage.setItem(THEME_KEY, legacyTheme);
-      }
-    }
-    return getTheme();
-  });
-  const [language, setLanguageState] = useState<Language>(() => getLanguage());
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  useEffect(() => {
-    if (theme !== 'system') return;
-    return onSystemThemeChange(() => applyTheme(theme));
-  }, [theme]);
-
-  useEffect(() => {
-    storeLanguage(language);
-  }, [language]);
-
-  const handleThemeChange = useCallback((newTheme: ThemeMode) => {
-    setTheme(newTheme);
-    setStoredTheme(newTheme);
-  }, []);
-
-  const handleLanguageChange = useCallback((newLanguage: Language) => {
-    setLanguageState(newLanguage);
-    storeLanguage(newLanguage);
-  }, []);
+  const { theme, setTheme } = useThemePreference();
+  const { language, setLanguage } = useI18n();
 
   return (
     <div
@@ -77,9 +44,9 @@ const Layout: React.FC<LayoutProps> = ({
           title={pageTitle}
           actions={topbarActions}
           theme={theme}
-          onThemeChange={handleThemeChange}
+          onThemeChange={setTheme}
           language={language}
-          onLanguageChange={handleLanguageChange}
+          onLanguageChange={setLanguage}
         />
 
         {/* Scrollable content */}

@@ -7,6 +7,8 @@ import Button from './components/Button';
 import Input from './components/Input';
 import { AuthProvider, useAuth } from './lib/auth';
 import { hasPermission, type Permission } from './lib/permissions';
+import { I18nProvider, useI18n } from './lib/i18n';
+import { ThemeProvider } from './lib/theme';
 
 const Login = lazy(() => import('./routes/Login'));
 const Dashboard = lazy(() => import('./routes/Dashboard'));
@@ -34,11 +36,12 @@ const AdminUsers = lazy(() => import('./routes/AdminUsers'));
 const AdminAudit = lazy(() => import('./routes/AdminAudit'));
 
 function PageLoader() {
+  const { t } = useI18n();
   return (
     <div className="flex h-64 items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-        <span className="text-sm text-[var(--text-tertiary)]">Loading LocalAI Nexus...</span>
+        <span className="text-sm text-[var(--text-tertiary)]">{t('page.loading')}</span>
       </div>
     </div>
   );
@@ -58,12 +61,13 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
 
 function RequirePermission({ permission, children }: { permission: Permission; children: React.ReactNode }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   if (!hasPermission(user, permission)) {
     return (
       <div className="p-6">
         <div className="surface-card p-5">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">Access denied</h2>
-          <p className="mt-2 text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">This route requires {permission}.</p>
+          <h2 className="text-xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{t('auth.accessDenied')}</h2>
+          <p className="mt-2 text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">{t('auth.routeRequires', { permission })}</p>
         </div>
       </div>
     );
@@ -223,20 +227,24 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/login" element={routeElement('Login', <Login />)} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedShell>
-                <AppRoutes />
-              </ProtectedShell>
-            }
-          />
-        </Routes>
-      </Suspense>
-    </AuthProvider>
+    <I18nProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={routeElement('Login', <Login />)} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedShell>
+                    <AppRoutes />
+                  </ProtectedShell>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </ThemeProvider>
+    </I18nProvider>
   );
 }

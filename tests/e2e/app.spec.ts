@@ -389,7 +389,7 @@ test.describe('LocalAI Nexus React web entry', () => {
 
     await page.goto('/', { waitUntil: 'networkidle' })
     await page.evaluate(() => {
-      localStorage.removeItem('agentflow.language')
+      localStorage.setItem('agentflow.language', 'en')
       localStorage.removeItem('agentflow.theme')
     })
     await page.reload({ waitUntil: 'networkidle' })
@@ -514,31 +514,80 @@ test.describe('LocalAI Nexus React web entry', () => {
     }
   })
 
-  test('persists language and theme preferences', async ({ page }) => {
+  test('persists language and theme preferences', async ({ page, browser }) => {
+    await page.evaluate(() => {
+      localStorage.setItem('agentflow.language', 'zh')
+      localStorage.removeItem('agentflow.theme')
+    })
+    await page.reload({ waitUntil: 'networkidle' })
+
     await page.getByRole('button', { name: /English/ }).click()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.language'))).toBe('en')
-    await expect(page.getByRole('link', { name: /Nexus Home/ })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe('en')
+    await expect(page.locator('header button[title="Switch to Chinese"]')).toBeVisible()
+    await expect(page.getByRole('link', { name: /Dashboard/ })).toBeVisible()
 
     await page.locator('header button[title*="Theme"], header button[title*="主题"]').last().click()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('light')
+    await page.goto('/#/settings', { waitUntil: 'networkidle' })
+    await expect.poll(() => page.evaluate(() => ({
+      stored: localStorage.getItem('agentflow.theme'),
+      resolved: document.documentElement.dataset.theme,
+      preference: document.documentElement.dataset.themePreference,
+      dark: document.documentElement.classList.contains('dark'),
+    }))).toEqual({
+      stored: 'light',
+      resolved: 'light',
+      preference: 'light',
+      dark: false,
+    })
 
-    await page.goto('/#/prompts', { waitUntil: 'networkidle' })
+    await page.locator('header button[title*="Theme"], header button[title*="主题"]').last().click()
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('dark')
+    await page.goto('/#/settings', { waitUntil: 'networkidle' })
+    await expect.poll(() => page.evaluate(() => ({
+      stored: localStorage.getItem('agentflow.theme'),
+      resolved: document.documentElement.dataset.theme,
+      preference: document.documentElement.dataset.themePreference,
+      dark: document.documentElement.classList.contains('dark'),
+    }))).toEqual({
+      stored: 'dark',
+      resolved: 'dark',
+      preference: 'dark',
+      dark: true,
+    })
+
+    await page.goto('/#/settings', { waitUntil: 'networkidle' })
     await page.reload({ waitUntil: 'networkidle' })
-    await expect(page).toHaveURL(/#\/prompts/)
-    await expect(page.getByRole('link', { name: /Nexus Home/ })).toBeVisible()
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('light')
-    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('light')
+    await expect(page).toHaveURL(/#\/settings/)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.language'))).toBe('en')
+    await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe('en')
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('dark')
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
+    await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(true)
+
+    const storageState = await page.context().storageState()
+    const restartContext = await browser.newContext({ storageState })
+    await restartContext.addInitScript(installAgentflowMock)
+    const restartPage = await restartContext.newPage()
+    await restartPage.goto('/#/settings', { waitUntil: 'networkidle' })
+    await expect.poll(() => restartPage.evaluate(() => localStorage.getItem('agentflow.language'))).toBe('en')
+    await expect.poll(() => restartPage.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('dark')
+    await expect.poll(() => restartPage.evaluate(() => document.documentElement.lang)).toBe('en')
+    await expect.poll(() => restartPage.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
+    await expect.poll(() => restartPage.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(true)
+    await restartContext.close()
   })
 
   test('opens Prompt Lab and shows workflow template next actions', async ({ page }) => {
     await page.goto('/#/prompts', { waitUntil: 'networkidle' })
     await expect(page.locator('main')).toContainText(/Prompt Lab/)
     for (const step of ['创建工作流', '添加节点', '配置模型/API', '运行', '查看结果和日志']) {
-      await expect(page.getByText(step)).toBeVisible()
+      await expect(page.locator('main').getByText(step, { exact: true })).toBeVisible()
     }
 
-    await page.getByRole('button', { name: /工作流模板/ }).click()
-    await page.getByPlaceholder(/搜索模板|Search/i).fill('git')
+    await page.getByRole('button', { name: /Workflow Templates|工作流模板/ }).click()
+    await page.getByPlaceholder(/搜索模板|Search templates/i).fill('git')
     await expect(page.locator('main').getByText(/Git/).first()).toBeVisible()
     await expect(page.getByText(/人工复核|需要人工确认/).first()).toBeVisible()
 
@@ -546,7 +595,7 @@ test.describe('LocalAI Nexus React web entry', () => {
     await page.getByRole('button', { name: /Generate|生成 Prompt|生成/ }).first().click()
     await expect(page.getByText(/下一步建议/)).toBeVisible()
     await expect(page.getByRole('button', { name: /复制.*Agent|Copy.*Agent/i })).toBeVisible()
-    await expect(page.getByRole('button', { name: /保存模板结果|Save/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /保存模板结果/ })).toBeVisible()
   })
 
   test('runs a workflow template and shows Timeline / Trace', async ({ page }) => {
@@ -554,12 +603,12 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page.getByRole('heading', { name: /从模板创建、编辑并运行 Workflow/ })).toBeVisible()
     await expect(page.getByText(/Start \/ Prompt \/ LLM \/ Tool \/ Condition \/ Human Approval \/ Output/)).toBeVisible()
 
-    await page.getByRole('button', { name: /从模板创建/ }).click()
+    await page.getByRole('button', { name: /Create from template|从模板创建/ }).click()
     await expect(page.getByText(/已创建 Workflow|可以直接运行/)).toBeVisible()
     await expect(page.getByText('Start').first()).toBeVisible()
     await expect(page.getByText('Human Approval').first()).toBeVisible()
 
-    await page.getByRole('button', { name: /运行 Workflow/ }).click()
+    await page.getByRole('button', { name: /Run Workflow|运行 Workflow/ }).click()
     await expect(page.getByText(/示例工作流运行完成/).first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Timeline / Trace' })).toBeVisible()
     await expect(page.getByText(/Start|Output/).first()).toBeVisible()
@@ -606,7 +655,7 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(nextStep.getByRole('heading', { name: /下一步：生成项目规划/ })).toBeVisible()
     await nextStep.getByRole('button', { name: /生成规划/ }).click()
     await expect(nextStep).toBeHidden()
-    await expect(page.getByRole('button', { name: /导出 Markdown/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Export Markdown|导出 Markdown/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /创建记忆/ })).toBeVisible()
   })
 

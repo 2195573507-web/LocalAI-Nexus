@@ -14,6 +14,7 @@ export type {
   McpGatewayRequest,
   RiskLevel,
   ThemeMode,
+  Language,
   AITool,
   Project,
   Task,

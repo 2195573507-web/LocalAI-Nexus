@@ -52,6 +52,16 @@ describe('theme helpers', () => {
     expect(getTheme()).toBe('system')
   })
 
+  it('reads explicit stored theme preferences', () => {
+    const { storage } = installDomLikeGlobals()
+
+    storage.set('agentflow.theme', 'light')
+    expect(getTheme()).toBe('light')
+
+    storage.set('agentflow.theme', 'dark')
+    expect(getTheme()).toBe('dark')
+  })
+
   it('resolves explicit and system themes', () => {
     installDomLikeGlobals(true)
     expect(resolveTheme('light')).toBe('light')
@@ -71,6 +81,16 @@ describe('theme helpers', () => {
     expect(documentElement.classList.contains('dark')).toBe(false)
     expect(documentElement.dataset.theme).toBe('light')
     expect(documentElement.dataset.themePreference).toBe('light')
+  })
+
+  it('applies system theme while preserving the user preference marker', () => {
+    const { documentElement } = installDomLikeGlobals(true)
+
+    applyTheme('system')
+
+    expect(documentElement.classList.contains('dark')).toBe(true)
+    expect(documentElement.dataset.theme).toBe('dark')
+    expect(documentElement.dataset.themePreference).toBe('system')
   })
 
   it('stores preference before applying theme', () => {

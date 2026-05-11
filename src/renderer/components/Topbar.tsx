@@ -43,9 +43,9 @@ const Topbar: React.FC<TopbarProps> = ({
 
   const routeTitle = (() => {
     const path = location.pathname;
-    if (path === '/') return 'Nexus Home';
+    if (path === '/') return t('nav.dashboard', language);
     const item = navItems.find((nav) => nav.to !== '/' && path.startsWith(nav.to));
-    return item ? item.label : path.slice(1);
+    return item ? t(item.labelKey, language) : path.slice(1);
   })();
 
   const displayTitle = titleOverride || routeTitle;
@@ -96,7 +96,7 @@ const Topbar: React.FC<TopbarProps> = ({
               'hover:text-[var(--text-primary)]',
               'focus-ring',
             )}
-            title={language === 'zh' ? 'Switch to English' : 'Switch to Chinese'}
+            title={language === 'zh' ? t('topbar.switchToEnglish', language) : t('topbar.switchToChinese', language)}
           >
             <Languages className="h-4 w-4" />
             <span>{t('topbar.language', language)}</span>
@@ -114,7 +114,7 @@ const Topbar: React.FC<TopbarProps> = ({
               'hover:text-[var(--text-primary)]',
               'focus-ring',
             )}
-            title={`Theme: ${themeLabels[theme]}. Click to switch.`}
+            title={t('topbar.themeTitle', language, { theme: themeLabels[theme] })}
           >
             <ThemeIcon className="h-4 w-4" />
           </button>
@@ -122,7 +122,7 @@ const Topbar: React.FC<TopbarProps> = ({
 
         {user && (
           <Button variant="ghost" size="sm" onClick={() => void logout()}>
-            Sign out
+            {t('topbar.signOut', language)}
           </Button>
         )}
       </div>

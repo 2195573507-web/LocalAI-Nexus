@@ -273,7 +273,8 @@ async function seedDemoDataIfNeeded(): Promise<void> {
   // ── Demo settings ──────────────────────────────────────────────────
 
   const defaultSettings: Array<{ id: string; value: unknown }> = [
-    { id: 'theme', value: 'dark' },
+    { id: 'theme', value: 'system' },
+    { id: 'language', value: 'zh' },
     { id: 'defaultProjectPath', value: app.getPath('documents') },
     { id: 'defaultAITool', value: 'Claude Code' },
     { id: 'dataPath', value: path.join(app.getPath('userData'), 'agentflow-data') },

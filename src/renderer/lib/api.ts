@@ -898,6 +898,7 @@ export const api = {
     reset: async () => {
       await api.settings.update({
         theme: 'system',
+        language: 'zh',
         defaultProjectPath: '',
         defaultAITool: 'Claude Code',
         dataPath: '',
@@ -907,6 +908,7 @@ export const api = {
     getAll: () =>
       apiCall<AppSettings>('getAllSettings', (a) => a.settings?.getAll() ?? a.getAllSettings(), {
         theme: 'system',
+        language: 'zh',
         defaultProjectPath: '',
         defaultAITool: 'Claude Code',
         dataPath: '',

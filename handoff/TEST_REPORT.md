@@ -6,7 +6,9 @@ Workspace: `D:\AgentFlowStudio`
 
 ## Summary
 
-Latest integrated LocalAI Nexus validation is **PASS** for typecheck, lint, unit tests, build, smoke, verify, E2E, static fallback smoke, launch-static, Electron startup smoke, Electron auth bridge smoke, long-run stability, shortcut creation, shortcut COM inspection, and direct Gateway HTTP smoke.
+Latest integrated LocalAI Nexus validation is **PASS** for typecheck, lint, unit tests, build, smoke, verify, E2E, static fallback smoke, launch-static, Electron startup smoke, Electron auth bridge smoke, shortcut creation, and shortcut COM inspection.
+
+This run repaired the Settings language/theme behavior. Language switching now has one app-wide provider, persists through localStorage plus IPC settings, updates Sidebar/Topbar/Settings/page chrome immediately, and survives reload/restart-like browser context. Theme switching is owned by the theme provider only; Settings no longer mutates the root class on mount or forces dark mode.
 
 Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but the electron-builder/app-builder packaging process did not finish before the 15-minute verification timeout. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
 
@@ -18,7 +20,7 @@ Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the 
 | `npm.cmd install` | PASS | Dependencies already up to date; `npm audit` still reports 17 existing advisories, and no forced dependency upgrade was applied. |
 | `npm.cmd run lint` | PASS | 0 errors / 21 warnings, under configured threshold. |
 | `npm.cmd run typecheck` | PASS | TypeScript passed. |
-| `npm.cmd run test` | PASS | 25 files / 185 tests passed. |
+| `npm.cmd run test` | PASS | 26 files / 189 tests passed. |
 | `npm.cmd run smoke` | PASS | 213/213 smoke checks passed. |
 | `npm.cmd run verify` | PASS | 131/131 verification checks plus smoke 213/213 passed. |
 | `npm.cmd run build` | PASS | Renderer/Electron builds passed; Vite chunk/dynamic import warnings are non-fatal. |
@@ -33,6 +35,21 @@ Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the 
 | Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut removal verified. |
 | Direct Gateway smoke | PASS | `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages` responded. |
 | `npm.cmd run dist` | ENV-LIMITED | Build passed and `release/win-unpacked/LocalAI Nexus.exe` was produced, but electron-builder/app-builder did not finish before the 15-minute verification timeout. |
+
+## Language And Theme Repair Evidence
+
+| Check | Result | Notes |
+|---|---:|---|
+| Root directory | PASS | `git rev-parse --show-toplevel` returned `D:/AgentFlowStudio`. |
+| Remote repository | PASS | `origin` points to `https://github.com/2195573507-web/LocalAI-Nexus.git`. |
+| GitHub plugin / CLI | LIMITED | GitHub plugin cache exists, but active Codex plugin exposure only showed Browser Use. `gh` was not installed; `winget install --id GitHub.cli -e` failed while opening the winget source. |
+| Settings light mode | PASS | E2E verifies entering Settings preserves explicit light preference. |
+| Settings dark mode | PASS | E2E verifies entering Settings preserves explicit dark preference. |
+| Language switch | PASS | E2E verifies Chinese to English updates nav/topbar and stores `agentflow.language=en`. |
+| Reload persistence | PASS | E2E verifies language/theme survive page reload. |
+| Restart-like persistence | PASS | E2E verifies language/theme survive a new browser context from persisted storage state. |
+| Browser console | PASS | First-run E2E and static browser smoke reported no serious console/page errors. |
+| Shortcut | PASS | `LocalAI Nexus.lnk` points to `D:\AgentFlowStudio\node_modules\electron\dist\electron.exe` with `"D:\AgentFlowStudio\dist-electron\main\index.js`; old `AgentFlow Studio.lnk` missing. |
 
 ## Gateway Smoke Evidence
 

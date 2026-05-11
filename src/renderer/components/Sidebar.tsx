@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { classNames } from '../lib/utils';
 import type { Language } from '../lib/i18n';
+import { t } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { hasPermission } from '../lib/permissions';
 
@@ -73,7 +74,6 @@ export interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language = 'zh' }) => {
   const location = useLocation();
   const { user } = useAuth();
-  void language;
   const visibleNavItems = navItems.filter((item) => {
     if (item.to.startsWith('/admin/users')) return hasPermission(user, 'admin:users');
     if (item.to.startsWith('/admin/audit')) return hasPermission(user, 'admin:audit');
@@ -118,7 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
-          const label = item.label;
+          const label = t(item.labelKey, language);
           const isActive =
             item.to === '/'
               ? location.pathname === '/'
@@ -162,14 +162,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
             'focus-ring',
             collapsed ? 'justify-center py-2.5' : 'px-2.5 py-2',
           )}
-          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          title={collapsed ? t('nav.expand', language) : t('nav.collapse', language)}
         >
           {collapsed ? (
             <PanelLeftOpen className="w-4 h-4" />
           ) : (
             <>
               <PanelLeftClose className="w-4 h-4 shrink-0" />
-              <span className="text-sm font-medium truncate">Collapse</span>
+              <span className="text-sm font-medium truncate">{t('nav.collapse', language)}</span>
             </>
           )}
         </button>
