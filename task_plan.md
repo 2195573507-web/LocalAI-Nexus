@@ -13,7 +13,7 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | 3. Product implementation | complete | Covered first-run Dashboard path, Chinese-first UI/runtime copy, Workflow control record evidence, security boundary preservation, quality matrix, and desktop readiness evidence. |
 | 4. Documentation updates | complete | Updated README, PROJECT_PROGRESS, handoff/NEXT_STEPS, handoff/TEST_REPORT, structure audit, and plan status honestly. |
 | 5. Verification | complete | Ran current source/browser/Electron/static/shortcut/long-run/Gateway/dist gates and recorded exact results. |
-| 6. Closure | complete | Final git status, completion audit, and active goal completion. |
+| 6. Closure | in_progress | Current cleanup pass is verified locally; final git commit and GitHub push are still required. |
 
 ## Execution Rules
 
@@ -59,3 +59,4 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | Round 7 desktop/release | Electron startup/auth bridge, shortcut, COM inspection, static fallback, long-run, Gateway smoke, build, verify, and dist attempt completed. | complete |
 | Packaging honesty | `npm.cmd run dist` built and produced `release/win-unpacked/LocalAI Nexus.exe`, then failed on electron-builder `winCodeSign` symlink privilege; recorded as ENV-LIMITED. | complete |
 | Live external claims | Live provider forwarding, real upstream streaming, and real external MCP/tool approval are not claimed without credentials/permission. | complete |
+| Worktree cleanup | Parallel audits completed; current dirty tree is being integrated into one verified commit and must be pushed to GitHub before this pass closes. | in_progress |
