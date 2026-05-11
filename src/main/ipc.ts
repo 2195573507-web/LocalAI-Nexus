@@ -962,7 +962,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, async (_event, request: ChangePasswordRequest, context?: SessionContext) => {
     try {
-      if (!context) throw new Error('Authentication required.');
+      if (!context) throw new Error('需要先登录。');
       return await changePassword(context, request.currentPassword, request.newPassword);
     } catch (err) {
       return handleError(err);
@@ -1353,7 +1353,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.WORKFLOW_GET, async (_event, workflowId: string, context?: SessionContext) => {
     try {
       const workflow = await storage.getById<Workflow>('workflows', workflowId);
-      if (!workflow) throw new Error('Workflow not found.');
+      if (!workflow) throw new Error('未找到 Workflow。');
       await assertProjectResourceAccess(context, workflow.projectId, 'read');
       return workflow;
     } catch (err) {
@@ -1461,7 +1461,7 @@ export function registerIpcHandlers(): void {
         workflowTemplateId: workflow.templateId,
         versionId: String(workflow.version),
         title: `Workflow: ${workflow.name}`,
-        tool: 'AgentFlow Workflow Runtime',
+        tool: 'LocalAI Nexus Workflow Runtime',
         status: result.status,
         log: result.nodeTrace.map((item) => `${item.nodeTitle} [${item.status}] ${item.outputSummary ?? item.failureReason ?? ''}`).join('\n'),
         summary: result.summary,
@@ -1542,8 +1542,8 @@ export function registerIpcHandlers(): void {
         type: 'agent.execution',
         status: result.status === 'success' ? 'success' : result.status === 'blocked' ? 'info' : 'failure',
         actorUserId: context.user.id,
-        title: `Execution control ready: ${workflow.name}`,
-        detail: 'Run can be paused, cancelled, or retried through LocalAI Nexus controlled execution records.',
+        title: `执行控制已就绪：${workflow.name}`,
+        detail: '该运行可通过 LocalAI Nexus 受控执行记录执行暂停、取消或安全重试。',
         metadata: sanitizeObject({ executionId: (execution as AgentExecutionRecord).id, workflowId: workflow.id }),
         createdAt: endedAt,
       } as never).catch(() => undefined);
@@ -1556,13 +1556,19 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.WORKFLOW_RUN_CONTROL, async (_event, runId: string, action: string, context?: SessionContext) => {
     try {
       const run = await storage.getById<Run>('runs', runId);
-      if (!run) throw new Error('Run not found.');
+      if (!run) throw new Error('未找到运行记录。');
       await assertProjectResourceAccess(context, run.projectId, 'write');
       const normalized = ['pause', 'cancel', 'retry', 'resume'].includes(action) ? action : 'pause';
       const status = normalized === 'cancel' ? 'cancelled' : normalized === 'pause' ? 'paused' : normalized === 'resume' ? 'running' : 'queued';
+      const actionLabel: Record<string, string> = {
+        pause: '暂停',
+        cancel: '取消',
+        retry: '安全重试',
+        resume: '恢复',
+      };
       const updated = await storage.update('runs', runId, {
         status,
-        summary: `${run.summary} Control action: ${normalized}.`,
+        summary: `${run.summary} 控制操作：${actionLabel[normalized] ?? normalized}。`,
         metadata: { ...(run.metadata ?? {}), controlAction: normalized, controlledAt: new Date().toISOString(), controlledBy: context?.user.id },
       } as never);
       await storage.create('runEvents', {
@@ -1573,8 +1579,8 @@ export function registerIpcHandlers(): void {
         type: 'run.updated',
         status: normalized === 'cancel' ? 'denied' : 'info',
         actorUserId: context?.user.id,
-        title: `Workflow control: ${normalized}`,
-        detail: normalized === 'retry' ? 'Safe retry requested for the last failed node or dry-run record.' : `Workflow run marked ${status}.`,
+        title: `Workflow 控制：${actionLabel[normalized] ?? normalized}`,
+        detail: normalized === 'retry' ? '已请求对上一个失败节点或 dry-run 记录进行安全重试。' : `Workflow 运行已标记为 ${status}。`,
         metadata: { action: normalized, status },
         createdAt: new Date().toISOString(),
       } as never);
@@ -2294,7 +2300,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.AGENT_EXECUTION_CONTROL, async (_event, executionId: string, action: string, context?: SessionContext) => {
     try {
       const execution = await storage.getById<AgentExecutionRecord>('agentExecutions', executionId);
-      if (!execution) throw new Error('Execution not found.');
+      if (!execution) throw new Error('未找到执行记录。');
       await assertAgentAccess(context, execution.agentId, 'write');
       if (execution.projectId) await assertProjectResourceAccess(context, execution.projectId, 'write');
       const normalized = ['pause', 'cancel', 'retry', 'resume'].includes(action) ? action : 'pause';
@@ -2303,11 +2309,17 @@ export function registerIpcHandlers(): void {
         normalized === 'pause' ? 'paused' :
         normalized === 'resume' ? 'running' :
         'queued';
+      const actionLabel: Record<string, string> = {
+        pause: '暂停',
+        cancel: '取消',
+        retry: '安全重试',
+        resume: '恢复',
+      };
       const updated = await storage.update('agentExecutions', executionId, {
         status: nextStatus,
         finishedAt: normalized === 'cancel' ? new Date().toISOString() : execution.finishedAt,
         outputSummary: normalized === 'retry'
-          ? `${execution.outputSummary || 'Execution'} Retry requested for safe deterministic node.`
+          ? `${execution.outputSummary || '执行记录'} 已请求对安全确定性节点重试。`
           : execution.outputSummary,
         customData: sanitizeObject({
           ...(execution.customData ?? {}),
@@ -2326,8 +2338,8 @@ export function registerIpcHandlers(): void {
         type: 'agent.execution',
         status: normalized === 'cancel' ? 'denied' : 'info',
         actorUserId: context?.user.id,
-        title: `Agent execution control: ${normalized}`,
-        detail: `Execution marked ${nextStatus}; risky or external tools still require explicit approval.`,
+        title: `Agent 执行控制：${actionLabel[normalized] ?? normalized}`,
+        detail: `执行记录已标记为 ${nextStatus}；高风险或外部工具仍需要显式审批。`,
         metadata: { action: normalized, status: nextStatus },
         createdAt: new Date().toISOString(),
       } as never);

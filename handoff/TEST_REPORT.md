@@ -6,42 +6,40 @@ Workspace: `D:\LocalAI Nexus`
 
 ## Summary
 
-Latest integrated LocalAI Nexus validation is **PASS** for typecheck, lint, unit tests, build, smoke, verify, E2E, static fallback smoke, launch-static, Electron startup smoke, Electron auth bridge smoke, shortcut creation, and shortcut COM inspection.
+Latest integrated LocalAI Nexus validation is **PASS at the local, credential-free boundary** for this run. The current run reran the source, browser, Electron, static fallback, shortcut, long-run, and Gateway checks after the multi-round execution changes.
 
-This run repaired the Settings language/theme behavior. Language switching now has one app-wide provider, persists through localStorage plus IPC settings, updates Sidebar/Topbar/Settings/page chrome immediately, and survives reload/restart-like browser context. Theme switching is owned by the theme provider only; Settings no longer mutates the root class on mount or forces dark mode.
+This run executes `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` to the local, credential-free boundary: Dashboard first-run path, Chinese-first UI/runtime copy, Agent/Workflow control record evidence, active structure docs, and a verification matrix. Language/theme behavior from the prior run remains covered by existing tests.
 
-Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but the electron-builder/app-builder packaging process did not finish before the 15-minute verification timeout. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
+Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the app, produced `release/win-unpacked/LocalAI Nexus.exe`, and then failed during electron-builder `winCodeSign` extraction because the current Windows account cannot create the symlinks inside the downloaded archive. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
 
-## Fresh Validation Results
+## Current Run Validation Results
 
 | Check | Result | Notes |
 |---|---:|---|
-| Long-term iteration plan archive | PASS | Created `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` as a documentation-only roadmap with no code implementation. |
-| `git status -sb` | PASS | Branch `refactor-localai-nexus`; cleanup changes remained uncommitted during validation. |
-| `npm.cmd install` | PASS | Dependencies already up to date; `npm audit` still reports 17 existing advisories, and no forced dependency upgrade was applied. |
-| `npm.cmd run lint` | PASS | 0 errors / 21 warnings, under configured threshold. |
-| `npm.cmd run typecheck` | PASS | TypeScript passed. |
-| `npm.cmd run test` | PASS | 26 files / 189 tests passed. |
-| `npm.cmd run smoke` | PASS | 213/213 smoke checks passed. |
-| `npm.cmd run verify` | PASS | 131/131 verification checks plus smoke 213/213 passed. |
-| `npm.cmd run build` | PASS | Renderer/Electron builds passed; Vite chunk/dynamic import warnings are non-fatal. |
-| `npm.cmd run test:e2e` | PASS | 17/17 Playwright E2E tests passed. |
-| `npm.cmd run test:static-browser` | PASS | Static browser checks passed, including responsive/overflow coverage. |
-| `npm.cmd run test:launch-static` | PASS | Static launcher smoke passed. |
-| `npm.cmd run test:electron-startup` | PASS | Built Electron startup reached ready marker. |
-| `npm.cmd run test:electron-auth-bridge` | PASS | `window.agentflow` auth bridge available. |
-| `npm.cmd run test:long-run` | PASS | 30-minute default stability run passed. |
-| `npm.cmd run scan:mojibake` | PASS | 162 files checked; 3 legacy docs remain allowlisted. |
-| `npm.cmd run shortcut` | PASS | Created/updated `LocalAI Nexus.lnk`. |
-| Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut removal verified. |
-| Direct Gateway smoke | PASS | `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages` responded. |
-| `npm.cmd run dist` | ENV-LIMITED | Build passed and `release/win-unpacked/LocalAI Nexus.exe` was produced, but electron-builder/app-builder did not finish before the 15-minute verification timeout. |
+| `git status -sb` | PASS | Branch `refactor-localai-nexus`; pre-existing launcher/shortcut script changes remain preserved. |
+| `git diff --check` | PASS | No whitespace errors; only CRLF normalization warnings. |
+| `npm.cmd run typecheck` | PASS | `tsc --noEmit -p tsconfig.json`. |
+| `npm.cmd run test` | PASS | 26 test files / 189 tests passed. |
+| `npm.cmd run lint` | PASS | 0 errors / 21 warnings, within `--max-warnings 50`. |
+| `npm.cmd run scan:mojibake` | PASS | 163 files checked; 3 legacy docs allowlisted. |
+| `npm.cmd run build` | PASS | Vite renderer/main/preload build passed; only non-fatal chunk/dynamic-import warnings. |
+| `npm.cmd run verify` | PASS | Verify 131/131 plus smoke 213/213. |
+| `npm.cmd run test:e2e` | PASS | 17/17 Playwright tests passed after updating auth/admin selectors for Chinese-first copy. |
+| `npm.cmd run test:static-browser` | PASS | Static browser smoke passed; result `D:\LocalAI Nexus\.codex-parallel\results\static-browser-smoke-20260511124521.json`. |
+| `npm.cmd run test:launch-static` | PASS | Static fallback launcher, tokenized URL, Chinese/English route markers, and source markers passed. |
+| `npm.cmd run test:electron-startup` | PASS | Electron dev startup ready marker captured with project-local userData. |
+| `npm.cmd run test:electron-auth-bridge` | PASS | Built renderer loaded with secure `window.agentflow.auth` bridge. |
+| `npm.cmd run test:long-run` | PASS | 30.05 minute static fallback long-run; result `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260511130846.json`. |
+| `npm.cmd run shortcut` | PASS | Recreated `LocalAI Nexus.lnk` and script verification passed. |
+| Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut absence verified by COM readback. |
+| Gateway HTTP smoke | PASS | Current run verified `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages`; result `D:\LocalAI Nexus\.codex-parallel\results\gateway-smoke-20260511135910.json`. |
+| `npm.cmd run dist` | ENV-LIMITED | Build and `release/win-unpacked/LocalAI Nexus.exe` generation completed; final packaging failed while extracting `winCodeSign` symlinks due missing Windows privilege. |
 
 ## Language And Theme Repair Evidence
 
 | Check | Result | Notes |
 |---|---:|---|
-| Root directory | PASS | `git rev-parse --show-toplevel` returned `D:/AgentFlowStudio`. |
+| Root directory | PASS | Current workspace is `D:\LocalAI Nexus`; earlier `D:/AgentFlowStudio` entries are historical. |
 | Remote repository | PASS | `origin` points to `https://github.com/2195573507-web/LocalAI-Nexus.git`. |
 | GitHub plugin / CLI | LIMITED | GitHub plugin cache exists, but active Codex plugin exposure only showed Browser Use. `gh` was not installed; `winget install --id GitHub.cli -e` failed while opening the winget source. |
 | Settings light mode | PASS | E2E verifies entering Settings preserves explicit light preference. |
@@ -75,10 +73,10 @@ Verified against the Electron-started Gateway at `http://127.0.0.1:8317`:
 | Token Center | PASS | Usage, trends, quotas/cooldowns, failure categories, and router impact surfaces exist. Deeper enforcement continues next. |
 | Health Monitor | PASS | Local diagnostics, failure categories, repair hints, and router impact surfaces exist. Live remote probes require credentials/network. |
 | Model Router | PASS | Trace IDs, health/tags/quota/cooldown/fallback decisions, and tests are present. |
-| Local Gateway | PASS | Required endpoints, mock/non-streaming path, diagnostics, usage/audit recording, and direct smoke passed. Real upstream streaming continues next. |
+| Local Gateway | PASS | Required endpoints, mock/non-streaming path, diagnostics, usage/audit recording, and direct smoke passed. Real upstream streaming requires credentialed provider validation. |
 | Runtime Switcher | PASS | `.env`, JSON, TOML, YAML, CLI snippets, and root vs `/v1` diagnostics exist without silent external writes. |
 | Skill Hub / Ecosystem | PASS | Prompt and local bundle registry surfaces with validation/risk metadata are present. |
-| Agent/Workflow | PASS | First-class execution-record surfaces with owner/provider/model/context/token data exist. Advanced controls continue next. |
+| Agent/Workflow | PASS | First-class execution-record surfaces, node traces, Chinese failure guidance, and pause/cancel/retry/resume control records exist. Real external-tool approval remains opt-in future hardening. |
 | Shared Memory | PASS | Filters, provenance/stale/context-pack preview/recovery surfaces and redaction-oriented flows exist. |
 | Security Center | PASS | RBAC/ACL visibility, audit/report surface, secret/risk prompts, and redaction surfaces exist. |
 
@@ -90,13 +88,13 @@ Verified against the Electron-started Gateway at `http://127.0.0.1:8317`:
 D:\LocalAI Nexus\release\win-unpacked\LocalAI Nexus.exe
 ```
 
-The packaging command did not complete before the 15-minute verification timeout while electron-builder/app-builder was finalizing the Windows package metadata. The residual packaging processes were stopped after timeout to avoid file locks.
+The packaging command then failed while electron-builder extracted `winCodeSign-2.6.0.7z` into the user cache. `7za.exe` reported it could not create symbolic links for `darwin/10.12/lib/libcrypto.dylib` and `libssl.dylib` because the client lacks the required privilege. Electron-builder retried the download/extract path multiple times and hit the same privilege failure.
 
 This is recorded as an environment/tooling packaging blocker, not as an application typecheck/build/startup failure.
 
 ## Not Yet Fully Tested
 
-- Packaged installer launch, because `npm.cmd run dist` timed out before completing the final installer/package step.
+- Packaged installer launch, because `npm.cmd run dist` did not produce the final installer after the `winCodeSign` symlink privilege failure.
 - Live credentialed provider forwarding with a user-supplied API key.
 - Real upstream streaming through Gateway.
 - Full quota/cooldown/concurrency enforcement beyond current UI/router surfaces.
@@ -116,4 +114,7 @@ npm.cmd run typecheck
 npm.cmd run test
 npm.cmd run build
 npm.cmd run verify
+npm.cmd run test:e2e
+npm.cmd run test:electron-startup
+npm.cmd run test:electron-auth-bridge
 ```

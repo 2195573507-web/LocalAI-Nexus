@@ -40,11 +40,11 @@ const now = Date.now();
 const DEMO_PROJECTS: Project[] = [
   {
     id: 'demo-nexus-1',
-    name: 'Local coding cockpit',
-    idea: 'A local workspace for coordinating AI coding agents, prompts, logs, memories, and release notes.',
+    name: '本地编码控制台',
+    idea: '用于协调 AI 编码 Agent、Prompt、日志、记忆和发布说明的本地工作区。',
     platform: 'Desktop',
     techStack: 'Electron, React, TypeScript, Tailwind',
-    uiStyle: 'Compact desktop tool',
+    uiStyle: '紧凑桌面工具',
     difficulty: 'Medium',
     status: 'active',
     createdAt: new Date(now - 10 * 864e5).toISOString(),
@@ -52,11 +52,11 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-nexus-2',
-    name: 'Provider switchboard',
-    idea: 'Track local and OpenAI-compatible providers without exposing secrets in prompts or exports.',
+    name: 'Provider 切换台',
+    idea: '跟踪本地和 OpenAI 兼容 Provider，同时避免在 Prompt 或导出文件中暴露密钥。',
     platform: 'Desktop',
     techStack: 'Node.js, Electron IPC',
-    uiStyle: 'Compact admin surface',
+    uiStyle: '紧凑管理界面',
     difficulty: 'Hard',
     status: 'planning',
     createdAt: new Date(now - 5 * 864e5).toISOString(),
@@ -64,11 +64,11 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-nexus-3',
-    name: 'Memory recovery kit',
-    idea: 'Capture decisions, issue fixes, and handoff context so another model can resume the project cleanly.',
+    name: '记忆恢复工具包',
+    idea: '记录决策、问题修复和交接上下文，让其他模型可以干净接手项目。',
     platform: 'Web',
     techStack: 'React, JSON storage',
-    uiStyle: 'Linear-inspired knowledge hub',
+    uiStyle: '知识管理界面',
     difficulty: 'Medium',
     status: 'done',
     createdAt: new Date(now - 21 * 864e5).toISOString(),
@@ -77,27 +77,27 @@ const DEMO_PROJECTS: Project[] = [
 ];
 
 const DEMO_TASKS: Task[] = [
-  { id: 'task-1', projectId: 'demo-nexus-1', title: 'Connect the first local project', status: 'done', priority: 'high', createdAt: new Date(now - 6 * 864e5).toISOString() },
-  { id: 'task-2', projectId: 'demo-nexus-1', title: 'Generate task prompts for the next coding agent', status: 'in_progress', priority: 'high', createdAt: new Date(now - 2 * 864e5).toISOString() },
-  { id: 'task-3', projectId: 'demo-nexus-2', title: 'Test provider connection before using it in prompts', status: 'todo', priority: 'medium', createdAt: new Date(now - 864e5).toISOString() },
-  { id: 'task-4', projectId: 'demo-nexus-3', title: 'Save recovery context to Shared Memory', status: 'done', priority: 'medium', createdAt: new Date(now - 4 * 864e5).toISOString() },
+  { id: 'task-1', projectId: 'demo-nexus-1', title: '连接第一个本地项目', status: 'done', priority: 'high', createdAt: new Date(now - 6 * 864e5).toISOString() },
+  { id: 'task-2', projectId: 'demo-nexus-1', title: '为下一个编码 Agent 生成任务 Prompt', status: 'in_progress', priority: 'high', createdAt: new Date(now - 2 * 864e5).toISOString() },
+  { id: 'task-3', projectId: 'demo-nexus-2', title: '在写入 Prompt 前测试 Provider 连接', status: 'todo', priority: 'medium', createdAt: new Date(now - 864e5).toISOString() },
+  { id: 'task-4', projectId: 'demo-nexus-3', title: '保存 Shared Memory 恢复上下文', status: 'done', priority: 'medium', createdAt: new Date(now - 4 * 864e5).toISOString() },
 ];
 
 const DEMO_PROMPTS: SavedPrompt[] = [
-  { id: 'prompt-1', name: 'Implementation handoff prompt', templateId: 'handoff', variables: {}, content: 'Read the local project context, preserve existing changes, implement the next scoped task, and report verification.', starred: true, favorite: true, createdAt: new Date(now - 2 * 3600e3).toISOString() },
-  { id: 'prompt-2', name: 'Safety review prompt', templateId: 'safety', variables: {}, content: 'Review the command for destructive behavior, secret exposure, and safer alternatives before execution.', starred: false, createdAt: new Date(now - 2 * 864e5).toISOString() },
+  { id: 'prompt-1', name: '实现交接 Prompt', templateId: 'handoff', variables: {}, content: '读取本地项目上下文，保留现有改动，实施下一个明确任务，并报告验证结果。', starred: true, favorite: true, createdAt: new Date(now - 2 * 3600e3).toISOString() },
+  { id: 'prompt-2', name: '安全审查 Prompt', templateId: 'safety', variables: {}, content: '执行前检查命令是否存在破坏性行为、密钥泄露和更安全替代方案。', starred: false, createdAt: new Date(now - 2 * 864e5).toISOString() },
 ];
 
 const DEMO_MEMORIES: Memory[] = [
-  { id: 'memory-1', type: 'decision', title: 'Local-first orchestration', content: 'Project context, provider settings, and memories stay local unless the user exports them.', tags: ['local-first', 'architecture'], importance: 5, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 3600e3).toISOString(), createdAt: new Date(now - 5 * 864e5).toISOString(), updatedAt: new Date(now - 3600e3).toISOString() },
-  { id: 'memory-2', type: 'safety_check', title: 'Shortcut launch policy', content: 'Desktop shortcuts should prefer the Electron entry and skip devtools to avoid startup noise.', tags: ['launcher', 'safety'], importance: 4, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 2 * 3600e3).toISOString(), createdAt: new Date(now - 3 * 864e5).toISOString(), updatedAt: new Date(now - 2 * 3600e3).toISOString() },
+  { id: 'memory-1', type: 'decision', title: '本地优先编排', content: '除非用户主动导出，否则项目上下文、Provider 设置和记忆都留在本地。', tags: ['local-first', 'architecture'], importance: 5, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 3600e3).toISOString(), createdAt: new Date(now - 5 * 864e5).toISOString(), updatedAt: new Date(now - 3600e3).toISOString() },
+  { id: 'memory-2', type: 'safety_check', title: '快捷方式启动策略', content: '桌面快捷方式应优先指向 Electron 入口，并跳过 devtools，减少启动噪音。', tags: ['launcher', 'safety'], importance: 4, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 2 * 3600e3).toISOString(), createdAt: new Date(now - 3 * 864e5).toISOString(), updatedAt: new Date(now - 2 * 3600e3).toISOString() },
 ];
 
 const statusLabel: Record<string, string> = {
-  active: 'Active',
-  planning: 'Planning',
-  paused: 'Paused',
-  done: 'Done',
+  active: '进行中',
+  planning: '规划中',
+  paused: '已暂停',
+  done: '已完成',
 };
 
 const statusClass: Record<string, string> = {
@@ -221,8 +221,8 @@ export default function Dashboard() {
   const hasMemories = memories.length > 0;
   const hasSafetyChecks = riskCount > 0;
   const activeProviderRecord = providers.find((provider) => provider.id === activeProvider.providerRef);
-  const providerHealth = healthState?.latest[0]?.status ?? 'Unknown';
-  const recentFailure = usageSummary?.recentFailureReason ?? 'None';
+  const providerHealth = healthState?.latest[0]?.status ?? '未知';
+  const recentFailure = usageSummary?.recentFailureReason ?? '暂无';
   const gatewayOnline = Boolean(gatewayStatus?.online);
 
   const startGateway = async () => {
@@ -239,56 +239,56 @@ export default function Dashboard() {
   const firstRunSteps = [
     {
       label: 'Provider',
-      title: 'Add a provider',
-      body: 'Connect OpenAI-compatible, Anthropic-compatible, Gemini, Ollama, or custom local providers.',
+      title: '添加 Provider',
+      body: '连接 OpenAI 兼容、Anthropic 兼容、Gemini、Ollama 或自定义本地 Provider。',
       icon: KeyRound,
       route: '/providers',
       done: providers.length > 0,
     },
     {
       label: 'Gateway',
-      title: 'Start the local gateway',
-      body: 'Expose the local OpenAI-compatible gateway at http://127.0.0.1:8317.',
+      title: '启动本地 Gateway',
+      body: '在 http://127.0.0.1:8317 暴露本地 OpenAI 兼容 Gateway。',
       icon: Activity,
       route: '/gateway',
       done: gatewayOnline,
     },
     {
       label: 'Workflow',
-      title: 'Create the first workflow',
-      body: 'Bind a task, prompt skill, provider route, and audit timeline into a repeatable run.',
+      title: '创建第一个 Workflow',
+      body: '把任务、Prompt Skill、Provider 路由和审计时间线绑定成可重复运行。',
       icon: Workflow,
       route: '/workflows',
       done: hasTasks,
     },
     {
       label: 'Project',
-      title: 'Create or open a project',
-      body: 'Capture the goal, constraints, stack, and delivery boundary before asking an agent to act.',
+      title: '创建或打开项目',
+      body: '让 Agent 执行前先记录目标、约束、技术栈和交付边界。',
       icon: FolderKanban,
       route: '/projects',
       done: hasProjects,
     },
     {
       label: 'Prompt',
-      title: 'Generate the handoff prompt',
-      body: 'Turn a scoped task into an executable prompt for Codex, Claude Code, Cursor, or another agent.',
+      title: '生成交接 Prompt',
+      body: '把明确任务转换为 Codex、Claude Code、Cursor 或其他 Agent 可执行的 Prompt。',
       icon: Wand2,
       route: '/prompts',
       done: hasPrompts,
     },
     {
       label: 'Guard',
-      title: 'Check risky commands',
-      body: 'Run command ideas through Safety before they touch the local workspace.',
+      title: '检查高风险命令',
+      body: '命令真正触碰本地工作区前，先通过 Safety 做风险检查。',
       icon: Shield,
       route: '/safety',
       done: hasSafetyChecks,
     },
     {
       label: 'Memory',
-      title: 'Save recovery context',
-      body: 'Store decisions, fixes, and handoff notes so the next model can resume without guesswork.',
+      title: '保存恢复上下文',
+      body: '保存决策、修复和交接说明，让下一个模型不用猜测即可接手。',
       icon: Brain,
       route: '/memory',
       done: hasMemories,
@@ -298,12 +298,12 @@ export default function Dashboard() {
   const nextStep = firstRunSteps.find((step) => !step.done) || firstRunSteps[firstRunSteps.length - 1];
 
   const quickActions = [
-    { label: 'Provider Hub', icon: Settings, route: '/providers', tone: 'text-blue-500' },
-    { label: 'Runtime Profile', icon: Activity, route: '/runtime', tone: 'text-emerald-500' },
-    { label: 'Skill Hub', icon: Wand2, route: '/skills', tone: 'text-violet-500' },
-    { label: 'Diagnostics', icon: FileSearch, route: '/diagnostics', tone: 'text-amber-500' },
+    { label: 'Provider 中心', icon: Settings, route: '/providers', tone: 'text-blue-500' },
+    { label: 'Runtime 配置', icon: Activity, route: '/runtime', tone: 'text-emerald-500' },
+    { label: 'Skill 中心', icon: Wand2, route: '/skills', tone: 'text-violet-500' },
+    { label: '诊断中心', icon: FileSearch, route: '/diagnostics', tone: 'text-amber-500' },
     { label: 'Shared Memory', icon: Brain, route: '/memory', tone: 'text-rose-500' },
-    { label: 'Git Timeline', icon: GitBranch, route: '/git', tone: 'text-cyan-500' },
+    { label: 'Git 时间线', icon: GitBranch, route: '/git', tone: 'text-cyan-500' },
   ];
 
   if (loading) {
@@ -328,7 +328,7 @@ export default function Dashboard() {
       {!apiAvailable && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-200">
           <Sparkles className="h-4 w-4 shrink-0" />
-          LocalAI Nexus is showing demo data because the desktop data bridge is not available in this session.
+          当前会话无法访问桌面数据桥，LocalAI Nexus 正在显示安全演示数据。
         </div>
       )}
 
@@ -337,13 +337,13 @@ export default function Dashboard() {
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-accent-700 dark:text-accent-300">
               <Activity className="h-3.5 w-3.5" />
-              Local-first AI orchestration hub
+              本地优先 AI 编排中心
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               LocalAI Nexus
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-              Bring projects, model providers, task prompts, safety checks, logs, git context, and shared memory into one local control surface.
+              在一个本地控制台中管理项目、模型 Provider、任务 Prompt、安全检查、日志、Git 上下文和 Shared Memory。
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
@@ -355,7 +355,7 @@ export default function Dashboard() {
                 className="focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white  transition-colors hover:bg-accent-500"
                 disabled={gatewayBusy}
               >
-                {gatewayBusy ? 'Starting gateway...' : `Continue: ${nextStep.title}`}
+                {gatewayBusy ? '正在启动 Gateway...' : `继续：${nextStep.title}`}
                 <ArrowRight className="h-4 w-4" />
               </button>
               <button
@@ -364,7 +364,7 @@ export default function Dashboard() {
                 className="focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)]"
               >
                 <RefreshCw className="h-4 w-4" />
-                Refresh
+                刷新
               </button>
             </div>
           </div>
@@ -372,7 +372,7 @@ export default function Dashboard() {
           <div className="rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-4  dark:bg-[var(--surface-muted)]">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-secondary)]">
               <ClipboardCheck className="h-4 w-4" />
-              First-run checklist
+              首次运行检查清单
             </div>
             <div className="mt-4 space-y-2">
               {firstRunSteps.slice(0, 3).map((step) => (
@@ -401,14 +401,14 @@ export default function Dashboard() {
             <div>
               <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Gateway</p>
               <h2 className="mt-1 text-lg font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-                {gatewayOnline ? 'Online' : 'Offline'}
+                {gatewayOnline ? '在线' : '离线'}
               </h2>
               <p className="mt-1 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                 {gatewayStatus?.baseUrl ?? 'http://127.0.0.1:8317'}
               </p>
             </div>
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ${gatewayOnline ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-600 dark:text-amber-300'}`}>
-              {gatewayOnline ? 'Ready' : 'Start needed'}
+              {gatewayOnline ? '就绪' : '需要启动'}
             </span>
           </div>
           {!gatewayOnline && (
@@ -419,46 +419,46 @@ export default function Dashboard() {
               disabled={gatewayBusy}
             >
               <PlayCircle className="h-3.5 w-3.5" />
-              {gatewayBusy ? 'Starting' : 'Start Gateway'}
+              {gatewayBusy ? '启动中' : '启动 Gateway'}
             </button>
           )}
         </SurfaceCard>
 
         <SurfaceCard className="p-4">
-          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Default Provider</p>
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">默认 Provider</p>
           <h2 className="mt-1 truncate text-lg font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
-            {activeProviderRecord?.providerName || 'Not selected'}
+            {activeProviderRecord?.providerName || '未选择'}
           </h2>
           <p className="mt-1 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-            {activeProvider.model || activeProviderRecord?.modelName || 'Choose a model in Provider Hub'}
+            {activeProvider.model || activeProviderRecord?.modelName || '请在 Provider 中心选择模型'}
           </p>
         </SurfaceCard>
 
         <SurfaceCard className="p-4">
-          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Token Today</p>
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">今日 Token</p>
           <h2 className="mt-1 text-lg font-bold tabular-nums text-[var(--text-primary)] dark:text-[var(--text-primary)]">
             {usageSummary?.totalTokens ?? 0}
           </h2>
           <p className="mt-1 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-            {usageSummary?.todayRequests ?? 0} requests / failure {Math.round((usageSummary?.failureRate ?? 0) * 100)}%
+            {usageSummary?.todayRequests ?? 0} 次请求 / 失败率 {Math.round((usageSummary?.failureRate ?? 0) * 100)}%
           </p>
         </SurfaceCard>
 
         <SurfaceCard className="p-4">
-          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Health</p>
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">健康状态</p>
           <h2 className="mt-1 text-lg font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{providerHealth}</h2>
           <p className="mt-1 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-            Recent failure: {recentFailure}
+            最近失败：{recentFailure}
           </p>
         </SurfaceCard>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <StatCard icon={FolderKanban} label="Projects" value={projects.length} color="blue" onClick={() => navigate('/projects')} />
-        <StatCard icon={CheckSquare} label="Tasks" value={tasks.length} color="emerald" onClick={() => navigate('/projects')} />
-        <StatCard icon={Wand2} label="Prompts" value={prompts.length} color="purple" onClick={() => navigate('/prompts')} />
-        <StatCard icon={Shield} label="Safety checks" value={riskCount} color="amber" onClick={() => navigate('/safety')} />
-        <StatCard icon={Brain} label="Memories" value={memories.length} color="pink" onClick={() => navigate('/memory')} />
+        <StatCard icon={FolderKanban} label="项目" value={projects.length} color="blue" onClick={() => navigate('/projects')} />
+        <StatCard icon={CheckSquare} label="任务" value={tasks.length} color="emerald" onClick={() => navigate('/projects')} />
+        <StatCard icon={Wand2} label="Prompt" value={prompts.length} color="purple" onClick={() => navigate('/prompts')} />
+        <StatCard icon={Shield} label="安全检查" value={riskCount} color="amber" onClick={() => navigate('/safety')} />
+        <StatCard icon={Brain} label="记忆" value={memories.length} color="pink" onClick={() => navigate('/memory')} />
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -478,12 +478,12 @@ export default function Dashboard() {
       <SurfaceCard className="p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">Nexus path</h2>
+            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">Nexus 路径</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-              A practical route from first idea to recoverable agent handoff.
+              从最初想法到可恢复 Agent 交接的实用路径。
             </p>
           </div>
-          <span className="text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">Local data, explicit handoffs, safer execution</span>
+          <span className="text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">本地数据、明确交接、更安全执行</span>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {firstRunSteps.map((step) => (
@@ -510,10 +510,10 @@ export default function Dashboard() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <FolderKanban className="h-4 w-4 text-blue-500" />
-              Recent projects
+              最近项目
             </h2>
             <button type="button" onClick={() => navigate('/projects')} className="text-xs font-semibold text-accent-600 dark:text-accent-300">
-              View all
+              查看全部
             </button>
           </div>
           {recentProjects.length > 0 ? (
@@ -537,7 +537,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <EmptyState icon={FolderKanban} title="No projects yet" description="Create a project to start building a recoverable AI workflow." actionLabel="Create project" onAction={() => navigate('/projects')} />
+            <EmptyState icon={FolderKanban} title="暂无项目" description="创建项目后再构建可恢复的 AI Workflow。" actionLabel="创建项目" onAction={() => navigate('/projects')} />
           )}
         </SurfaceCard>
 
@@ -545,10 +545,10 @@ export default function Dashboard() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <Wand2 className="h-4 w-4 text-violet-500" />
-              Recent prompts
+              最近 Prompt
             </h2>
             <button type="button" onClick={() => navigate('/prompts')} className="text-xs font-semibold text-accent-600 dark:text-accent-300">
-              Open Lab
+              打开实验室
             </button>
           </div>
           {recentPrompts.length > 0 ? (
@@ -562,7 +562,7 @@ export default function Dashboard() {
                 >
                   <Database className="h-4 w-4 shrink-0 text-violet-500" />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{prompt.name || prompt.title || 'Untitled prompt'}</div>
+                    <div className="truncate text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{prompt.name || prompt.title || '未命名 Prompt'}</div>
                     <div className="mt-0.5 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">{truncate(prompt.content, 84)}</div>
                   </div>
                   {(prompt.starred || prompt.favorite) && <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />}
@@ -570,13 +570,13 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <EmptyState icon={Wand2} title="No saved prompts yet" description="Use Prompt Lab to turn tasks into reusable agent handoffs." actionLabel="Open Prompt Lab" onAction={() => navigate('/prompts')} />
+            <EmptyState icon={Wand2} title="暂无已保存 Prompt" description="使用 Prompt Lab 把任务转换为可复用的 Agent 交接。" actionLabel="打开 Prompt Lab" onAction={() => navigate('/prompts')} />
           )}
         </SurfaceCard>
       </div>
 
       <p className="pb-2 text-center text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-        LocalAI Nexus {apiAvailable ? '' : '- demo mode'}
+        LocalAI Nexus {apiAvailable ? '' : '- 演示模式'}
       </p>
     </div>
   );

@@ -74,10 +74,10 @@ export default function ProviderHub() {
       id: editingId || generateId(),
     } as ProviderSetting;
     const saved = editingId ? await api.providers.update(editingId, payload) : await api.providers.create(payload);
-    if (!saved) setMessage('Provider save failed.');
-    else if ('error' in saved) setMessage(typeof saved.error === 'string' ? saved.error : 'Provider save failed.');
+    if (!saved) setMessage('Provider 保存失败。');
+    else if ('error' in saved) setMessage(typeof saved.error === 'string' ? saved.error : 'Provider 保存失败。');
     else {
-      setMessage(`${editingId ? 'Updated' : 'Saved'} ${saved.providerName}`);
+      setMessage(`${editingId ? '已更新' : '已保存'} ${saved.providerName}`);
       setOpen(false);
       setEditingId('');
       await load();
@@ -86,43 +86,43 @@ export default function ProviderHub() {
 
   const test = async (provider: ProviderSetting) => {
     const result = await api.providers.testConnection(provider.id);
-    setMessage('error' in result ? String(result.error) : String(result.message ?? 'Provider test finished.'));
+    setMessage('error' in result ? String(result.error) : String(result.message ?? 'Provider 测试完成。'));
     await load();
   };
 
   const switchProvider = async (provider: ProviderSetting) => {
     const result = await api.providers.setActive({ providerRef: provider.id, model: provider.modelName, scope: 'workspace' });
-    setMessage('error' in result ? result.error : `Active provider: ${provider.providerName} / ${provider.modelName}`);
+    setMessage('error' in result ? result.error : `当前 Provider：${provider.providerName} / ${provider.modelName}`);
     await load();
   };
 
   const toggleEnabled = async (provider: ProviderSetting, enabled: boolean) => {
     const result = await api.providers.update(provider.id, { enabled });
-    setMessage(!result ? 'Provider update failed.' : 'error' in result ? String(result.error) : `${provider.providerName} ${enabled ? 'enabled' : 'disabled'}.`);
+    setMessage(!result ? 'Provider 更新失败。' : 'error' in result ? String(result.error) : `${provider.providerName} 已${enabled ? '启用' : '禁用'}。`);
     setDisableTarget(null);
     await load();
   };
 
   const removeProvider = async (provider: ProviderSetting) => {
     await api.providers.delete(provider.id);
-    setMessage(`Deleted ${provider.providerName}.`);
+    setMessage(`已删除 ${provider.providerName}。`);
     setDeleteTarget(null);
     await load();
   };
 
-  if (loading) return <div className="mx-auto max-w-7xl p-6"><div className="surface-card p-6">Loading Provider Hub...</div></div>;
+  if (loading) return <div className="mx-auto max-w-7xl p-6"><div className="surface-card p-6">正在加载 Provider 中心...</div></div>;
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-6">
       <section className="surface-card p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Provider Hub</h1>
-            <p className="mt-2 text-sm text-[var(--text-secondary)]">Create, test, switch, and audit OpenAI-compatible, Anthropic-compatible, Gemini, Ollama, and custom providers. Raw keys stay in the main process.</p>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Provider 中心</h1>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">创建、测试、切换并审计 OpenAI 兼容、Anthropic 兼容、Gemini、Ollama 和自定义 Provider。明文密钥只留在主进程。</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={load} icon={<RefreshCw className="h-4 w-4" />}>Refresh</Button>
-            <Button onClick={() => { resetFromPreset(); setOpen(true); }} icon={<Plus className="h-4 w-4" />}>Add Provider</Button>
+            <Button variant="secondary" onClick={load} icon={<RefreshCw className="h-4 w-4" />}>刷新</Button>
+            <Button onClick={() => { resetFromPreset(); setOpen(true); }} icon={<Plus className="h-4 w-4" />}>添加 Provider</Button>
           </div>
         </div>
       </section>
@@ -131,7 +131,7 @@ export default function ProviderHub() {
 
       {providers.length === 0 ? (
         <SurfaceCard className="p-8">
-          <EmptyState icon={Server} title="No providers configured" description="Add a local mock provider for CI-safe routing or configure a compatible provider with masked credentials." actionLabel="Add Provider" onAction={() => setOpen(true)} />
+          <EmptyState icon={Server} title="暂无 Provider" description="添加本地 mock Provider 用于 CI 安全路由，或配置带脱敏凭据的兼容 Provider。" actionLabel="添加 Provider" onAction={() => setOpen(true)} />
         </SurfaceCard>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -142,36 +142,36 @@ export default function ProviderHub() {
                   <h2 className="truncate text-base font-semibold text-[var(--text-primary)]">{provider.providerName}</h2>
                   <p className="mt-1 truncate font-mono text-xs text-[var(--text-muted)]">{provider.baseUrl}</p>
                 </div>
-                {active.providerRef === provider.id && <Badge>Active</Badge>}
+                {active.providerRef === provider.id && <Badge>当前</Badge>}
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge>{provider.providerId ?? 'custom'}</Badge>
                 <Badge>{provider.modelName}</Badge>
-                <Badge>{provider.enabled === false ? 'disabled' : 'enabled'}</Badge>
-                <Badge>{provider.lastTestStatus ?? 'untested'}</Badge>
-                {provider.supportsStreaming && <Badge>streaming</Badge>}
+                <Badge>{provider.enabled === false ? '已禁用' : '已启用'}</Badge>
+                <Badge>{provider.lastTestStatus ?? '未测试'}</Badge>
+                {provider.supportsStreaming && <Badge>支持流式</Badge>}
               </div>
               <div className="mt-4 rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs text-[var(--text-secondary)]">
-                <div className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5" /> Key: {provider.apiKey || provider.needsApiKey === false ? 'masked or not required' : 'missing'}</div>
-                <div className="mt-1 flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> {provider.lastTestMessage ?? 'Run diagnostics before making this provider active.'}</div>
+                <div className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5" /> 密钥：{provider.apiKey || provider.needsApiKey === false ? '已脱敏或不需要' : '缺失'}</div>
+                <div className="mt-1 flex items-center gap-2"><Activity className="h-3.5 w-3.5" /> {provider.lastTestMessage ?? '设为当前 Provider 前请先运行诊断。'}</div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" onClick={() => void test(provider)}>Test</Button>
-                <Button size="sm" onClick={() => void switchProvider(provider)}>Set Active</Button>
-                <Button size="sm" variant="ghost" onClick={() => openEdit(provider)} aria-label={`Edit ${provider.providerName}`}>
+                <Button size="sm" variant="secondary" onClick={() => void test(provider)}>测试</Button>
+                <Button size="sm" onClick={() => void switchProvider(provider)}>设为当前</Button>
+                <Button size="sm" variant="ghost" onClick={() => openEdit(provider)} aria-label={`编辑 ${provider.providerName}`}>
                   <Edit3 className="h-4 w-4" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => openEdit(provider, true)} aria-label={`Rotate key for ${provider.providerName}`}>
                   <RotateCcw className="h-4 w-4" />
                 </Button>
                 {provider.enabled === false ? (
-                  <Button size="sm" variant="secondary" onClick={() => void toggleEnabled(provider, true)}>Enable</Button>
+                  <Button size="sm" variant="secondary" onClick={() => void toggleEnabled(provider, true)}>启用</Button>
                 ) : (
-                  <Button size="sm" variant="ghost" onClick={() => setDisableTarget(provider)} aria-label={`Disable ${provider.providerName}`}>
+                <Button size="sm" variant="ghost" onClick={() => setDisableTarget(provider)} aria-label={`禁用 ${provider.providerName}`}>
                     <PauseCircle className="h-4 w-4" />
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" className="text-red-500" onClick={() => setDeleteTarget(provider)} aria-label={`Delete ${provider.providerName}`}>
+                <Button size="sm" variant="ghost" className="text-red-500" onClick={() => setDeleteTarget(provider)} aria-label={`删除 ${provider.providerName}`}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -180,7 +180,7 @@ export default function ProviderHub() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => { setOpen(false); setEditingId(''); }} title={editingId ? 'Edit Provider' : 'Add Provider'} size="lg">
+      <Modal open={open} onClose={() => { setOpen(false); setEditingId(''); }} title={editingId ? '编辑 Provider' : '添加 Provider'} size="lg">
         <div className="space-y-4">
           <label className="block text-xs font-semibold text-[var(--text-secondary)]">Preset</label>
           <select className="control-input" value={presetId} onChange={(event) => resetFromPreset(event.target.value)}>
@@ -188,35 +188,35 @@ export default function ProviderHub() {
             <option value="localai-mock">LocalAI Mock</option>
           </select>
           <div className="grid gap-3 md:grid-cols-2">
-            <Input label="Name" value={form.providerName} onChange={(event) => setForm((prev) => ({ ...prev, providerName: event.target.value }))} />
-            <Input label="Model" value={form.modelName} onChange={(event) => setForm((prev) => ({ ...prev, modelName: event.target.value }))} />
+            <Input label="名称" value={form.providerName} onChange={(event) => setForm((prev) => ({ ...prev, providerName: event.target.value }))} />
+            <Input label="模型" value={form.modelName} onChange={(event) => setForm((prev) => ({ ...prev, modelName: event.target.value }))} />
           </div>
           <Input label="Base URL" value={form.baseUrl} onChange={(event) => setForm((prev) => ({ ...prev, baseUrl: event.target.value }))} />
-          <Input label={editingId ? 'API Key / rotate credential' : 'API Key'} type="password" icon={<KeyRound className="h-4 w-4" />} value={form.apiKey} onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="Stored protected; renderer sees only a mask after save." />
+          <Input label={editingId ? 'API Key / 轮换凭据' : 'API Key'} type="password" icon={<KeyRound className="h-4 w-4" />} value={form.apiKey} onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="受保护存储；保存后渲染进程只看到脱敏值。" />
           <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <input type="checkbox" checked={form.enabled !== false} onChange={(event) => setForm((prev) => ({ ...prev, enabled: event.target.checked }))} />
-            Enabled for routing
+            启用路由
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={save}>{editingId ? 'Update Provider' : 'Save Provider'}</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>取消</Button>
+          <Button onClick={save}>{editingId ? '更新 Provider' : '保存 Provider'}</Button>
         </div>
       </Modal>
 
-      <Modal open={!!disableTarget} onClose={() => setDisableTarget(null)} title="Disable Provider" size="sm">
-        <p className="text-sm text-[var(--text-secondary)]">Disable {disableTarget?.providerName}? Model Router will skip it and audit the change.</p>
+      <Modal open={!!disableTarget} onClose={() => setDisableTarget(null)} title="禁用 Provider" size="sm">
+        <p className="text-sm text-[var(--text-secondary)]">禁用 {disableTarget?.providerName}？模型路由会跳过它，并记录审计事件。</p>
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="ghost" onClick={() => setDisableTarget(null)}>Cancel</Button>
-          <Button variant="secondary" onClick={() => disableTarget && void toggleEnabled(disableTarget, false)}>Disable</Button>
+          <Button variant="ghost" onClick={() => setDisableTarget(null)}>取消</Button>
+          <Button variant="secondary" onClick={() => disableTarget && void toggleEnabled(disableTarget, false)}>禁用</Button>
         </div>
       </Modal>
 
-      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Provider" size="sm">
-        <p className="text-sm text-[var(--text-secondary)]">Delete {deleteTarget?.providerName}? Runtime profiles and existing traces remain, but this provider can no longer be routed.</p>
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="删除 Provider" size="sm">
+        <p className="text-sm text-[var(--text-secondary)]">删除 {deleteTarget?.providerName}？Runtime 配置和历史 trace 会保留，但该 Provider 不再参与路由。</p>
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
-          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button variant="danger" onClick={() => deleteTarget && void removeProvider(deleteTarget)}>Delete</Button>
+          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>取消</Button>
+          <Button variant="danger" onClick={() => deleteTarget && void removeProvider(deleteTarget)}>删除</Button>
         </div>
       </Modal>
     </div>

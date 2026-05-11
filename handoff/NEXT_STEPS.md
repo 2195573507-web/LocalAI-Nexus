@@ -6,7 +6,7 @@ LocalAI Nexus is the active product identity on branch `refactor-localai-nexus`.
 
 The app now has a verified desktop shell, icon, shortcut, dashboard, first-class Provider/Token/Health/Router/Gateway/Runtime/Diagnostics/Agent/Security/Ecosystem pages, CI-safe gateway/provider paths, runtime exports, context/security reports, Shared Memory context-pack surfaces, and local bundle registry behavior.
 
-The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`. The archived long-term multi-round plan is `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`; it is plan-only and does not represent implemented feature work.
+The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`. The long-term multi-round plan at `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` started as a plan-only archive; on 2026-05-11 it was executed to the local, credential-free verification boundary. Live provider credentials, real upstream streaming, and installer packaging remain separate proof steps.
 
 ## Next-Round Priorities
 
@@ -21,26 +21,26 @@ The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`. The archived
    - Add abort/cancel/timeout trace accounting.
 
 3. **Token Policy Enforcement**
-   - Make quota, cooldown, concurrency, and per-model policy records actively affect router decisions.
-   - Show enforcement effects on Provider Hub, Token Center, Model Router, and Dashboard.
+   - Current local unit/router coverage proves quota, cooldown, and concurrency decisions.
+   - Next proof step is credentialed live provider traffic that demonstrates the same enforcement in runtime usage records.
 
 4. **Agent/Workflow Execution Controls**
-   - Add pause, cancel, retry-safe-node, and resume behavior where safe.
-   - Require human ownership and explicit permission for risky tool/MCP actions.
+   - Current main-process records support pause, cancel, retry-safe-node, and resume state transitions with audit/run-event evidence.
+   - Next proof step is explicit approval for real risky tool/MCP actions, not arbitrary command execution.
 
 5. **Memory Graph And Recovery Packs**
    - Add graph/list relationship views and stale-memory review.
    - Build source-explicit context packs and recovery prompts with strict redaction.
 
 6. **Packaging And Release Hardening**
-   - Re-run `npm.cmd run dist` with a longer timeout or corrected electron-builder/app-builder environment.
+   - Re-run `npm.cmd run dist` after enabling symlink creation privileges or using a release machine whose electron-builder cache extraction can create symlinks.
    - Verify installer artifact, shortcut, startup, auth bridge, static fallback, long-run, and accessibility before release.
 
 ## Remaining Risks
 
 - Real credentialed provider behavior is not proven without user-supplied keys.
-- Real upstream streaming pass-through is still next-stage work.
-- `npm.cmd run dist` currently builds and produces `release/win-unpacked/LocalAI Nexus.exe`, but the final electron-builder/app-builder package step exceeded the local verification timeout.
+- Real upstream streaming pass-through is still next-stage work beyond CI-safe mock streaming.
+- `npm.cmd run dist` currently builds and produces `release/win-unpacked/LocalAI Nexus.exe`, but final packaging is blocked when electron-builder extracts `winCodeSign-2.6.0.7z` and cannot create symlinks for bundled macOS libraries under the current Windows account.
 - Compatibility names remain for bridge/storage/launcher stability: `window.agentflow`, `agentflow-data`, `start-agentflow*.bat`.
 - Historical handoff/archive files still mention AgentFlow Studio; active top-level docs explain the evolution.
 
@@ -69,11 +69,12 @@ powershell -NoProfile -Command "Invoke-RestMethod http://127.0.0.1:8317/v1/model
 3. `handoff/TEST_REPORT.md`
 4. `handoff/NEXT_STEPS.md`
 5. `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
-6. `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`
-7. `docs/PROJECT_WORKLOG.md`
-8. `docs/PROJECT_STRUCTURE_AUDIT.md`
-9. `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
-10. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
+6. `docs/LOCALAI_NEXUS_VERIFICATION_MATRIX.md`
+7. `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`
+8. `docs/PROJECT_WORKLOG.md`
+9. `docs/PROJECT_STRUCTURE_AUDIT.md`
+10. `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
+11. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 
 ## Completion Discipline
 

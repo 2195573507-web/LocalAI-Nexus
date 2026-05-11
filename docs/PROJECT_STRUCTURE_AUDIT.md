@@ -3,7 +3,7 @@
 ## 1. Current Directory Overview
 
 ```text
-D:\AgentFlowStudio
+D:\LocalAI Nexus
 |-- .agents/          local AI agent skill definitions
 |-- .git/             Git history, must keep
 |-- archive/          archived process files and old reports
@@ -163,13 +163,13 @@ Deleted after archival or because they were generated process records:
 - New shortcut target points directly to Electron:
 
 ```text
-D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
+D:\LocalAI Nexus\node_modules\electron\dist\electron.exe
 ```
 
 Arguments:
 
 ```text
-"D:\AgentFlowStudio\dist-electron\main\index.js"
+"D:\LocalAI Nexus\dist-electron\main\index.js"
 ```
 
 ## 11. Startup Popup Check
@@ -247,7 +247,7 @@ New active files from the Iteration 0-12 closeout include:
 Verification status:
 
 - All standard build, unit, smoke, verify, E2E, static, startup, auth bridge, long-run, shortcut, and gateway smoke gates passed.
-- `release/` remains generated/regenerable. Installer packaging is blocked by a local electron-builder/app-builder timeout after `release/win-unpacked/LocalAI Nexus.exe` is generated.
+- `release/` remains generated/regenerable. Installer packaging is blocked after `release/win-unpacked/LocalAI Nexus.exe` is generated because electron-builder `winCodeSign` cache extraction cannot create symlinks under the current Windows account.
 
 ## 14. 2026-05-11 Cleanup Pass
 

@@ -9,11 +9,26 @@ Product: LocalAI Nexus
 
 LocalAI Nexus is the active product identity in the existing `D:\LocalAI Nexus` repository. The work stayed in place, preserving Git history, JSON storage, the Shared Memory Hub, Electron security boundaries, static fallback recovery behavior, and `window.agentflow` compatibility.
 
-This progress file reflects the closeout of both the previous lightweight UI plan and `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` Iteration 0-12.
+This progress file reflects the closeout of the previous lightweight UI plan, `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` Iteration 0-12, and the current execution pass for `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`.
+
+## 2026-05-11 Multi-Round Iteration Execution
+
+- Treated `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` as approved execution scope after the user explicitly requested completion.
+- Kept the work in the existing `D:\LocalAI Nexus` repository and preserved JSON storage, Shared Memory Hub, Electron IPC/preload security boundaries, and compatibility names such as `window.agentflow`.
+- Completed a targeted structure/doc audit and corrected active structure references that still pointed at `D:\AgentFlowStudio`.
+- Completed the first-run Dashboard path with Chinese-first checklist actions for Provider, Gateway, Workflow, Project, Prompt, Guard, and Memory.
+- Completed Chinese-first visible copy for Dashboard, Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Workflow Studio controls, Security Center, Ecosystem, Login, Admin, and Projects high-visibility states.
+- Repaired Login page mojibake and localized Workflow runtime validation/failure/next-step guidance.
+- Preserved required English technical terms where they are product/ecosystem terms: Agent, Workflow, Provider, Gateway, Runtime, MCP, API, Token, JSON, CLI, E2E, trace, Base URL.
+- Verified that Agent/Workflow pause, cancel, retry-safe-node, and resume actions are main-process controlled records with audit/run-event evidence; arbitrary command execution remains unavailable through IPC.
+- Added `docs/LOCALAI_NEXUS_VERIFICATION_MATRIX.md` for change-type quality gates and report discipline.
+- Updated E2E/unit expectations for Chinese-first UI and runtime messages.
+
+Current completion boundary: all seven rounds are completed to the local, credential-free, source-verifiable level. Live provider forwarding, real upstream streaming, installer packaging completion, and external-tool approval against real MCP/tools remain environment- or credential-limited and must not be reported as fully proven.
 
 ## 2026-05-11 Language And Theme Settings Repair
 
-- Reconfirmed the live Git root with `git rev-parse --show-toplevel`: `D:/AgentFlowStudio`.
+- Reconfirmed the live Git root with `git rev-parse --show-toplevel`: `D:/LocalAI Nexus`.
 - Updated `origin` from the old AgentFlowStudio repository to `https://github.com/2195573507-web/LocalAI-Nexus.git`.
 - Added an app-wide renderer i18n provider with `agentflow.language` localStorage persistence plus IPC settings persistence.
 - Centralized theme ownership in the renderer theme provider with `agentflow.theme`, root `dark` class, and `data-theme` / `data-theme-preference` metadata.
@@ -54,21 +69,21 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 
 - Live provider validation with user-supplied credentials.
 - Real upstream streaming pass-through and cancellation accounting.
-- Deeper token policy enforcement across quota, cooldown, concurrency, and per-model policy records.
-- Advanced Agent/Workflow controls such as pause, cancel, retry-safe-node, resume, approval gates, and import/export hardening.
+- Live proof of token policy enforcement against real provider traffic beyond local unit/router coverage.
+- External-tool approval gates and import/export hardening beyond current controlled Agent/Workflow run records.
 - Memory graph/recovery-pack polish and richer security risk scoring.
 
 ## Planned
 
 - Use `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` as the archived multi-round roadmap when planning future broad optimization work.
 - Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
-- Re-run packaging with a longer timeout or corrected local electron-builder/app-builder environment.
+- Re-run packaging after enabling symlink creation privileges or using a release machine whose electron-builder cache extraction can create symlinks.
 - Add live-provider and live-streaming smoke evidence only after the user supplies explicit credentials.
 
 ## Environment-Limited
 
 - `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`.
-- Observed class: electron-builder/app-builder packaging did not finish before the 15-minute verification timeout.
+- Observed class: electron-builder downloaded `winCodeSign-2.6.0.7z`, but `7za.exe` could not create symlinks for `darwin/10.12/lib/libcrypto.dylib` and `libssl.dylib` because the current Windows account lacks the required privilege.
 - This is recorded as an environment/tooling packaging blocker, not as a TypeScript, Vite, Electron startup, shortcut, or gateway product failure.
 
 ## Cleanup Snapshot
@@ -99,7 +114,7 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 | `npm.cmd run shortcut` | PASS |
 | Shortcut COM inspection | PASS |
 | Gateway HTTP smoke | PASS |
-| `npm.cmd run dist` | ENV-LIMITED packaging timeout |
+| `npm.cmd run dist` | ENV-LIMITED winCodeSign symlink privilege |
 
 ## Shortcut State
 

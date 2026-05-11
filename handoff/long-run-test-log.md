@@ -181,6 +181,24 @@ Completed runs are listed below. Each run records command, start/end time, durat
 - Result JSON: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260511093017.json`
 - Screenshot: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260511093017.png`
 - Server log: `D:\AgentFlowStudio\.codex-parallel\logs\long-run-static-server-20260511093017.log`
+- Console errors:
+- Page errors:
+- Network failures:
+- Process crashed: no
+- Memory conclusion: JS heap delta 0.00 MB across 31 samples.
+- Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.
+
+## 2026-05-11T13:08:46.145Z Static Fallback Long-Run
+
+- Startup command: `node scripts/static-server.js static-app 4173` with launch-token URL parsing
+- Start time: 2026-05-11T13:08:46.145Z
+- End time: 2026-05-11T13:38:49.207Z
+- Duration: 30.05 minutes
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings
+- Verified functions: HTTP availability; page navigation; language/theme shell load; static server process liveness; browser console/page/network error collection; heap sampling
+- Result JSON: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260511130846.json`
+- Screenshot: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260511130846.png`
+- Server log: `D:\LocalAI Nexus\.codex-parallel\logs\long-run-static-server-20260511130846.log`
 - Console errors: 
 - Page errors: 
 - Network failures: 

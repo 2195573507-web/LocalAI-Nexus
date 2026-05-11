@@ -427,7 +427,7 @@ export default function Projects() {
                 type="button"
                 onClick={() => setSearch('')}
                 className="focus-ring absolute right-2 top-1/2 -translate-y-1/2 rounded-tool p-1 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
-                aria-label="Clear search"
+                aria-label="清空搜索"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -483,7 +483,7 @@ export default function Projects() {
                         openEdit(project);
                       }}
                       className="focus-ring rounded-tool p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
-                      aria-label={`Edit ${project.name}`}
+                      aria-label={`编辑 ${project.name}`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -494,7 +494,7 @@ export default function Projects() {
                         setDeleteTarget(project);
                       }}
                       className="focus-ring rounded-tool p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-muted)] hover:text-[var(--danger)]"
-                      aria-label={`Delete ${project.name}`}
+                      aria-label={`删除 ${project.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -514,7 +514,7 @@ export default function Projects() {
                 </div>
 
                 <div className="mt-3 border-t border-[var(--border)] pt-3">
-                  <p className="truncate text-xs text-[var(--text-muted)]">{project.techStack || 'Stack not set'}</p>
+                  <p className="truncate text-xs text-[var(--text-muted)]">{project.techStack || '未设置技术栈'}</p>
                   <div className="mt-2 flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
                     <Clock className="h-3 w-3" />
                     {formatRelativeDate(project.updatedAt || project.createdAt)}
@@ -528,13 +528,13 @@ export default function Projects() {
         <SurfaceCard className="p-8">
           <EmptyState
             icon={FolderKanban}
-            title={search || statusFilter !== 'all' ? 'No matching projects' : 'No projects yet'}
+            title={search || statusFilter !== 'all' ? '没有匹配项目' : '暂无项目'}
             description={
               search || statusFilter !== 'all'
-                ? 'Adjust the search or status filter to find another project.'
-                : 'Create a project to define the goal before configuring agents and workflows.'
+                ? '调整搜索词或状态筛选，查找其他项目。'
+                : '先创建项目定义目标，再配置 Agent 和 Workflow。'
             }
-            actionLabel="New project"
+            actionLabel="新建项目"
             onAction={openNew}
           />
         </SurfaceCard>
@@ -547,7 +547,7 @@ export default function Projects() {
           setEditingProject(null);
           resetForm();
         }}
-        title={editingProject ? 'Edit project' : 'New project'}
+        title={editingProject ? '编辑项目' : '新建项目'}
         size="md"
       >
         {renderFormFields()}
@@ -560,32 +560,32 @@ export default function Projects() {
               resetForm();
             }}
           >
-            Cancel
+            取消
           </Button>
           <Button
             onClick={editingProject ? handleUpdate : handleCreate}
             loading={saving}
             icon={editingProject ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           >
-            {editingProject ? 'Save changes' : 'Create project'}
+            {editingProject ? '保存修改' : '创建项目'}
           </Button>
         </div>
       </Modal>
 
-      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Delete project" size="sm">
+      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="删除项目" size="sm">
         <div className="py-3 text-center">
           <Trash2 className="mx-auto mb-3 h-10 w-10 text-[var(--danger)]" />
-          <p className="mb-1 font-medium text-[var(--text-primary)]">Delete "{deleteTarget?.name}"?</p>
+          <p className="mb-1 font-medium text-[var(--text-primary)]">删除“{deleteTarget?.name}”？</p>
           <p className="text-sm text-[var(--text-secondary)]">
-            This removes the project from local storage. Related tasks and memories may also become orphaned.
+            这会从本地存储移除该项目，相关任务和记忆可能变成孤立记录。
           </p>
         </div>
         <div className="mt-4 flex justify-center gap-3 border-t border-[var(--border)] pt-4">
           <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
-            Cancel
+            取消
           </Button>
           <Button variant="danger" onClick={handleDelete} icon={<Trash2 className="h-4 w-4" />}>
-            Delete
+            删除
           </Button>
         </div>
       </Modal>

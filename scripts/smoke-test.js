@@ -297,8 +297,8 @@ check('renderer flat surface token set exists', ['--surface', '--surface-muted',
 check('renderer SurfaceCard uses shared surface primitive', surfaceCard.includes('surface-card') && surfaceCard.includes('focus-ring'))
 check('Tailwind accent palette supports used shades', ['400', '500', '600', '700'].every((shade) => tailwindConfig.includes(`${shade}:`)))
 check('Dashboard Nexus first-run path exists', ['Provider', 'Gateway', 'Workflow', 'Prompt', 'Guard', 'Memory'].every((keyword) => dashboard.includes(keyword)))
-check('Dashboard next-step copy exists', dashboard.includes('First-run checklist') && dashboard.includes('Continue:'))
-check('Dashboard quick actions target Nexus modules', ['/providers', '/runtime', '/diagnostics', '/gateway'].every((route) => dashboard.includes(route)) && dashboard.includes('Provider Hub'))
+check('Dashboard next-step copy exists', dashboard.includes('首次运行检查清单') && dashboard.includes('继续：'))
+check('Dashboard quick actions target Nexus modules', ['/providers', '/runtime', '/diagnostics', '/gateway'].every((route) => dashboard.includes(route)) && dashboard.includes('Provider 中心'))
 check('Sidebar includes Nexus IA modules', ['Provider Hub', 'Token Center', 'Health Monitor', 'Model Router', 'Local Gateway', 'Runtime Switcher', 'Diagnostics', 'Agent Studio', 'Security Center', 'Ecosystem'].every((label) => sidebar.includes(label)))
 check('renderer API wraps Nexus domains', ['gateway:', 'usage:', 'health:', 'runtimeProfiles:', 'router:', 'security:', 'contextPack:', 'templateBundles:'].every((keyword) => apiWrapper.includes(keyword)))
 

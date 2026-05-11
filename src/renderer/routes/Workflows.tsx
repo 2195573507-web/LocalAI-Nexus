@@ -194,7 +194,13 @@ export default function Workflows() {
       return;
     }
     await loadProjectWorkflows(result.projectId);
-    setStatus(`Workflow run ${action}: ${result.status}`);
+    const actionLabel: Record<string, string> = {
+      pause: '暂停',
+      cancel: '取消',
+      retry: '重试安全节点',
+      resume: '恢复',
+    };
+    setStatus(`Workflow 运行已${actionLabel[action] ?? action}：${result.status}`);
   };
 
   const editablePromptNodes = selectedWorkflow?.nodes.filter((node) => node.type === 'prompt' || node.type === 'llm') ?? [];
@@ -374,14 +380,14 @@ export default function Workflows() {
                       <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{run.summary}</p>
                       {run.error && <p className="mt-1 text-xs text-red-600 dark:text-red-300">错误原因：{run.error}</p>}
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'pause')} aria-label="Pause workflow run">
-                          <Pause className="h-3.5 w-3.5" /> Pause
+                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'pause')} aria-label="暂停 Workflow 运行">
+                          <Pause className="h-3.5 w-3.5" /> 暂停
                         </button>
-                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'cancel')} aria-label="Cancel workflow run">
-                          <Square className="h-3.5 w-3.5" /> Cancel
+                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'cancel')} aria-label="取消 Workflow 运行">
+                          <Square className="h-3.5 w-3.5" /> 取消
                         </button>
-                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'retry')} aria-label="Retry safe workflow node">
-                          <RotateCcw className="h-3.5 w-3.5" /> Retry safe node
+                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'retry')} aria-label="重试安全 Workflow 节点">
+                          <RotateCcw className="h-3.5 w-3.5" /> 重试安全节点
                         </button>
                       </div>
                     </article>
@@ -399,7 +405,7 @@ export default function Workflows() {
                     <div key={event.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
                       <div className="flex items-center gap-2">
                         <Settings className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
-                        <span className="text-sm font-semibold text-[var(--text-primary)]">{event.title || 'Run event'}</span>
+                        <span className="text-sm font-semibold text-[var(--text-primary)]">{event.title || '运行事件'}</span>
                         <span className="ml-auto text-xs text-[var(--text-secondary)]">{event.status}</span>
                       </div>
                       {event.detail && <p className="mt-1 text-xs text-[var(--text-secondary)]">{event.detail}</p>}

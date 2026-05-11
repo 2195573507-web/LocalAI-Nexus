@@ -18,7 +18,7 @@ export default function Login() {
     event.preventDefault();
     setLocalError('');
     if (!email.trim() || !password) {
-      setLocalError('Email and password are required.');
+      setLocalError('请输入邮箱和密码。');
       return;
     }
     const ok = await login({ email, password });
@@ -37,13 +37,14 @@ export default function Login() {
           </div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] dark:text-slate-100">LocalAI Nexus</h1>
           <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-            鐧诲綍鏈湴浼樺厛鐨?Agent 宸ヤ綔娴佸伐浣滃彴銆傞粯璁ょ鐞嗗憳閭宸蹭负浣犲～濂姐€?          </p>
+            登录本地优先的 Agent 工作流控制台。默认管理员邮箱已为你填好。
+          </p>
         </div>
 
         <SurfaceCard>
           <form className="space-y-4" onSubmit={submit}>
             <Input
-              label="Email"
+              label="邮箱"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -51,7 +52,7 @@ export default function Login() {
               autoComplete="username"
             />
             <Input
-              label="Password"
+              label="密码"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -64,7 +65,7 @@ export default function Login() {
               </div>
             )}
             <Button type="submit" fullWidth loading={loading}>
-              Sign in
+              登录
             </Button>
           </form>
         </SurfaceCard>
@@ -73,7 +74,9 @@ export default function Login() {
           <div className="flex gap-3 text-sm text-amber-800 dark:text-amber-200">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              榛樿绠＄悊鍛橈細<strong>123@admin.com</strong>锛屽垵濮嬪瘑鐮侊細<strong>123456</strong>銆?              棣栨鐧诲綍鍚庝細瑕佹眰淇敼瀵嗙爜锛涘鏋滅湅鍒版敼瀵嗛〉锛屽綋鍓嶅瘑鐮佷粛濉啓 123456锛屾柊瀵嗙爜鑷冲皯 6 浣嶃€?            </p>
+              默认管理员：<strong>123@admin.com</strong>，初始密码：<strong>123456</strong>。
+              首次登录后会要求修改密码；如果看到改密页，当前密码仍填写 123456，新密码至少 6 位。
+            </p>
           </div>
         </SurfaceCard>
       </div>

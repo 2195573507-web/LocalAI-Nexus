@@ -14,13 +14,13 @@ The current workspace is rooted at `D:\LocalAI Nexus`, preserving Git history, J
 | Token Center | Completed | Usage, trends, failure categories, quota/cooldown/concurrency surfaces, and router impact views exist. Deeper enforcement continues next. |
 | Health Monitor | Completed | Local diagnostics, repair hints, failure categories, trends, and router impact surfaces exist. Live remote probes require credentials/network. |
 | Model Router | Completed | Health/tags/quota/cooldown/fallback decisions and trace IDs are present. |
-| Local Gateway | Completed | Required local endpoints, mock/non-streaming path, route diagnostics, usage/audit recording, and HTTP smoke passed. Real upstream streaming continues next. |
+| Local Gateway | Completed | Required local endpoints, mock/non-streaming path, route diagnostics, usage/audit recording, and HTTP smoke passed. Real upstream streaming still requires credentialed provider validation. |
 | Runtime Switcher | Completed | `.env`, JSON, TOML, YAML, and CLI snippets with root vs `/v1` diagnostics are available. No external config is silently written. |
 | Skill Hub / Ecosystem | Completed | Prompt skill and local bundle registry surfaces with validation/risk metadata are present. |
-| Agent / Workflow | Completed | First-class execution-record surfaces with owner/provider/model/context/token data exist. Advanced controls continue next. |
+| Agent / Workflow | Completed | First-class execution-record surfaces, node traces, Chinese failure guidance, and pause/cancel/retry/resume control records exist. Real external-tool approval remains opt-in future hardening. |
 | Shared Memory | Completed | Filters, provenance/stale/context-pack preview/recovery surfaces and redaction-oriented flows exist. |
 | Security Center | Completed | RBAC/ACL visibility, audit/report surface, secret/risk prompts, and redaction surfaces exist. |
-| Packaging | Environment-limited | `npm.cmd run dist` builds the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but the final electron-builder/app-builder packaging step exceeded the local verification timeout. |
+| Packaging | Environment-limited | `npm.cmd run dist` builds the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but final packaging is blocked by electron-builder `winCodeSign` symlink extraction privileges on this machine. |
 
 ## Quick Start
 
@@ -129,7 +129,7 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 - `npm.cmd run shortcut`: PASS
 - Shortcut COM inspection: PASS
 - Gateway HTTP smoke: PASS
-- `npm.cmd run dist`: ENV-LIMITED packaging timeout after successful build and unpacked app generation
+- `npm.cmd run dist`: ENV-LIMITED `winCodeSign` symlink privilege after successful build and unpacked app generation
 
 ## Documentation
 
@@ -141,6 +141,7 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 - Completed iteration plan: `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
 - Next-stage plan: `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
 - Long-term multi-round iteration archive: `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`
+- Verification matrix: `docs/LOCALAI_NEXUS_VERIFICATION_MATRIX.md`
 - Architecture: `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 - Structure audit: `docs/PROJECT_STRUCTURE_AUDIT.md`
 - Worklog: `docs/PROJECT_WORKLOG.md`
@@ -151,10 +152,10 @@ Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`:
 
 1. Live provider confidence with user-supplied credentials.
 2. Real streaming and cancellation.
-3. Token policy enforcement.
-4. Agent/Workflow execution controls.
+3. Live proof of Token policy enforcement against credentialed providers.
+4. External-tool approval gates beyond current controlled Agent/Workflow run records.
 5. Memory graph and recovery packs.
-6. Packaging/release hardening after the local electron-builder/app-builder timeout is resolved.
+6. Packaging/release hardening after the local electron-builder `winCodeSign` symlink privilege blocker is resolved.
 
 ## License
 

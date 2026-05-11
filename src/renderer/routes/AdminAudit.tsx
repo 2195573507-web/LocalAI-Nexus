@@ -41,26 +41,26 @@ export default function AdminAudit() {
     <div className="space-y-5 animate-fade-in">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] dark:text-slate-100">Audit Logs</h2>
-          <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">Search auth, permission, admin, and security events.</p>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)] dark:text-slate-100">审计日志</h2>
+          <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">搜索 Auth、权限、管理员和安全事件。</p>
         </div>
         <Button variant="secondary" icon={<Download className="h-4 w-4" />} onClick={() => void exportAudit()}>
-          Export
+          导出
         </Button>
       </div>
 
       <SurfaceCard padding="md">
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <Input label="Search" value={search} onChange={(event) => setSearch(event.target.value)} icon={<Search className="h-4 w-4" />} wrapperClassName="flex-1" />
-          <Button variant="secondary" onClick={() => void load()}>Search</Button>
+          <Input label="搜索" value={search} onChange={(event) => setSearch(event.target.value)} icon={<Search className="h-4 w-4" />} wrapperClassName="flex-1" />
+          <Button variant="secondary" onClick={() => void load()}>搜索</Button>
         </div>
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       </SurfaceCard>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <SurfaceCard padding="md"><p className="text-sm text-[var(--text-muted)]">Events</p><p className="text-2xl font-bold">{events.length}</p></SurfaceCard>
-        <SurfaceCard padding="md"><p className="text-sm text-[var(--text-muted)]">Security events</p><p className="text-2xl font-bold">{securityEvents.length}</p></SurfaceCard>
-        <SurfaceCard padding="md"><p className="text-sm text-[var(--text-muted)]">Denied</p><p className="text-2xl font-bold">{events.filter((event) => event.status === 'denied').length}</p></SurfaceCard>
+        <SurfaceCard padding="md"><p className="text-sm text-[var(--text-muted)]">事件</p><p className="text-2xl font-bold">{events.length}</p></SurfaceCard>
+        <SurfaceCard padding="md"><p className="text-sm text-[var(--text-muted)]">安全事件</p><p className="text-2xl font-bold">{securityEvents.length}</p></SurfaceCard>
+        <SurfaceCard padding="md"><p className="text-sm text-[var(--text-muted)]">已拒绝</p><p className="text-2xl font-bold">{events.filter((event) => event.status === 'denied').length}</p></SurfaceCard>
       </div>
 
       <div data-testid="audit-log-panel" className="space-y-3">
@@ -74,7 +74,7 @@ export default function AdminAudit() {
                   <Badge variant={event.severity === 'critical' ? 'danger' : event.severity === 'warning' ? 'warning' : 'default'}>{event.severity}</Badge>
                 </div>
                 <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-                  {event.actor.email || 'system'} 路 {event.resource?.type || 'event'} {event.resource?.label ? `路 ${event.resource.label}` : ''}
+                  {event.actor.email || 'system'} / {event.resource?.type || 'event'} {event.resource?.label ? `/ ${event.resource.label}` : ''}
                 </p>
               </div>
               <time className="text-xs text-[var(--text-muted)]">{new Date(event.createdAt).toLocaleString()}</time>

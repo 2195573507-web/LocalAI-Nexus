@@ -107,8 +107,38 @@ $shortcut.WindowStyle = $launcher.WindowStyle
 $shortcut.IconLocation = "$icoPath,0"
 $shortcut.Save()
 
+$verifiedShortcut = $WScriptShell.CreateShortcut($shortcutPath)
+$expectedIconLocation = "$icoPath,0"
+$expectedValues = @(
+    @{ Name = "target"; Actual = $verifiedShortcut.TargetPath; Expected = $launcher.TargetPath },
+    @{ Name = "arguments"; Actual = $verifiedShortcut.Arguments; Expected = $launcher.Arguments },
+    @{ Name = "working directory"; Actual = $verifiedShortcut.WorkingDirectory; Expected = $launcher.WorkingDirectory },
+    @{ Name = "icon"; Actual = $verifiedShortcut.IconLocation; Expected = $expectedIconLocation }
+)
+
+foreach ($value in $expectedValues) {
+    if ($value.Actual -ne $value.Expected) {
+        throw "Shortcut verification failed for $($value.Name). Expected '$($value.Expected)', got '$($value.Actual)'."
+    }
+}
+
+if (-not (Test-Path $verifiedShortcut.TargetPath -PathType Leaf)) {
+    throw "Shortcut target does not exist after creation: $($verifiedShortcut.TargetPath)"
+}
+
+$argumentPath = $verifiedShortcut.Arguments.Trim('"')
+if (-not [string]::IsNullOrWhiteSpace($argumentPath) -and -not (Test-Path $argumentPath -PathType Leaf)) {
+    throw "Shortcut argument file does not exist after creation: $argumentPath"
+}
+
+$iconFile = $verifiedShortcut.IconLocation -replace ',\d+$', ''
+if (-not (Test-Path $iconFile -PathType Leaf)) {
+    throw "Shortcut icon does not exist after creation: $iconFile"
+}
+
 Write-Host "Desktop shortcut created: $shortcutPath"
-Write-Host "Shortcut target: $($shortcut.TargetPath)"
-Write-Host "Shortcut arguments: $($shortcut.Arguments)"
-Write-Host "Working directory: $($shortcut.WorkingDirectory)"
-Write-Host "Icon location: $($shortcut.IconLocation)"
+Write-Host "Shortcut target: $($verifiedShortcut.TargetPath)"
+Write-Host "Shortcut arguments: $($verifiedShortcut.Arguments)"
+Write-Host "Working directory: $($verifiedShortcut.WorkingDirectory)"
+Write-Host "Icon location: $($verifiedShortcut.IconLocation)"
+Write-Host "Shortcut verification: PASS"

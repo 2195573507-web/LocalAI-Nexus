@@ -1,6 +1,20 @@
 import { expect, test } from 'playwright/test'
 
 test.describe('AgentFlow auth and admin gates', () => {
+  const authLabels = {
+    email: /^(Email|邮箱)$/,
+    password: /^(Password|密码)$/,
+    signIn: /^(Sign in|登录)$/,
+    signOut: /^(Sign out|退出登录)$/,
+    accessDenied: /^(Access denied|访问被拒绝)$/,
+    adminUsersLink: /Admin Users|User Admin|管理员用户/,
+    adminUsersHeading: /^(Admin Users|User Admin|管理员用户)$/,
+    auditLogsLink: /Audit Logs|审计日志/,
+    displayName: /^(Display name|显示名)$/,
+    tempPassword: /^(Temp password|临时密码)$/,
+    create: /^(Create|创建)$/,
+  }
+
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.removeItem('agentflow.auth.session')
@@ -55,13 +69,13 @@ test.describe('AgentFlow auth and admin gates', () => {
 
     await page.goto('/#/projects', { waitUntil: 'networkidle' })
     await expect(page).toHaveURL(/#\/login/)
-    await page.getByLabel('Email').fill('123@admin.com')
-    await page.getByLabel('Password').fill('123456')
-    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.getByLabel(authLabels.email).fill('123@admin.com')
+    await page.getByLabel(authLabels.password).fill('123456')
+    await page.getByRole('button', { name: authLabels.signIn }).click()
     await expect(page).toHaveURL(/#\/projects/)
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.auth.session') || '')).not.toContain('sessionToken')
     await expect(page.getByText('Local Administrator')).toBeVisible()
-    await page.getByRole('button', { name: 'Sign out' }).click()
+    await page.getByRole('button', { name: authLabels.signOut }).click()
     await expect(page).toHaveURL(/#\/login/)
   })
 
@@ -98,8 +112,8 @@ test.describe('AgentFlow auth and admin gates', () => {
     })
 
     await page.goto('/#/admin/users', { waitUntil: 'networkidle' })
-    await expect(page.getByText('Access denied')).toBeVisible()
-    await expect(page.getByRole('link', { name: /Admin Users/ })).toHaveCount(0)
+    await expect(page.getByText(authLabels.accessDenied)).toBeVisible()
+    await expect(page.getByRole('link', { name: authLabels.adminUsersLink })).toHaveCount(0)
   })
 
   test('normal user can sign in to protected core routes', async ({ page }) => {
@@ -147,12 +161,12 @@ test.describe('AgentFlow auth and admin gates', () => {
     })
 
     await page.goto('/#/projects', { waitUntil: 'networkidle' })
-    await page.getByLabel('Email').fill('user@example.com')
-    await page.getByLabel('Password').fill('abcdef')
-    await page.getByRole('button', { name: 'Sign in' }).click()
+    await page.getByLabel(authLabels.email).fill('user@example.com')
+    await page.getByLabel(authLabels.password).fill('abcdef')
+    await page.getByRole('button', { name: authLabels.signIn }).click()
     await expect(page).toHaveURL(/#\/projects/)
     await expect(page.getByText('Normal User')).toBeVisible()
-    await expect(page.getByRole('link', { name: /Admin Users/ })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: authLabels.adminUsersLink })).toHaveCount(0)
   })
 
   test('admin can create a user and view audit events', async ({ page }) => {
@@ -228,14 +242,14 @@ test.describe('AgentFlow auth and admin gates', () => {
     })
 
     await page.goto('/#/admin/users', { waitUntil: 'networkidle' })
-    await expect(page.locator('main').getByRole('heading', { name: 'Admin Users' })).toBeVisible()
-    await page.getByLabel('Email').fill('new@example.com')
-    await page.getByLabel('Display name').fill('New User')
-    await page.getByLabel('Temp password').fill('abcdef')
-    await page.getByRole('button', { name: 'Create' }).click()
+    await expect(page.locator('main').getByRole('heading', { name: authLabels.adminUsersHeading })).toBeVisible()
+    await page.getByLabel(authLabels.email).fill('new@example.com')
+    await page.getByLabel(authLabels.displayName).fill('New User')
+    await page.getByLabel(authLabels.tempPassword).fill('abcdef')
+    await page.getByRole('button', { name: authLabels.create }).click()
     await expect(page.getByText('new@example.com')).toBeVisible()
 
-    await page.getByRole('link', { name: /Audit Logs/ }).click()
+    await page.getByRole('link', { name: authLabels.auditLogsLink }).click()
     await expect(page.getByTestId('audit-log-panel')).toContainText('user.create')
     await expect(page.getByTestId('audit-log-panel')).toContainText('auth.login')
   })

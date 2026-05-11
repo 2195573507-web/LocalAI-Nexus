@@ -33,17 +33,17 @@ export default function HealthMonitor() {
     await load();
   };
 
-  if (loading) return <div className="mx-auto max-w-7xl p-6"><div className="surface-card p-6">Loading Health Monitor...</div></div>;
+  if (loading) return <div className="mx-auto max-w-7xl p-6"><div className="surface-card p-6">正在加载健康监控...</div></div>;
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-6">
       <section className="surface-card p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">Health Monitor</h1>
-            <p className="mt-2 text-sm text-[var(--text-secondary)]">Run local provider diagnostics, see live-ready status, trend categories, and repair suggestions.</p>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">健康监控</h1>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">运行本地 Provider 诊断，查看可用状态、趋势分类和修复建议。</p>
           </div>
-          <Button variant="secondary" onClick={load} icon={<RefreshCw className="h-4 w-4" />}>Refresh</Button>
+          <Button variant="secondary" onClick={load} icon={<RefreshCw className="h-4 w-4" />}>刷新</Button>
         </div>
       </section>
       {message && <div className="rounded-tool border border-accent-500/30 bg-accent-500/10 p-3 text-sm text-[var(--accent)]">{message}</div>}
@@ -68,12 +68,12 @@ export default function HealthMonitor() {
                 ))}
                 {checkResult?.suggestion && <p className="text-sm text-[var(--text-secondary)]">{checkResult.suggestion}</p>}
               </div>
-              <Button className="mt-4" size="sm" onClick={() => void check(provider.id)} icon={<Stethoscope className="h-4 w-4" />}>Run check</Button>
+              <Button className="mt-4" size="sm" onClick={() => void check(provider.id)} icon={<Stethoscope className="h-4 w-4" />}>运行检查</Button>
             </SurfaceCard>
           );
         })}
       </div>
-      {providers.length === 0 && <SurfaceCard className="p-8"><EmptyState icon={Stethoscope} title="No providers to check" description="Create a provider in Provider Hub, then return here for diagnostics." /></SurfaceCard>}
+      {providers.length === 0 && <SurfaceCard className="p-8"><EmptyState icon={Stethoscope} title="暂无可检查 Provider" description="请先在 Provider 中心创建 Provider，然后返回这里运行诊断。" /></SurfaceCard>}
     </div>
   );
 }

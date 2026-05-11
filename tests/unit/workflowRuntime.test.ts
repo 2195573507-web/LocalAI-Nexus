@@ -25,7 +25,7 @@ describe('workflow runtime', () => {
     const workflow = workflowFromTemplate();
     expect(validateWorkflow(workflow)).toEqual([]);
     expect(validateWorkflow({ ...workflow, nodes: workflow.nodes.filter((node) => node.type !== 'output') })).toContain(
-      'Workflow must include an Output node.',
+      'Workflow 必须包含 Output 节点。',
     );
   });
 
@@ -33,7 +33,7 @@ describe('workflow runtime', () => {
     const result = runWorkflow(workflowFromTemplate(), 'hello');
     expect(result.status).toBe('success');
     expect(result.nodeTrace.map((item) => item.nodeType)).toEqual(['start', 'prompt', 'llm', 'output']);
-    expect(result.summary).toContain('completed');
+    expect(result.summary).toContain('已完成');
   });
 
   it('returns actionable provider guidance for unconfigured LLM nodes', () => {
@@ -43,7 +43,7 @@ describe('workflow runtime', () => {
     );
     const result = runWorkflow(workflow, 'hello');
     expect(result.status).toBe('failed');
-    expect(result.error).toContain('provider or model');
+    expect(result.error).toContain('Provider 或模型');
     expect(result.nextStep).toContain('Provider/API Key');
   });
 });

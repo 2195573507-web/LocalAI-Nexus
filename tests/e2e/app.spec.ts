@@ -407,9 +407,9 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page).toHaveTitle(/LocalAI Nexus/)
     await expect(page.locator('main').getByRole('heading', { name: /LocalAI Nexus/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
-    await expect(page.getByText(/First-run checklist|Nexus path/).first()).toBeVisible()
+    await expect(page.getByText(/首次运行检查清单|First-run checklist|Nexus 路径|Nexus path/).first()).toBeVisible()
 
-    for (const label of ['Add a provider', 'Start the local gateway', 'Create the first workflow', 'Save recovery context']) {
+    for (const label of [/添加 Provider|Add a provider/, /启动本地 Gateway|Start the local gateway/, /创建第一个 Workflow|Create the first workflow/, /保存恢复上下文|Save recovery context/]) {
       await expect(page.getByText(label).first()).toBeVisible()
     }
 
@@ -478,12 +478,12 @@ test.describe('LocalAI Nexus React web entry', () => {
 
   test('dashboard quick actions use primary routes', async ({ page }) => {
     const quickActions = [
-      { name: /Provider Hub/, url: /\/providers$/ },
-      { name: /Runtime Profile/, url: /\/runtime$/ },
-      { name: /Skill Hub/, url: /\/skills$/ },
-      { name: /Diagnostics/, url: /\/diagnostics$/ },
+      { name: /Provider 中心|Provider Hub/, url: /\/providers$/ },
+      { name: /Runtime 配置|Runtime Profile/, url: /\/runtime$/ },
+      { name: /Skill 中心|Skill Hub/, url: /\/skills$/ },
+      { name: /诊断中心|Diagnostics/, url: /\/diagnostics$/ },
       { name: /Shared Memory/, url: /\/memory$/ },
-      { name: /Git Timeline/, url: /\/git$/ },
+      { name: /Git 时间线|Git Timeline/, url: /\/git$/ },
     ]
 
     for (const action of quickActions) {
@@ -496,16 +496,16 @@ test.describe('LocalAI Nexus React web entry', () => {
 
   test('new LocalAI Nexus modules render operational state', async ({ page }) => {
     const expectations = [
-      ['/#/providers', /Provider Hub|Add Provider/],
-      ['/#/tokens', /Token Center|Total tokens/],
-      ['/#/health', /Health Monitor|Healthy/],
-      ['/#/router', /Model Router|Recent decisions/],
-      ['/#/gateway', /Local Gateway|Supported endpoints/],
-      ['/#/runtime', /Runtime Switcher|Codex profile/],
-      ['/#/diagnostics', /Diagnostics|Recovery prompt preview/],
-      ['/#/agents', /Agent Studio|Execution timeline/],
-      ['/#/security', /Security Center|Findings/],
-      ['/#/ecosystem', /Local Ecosystem|Desktop App Pack/],
+      ['/#/providers', /Provider 中心|Provider Hub|添加 Provider|Add Provider/],
+      ['/#/tokens', /Token 中心|Token Center|Token 总量|Total tokens/],
+      ['/#/health', /健康监控|Health Monitor|Healthy/],
+      ['/#/router', /模型路由|Model Router|最近决策|Recent decisions/],
+      ['/#/gateway', /本地 Gateway|Local Gateway|支持的端点|Supported endpoints/],
+      ['/#/runtime', /Runtime 切换器|Runtime Switcher|Codex profile/],
+      ['/#/diagnostics', /诊断中心|Diagnostics|恢复 Prompt 预览|Recovery prompt preview/],
+      ['/#/agents', /Agent 工作台|Agent Studio|执行时间线|Execution timeline/],
+      ['/#/security', /安全中心|Security Center|风险发现|Findings/],
+      ['/#/ecosystem', /本地生态|Local Ecosystem|Desktop App Pack/],
     ] as const
 
     for (const [route, pattern] of expectations) {

@@ -60,11 +60,11 @@ function finishTrace(trace: WorkflowNodeTrace, patch: Partial<WorkflowNodeTrace>
 export function validateWorkflow(workflow: Workflow): string[] {
   const errors: string[] = [];
   const nodeIds = new Set(workflow.nodes.map((node) => node.id));
-  if (!workflow.nodes.some((node) => node.type === 'start')) errors.push('Workflow must include a Start node.');
-  if (!workflow.nodes.some((node) => node.type === 'output')) errors.push('Workflow must include an Output node.');
+  if (!workflow.nodes.some((node) => node.type === 'start')) errors.push('Workflow 必须包含 Start 节点。');
+  if (!workflow.nodes.some((node) => node.type === 'output')) errors.push('Workflow 必须包含 Output 节点。');
   for (const edge of workflow.edges) {
-    if (!nodeIds.has(edge.source)) errors.push(`Edge ${edge.id} has missing source node.`);
-    if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} has missing target node.`);
+    if (!nodeIds.has(edge.source)) errors.push(`连线 ${edge.id} 缺少源节点。`);
+    if (!nodeIds.has(edge.target)) errors.push(`连线 ${edge.id} 缺少目标节点。`);
   }
   return errors;
 }
@@ -74,10 +74,10 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
   if (validationErrors.length > 0) {
     return {
       status: 'failed',
-      summary: 'Workflow cannot run because its graph is incomplete.',
+      summary: 'Workflow 无法运行，因为图结构不完整。',
       output: '',
       error: validationErrors.join(' '),
-      nextStep: 'Open the workflow editor and add the missing Start/Output nodes or repair broken edges.',
+      nextStep: '打开 Workflow 编辑器，补齐缺失的 Start/Output 节点或修复断开的连线。',
       nodeTrace: [],
     };
   }
@@ -85,7 +85,7 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
   const nodes = new Map(workflow.nodes.map((node) => [node.id, node]));
   const trace: WorkflowNodeTrace[] = [];
   let cursor = workflow.nodes.find((node) => node.type === 'start')?.id;
-  let currentInput = input || 'Beginner sample input';
+  let currentInput = input || '新手示例输入';
   let output = '';
   const visited = new Set<string>();
 
@@ -93,10 +93,10 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
     if (visited.has(cursor)) {
       return {
         status: 'failed',
-        summary: 'Workflow stopped because a loop was detected.',
+        summary: 'Workflow 已停止，因为检测到循环。',
         output,
-        error: `Node ${cursor} was visited twice.`,
-        nextStep: 'Remove the cycle or add an explicit loop controller in a future version.',
+        error: `节点 ${cursor} 被访问了两次。`,
+        nextStep: '移除循环，或在后续版本中添加显式循环控制节点。',
         nodeTrace: trace,
       };
     }
@@ -106,10 +106,10 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
     if (!node) {
       return {
         status: 'failed',
-        summary: 'Workflow stopped because an edge points to a missing node.',
+        summary: 'Workflow 已停止，因为有连线指向缺失节点。',
         output,
-        error: `Missing node: ${cursor}`,
-        nextStep: 'Open the editor and delete or repair the broken edge.',
+        error: `缺失节点：${cursor}`,
+        nextStep: '打开编辑器，删除或修复这条断开的连线。',
         nodeTrace: trace,
       };
     }
@@ -117,15 +117,15 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
     const active = traceFor(node, currentInput);
 
     if (node.type === 'start') {
-      currentInput = summarize(currentInput, 'Workflow started');
-      trace.push(finishTrace(active, { status: 'success', outputSummary: 'Started workflow.' }));
+      currentInput = summarize(currentInput, 'Workflow 已启动');
+      trace.push(finishTrace(active, { status: 'success', outputSummary: 'Workflow 已启动。' }));
       cursor = nextNode(workflow.edges, node.id);
       continue;
     }
 
     if (node.type === 'prompt') {
       currentInput = node.config.prompt || currentInput;
-      trace.push(finishTrace(active, { status: 'success', outputSummary: summarize(currentInput, 'Prompt prepared.') }));
+      trace.push(finishTrace(active, { status: 'success', outputSummary: summarize(currentInput, 'Prompt 已准备。') }));
       cursor = nextNode(workflow.edges, node.id);
       continue;
     }
@@ -134,19 +134,19 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
       if (!node.config.providerRef && !node.config.model) {
         trace.push(finishTrace(active, {
           status: 'failure',
-          failureReason: 'LLM node has no provider or model configured.',
-          nextStep: 'Go to Provider settings, add an API key, then choose a provider/model for this node.',
+          failureReason: 'LLM 节点没有配置 Provider 或模型。',
+          nextStep: '前往 Provider 设置，添加 API Key，然后为该节点选择 Provider/模型。',
         }));
         return {
           status: 'failed',
-          summary: 'LLM configuration is missing.',
+          summary: '缺少 LLM 配置。',
           output,
-          error: 'LLM node has no provider or model configured.',
-          nextStep: 'Configure Provider/API Key and select a model before running again.',
+          error: 'LLM 节点没有配置 Provider 或模型。',
+          nextStep: '配置 Provider/API Key 并选择模型后再运行。',
           nodeTrace: trace,
         };
       }
-      currentInput = `LLM draft (${node.config.model || 'configured model'}): ${summarize(currentInput, 'prompt')}`;
+      currentInput = `LLM 草稿（${node.config.model || '已配置模型'}）：${summarize(currentInput, 'Prompt')}`;
       trace.push(finishTrace(active, { status: 'success', outputSummary: currentInput }));
       cursor = nextNode(workflow.edges, node.id);
       continue;
@@ -154,7 +154,7 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
 
     if (node.type === 'tool') {
       const toolName = node.config.toolName || 'local.echo';
-      currentInput = `Tool ${toolName} completed with local dry-run output.`;
+      currentInput = `Tool ${toolName} 已完成本地 dry-run 输出。`;
       trace.push(finishTrace(active, { status: 'success', outputSummary: currentInput }));
       cursor = nextNode(workflow.edges, node.id);
       continue;
@@ -164,7 +164,7 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
       const passed = conditionPasses(node.config.conditionExpression, currentInput);
       trace.push(finishTrace(active, {
         status: 'success',
-        outputSummary: passed ? 'Condition passed.' : 'Condition failed.',
+        outputSummary: passed ? '条件通过。' : '条件未通过。',
       }));
       cursor = nextNode(workflow.edges, node.id, passed ? 'true' : 'false');
       continue;
@@ -175,32 +175,32 @@ export function runWorkflow(workflow: Workflow, input = ''): WorkflowRunResult {
       if (!approved) {
         trace.push(finishTrace(active, {
           status: 'blocked',
-          outputSummary: 'Waiting for human approval.',
-          nextStep: 'Review the generated content and rerun after approval.',
+          outputSummary: '等待人工审批。',
+          nextStep: '检查生成内容，审批后重新运行。',
         }));
         return {
           status: 'blocked',
-          summary: 'Workflow is waiting for human approval.',
+          summary: 'Workflow 正在等待人工审批。',
           output,
-          nextStep: 'Approve or revise the draft, then run the workflow again.',
+          nextStep: '审批或修改草稿后，再次运行 Workflow。',
           nodeTrace: trace,
         };
       }
-      trace.push(finishTrace(active, { status: 'success', outputSummary: 'Approved by simulated local reviewer.' }));
+      trace.push(finishTrace(active, { status: 'success', outputSummary: '已由本地模拟审核通过。' }));
       cursor = nextNode(workflow.edges, node.id, 'approved');
       continue;
     }
 
     if (node.type === 'output') {
       output = node.config.sampleOutput || currentInput;
-      trace.push(finishTrace(active, { status: 'success', outputSummary: summarize(output, 'Output produced.') }));
+      trace.push(finishTrace(active, { status: 'success', outputSummary: summarize(output, '已生成输出。') }));
       cursor = undefined;
     }
   }
 
   return {
     status: 'success',
-    summary: `Workflow "${workflow.name}" completed with ${trace.length} trace events.`,
+    summary: `Workflow “${workflow.name}” 已完成，生成 ${trace.length} 条 trace 事件。`,
     output,
     nodeTrace: trace,
   };

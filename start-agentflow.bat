@@ -38,7 +38,7 @@ exit /b 0
 :fail
 echo.
 echo LocalAI Nexus failed to start. Please run:
-echo   cd /d D:\AgentFlowStudio
+echo   cd /d "%~dp0"
 echo   npm.cmd install
 echo   npm.cmd run build
 pause

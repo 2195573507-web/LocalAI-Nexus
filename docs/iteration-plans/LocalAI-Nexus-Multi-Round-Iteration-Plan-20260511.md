@@ -4,7 +4,21 @@ Date: 2026-05-11
 Workspace: `D:\LocalAI Nexus`
 Branch: `refactor-localai-nexus`
 Plan name: LocalAI Nexus Long-Term Iteration Plan Archive
-Plan status: Plan archive only. This round did not implement code, UI, localization, tests, dependencies, configuration, business logic, or shortcut fixes.
+Plan status: Executed on 2026-05-11 to the local, credential-free verification boundary after the user explicitly requested completion. The original archive text below is preserved for context, but current completion evidence is recorded in `PROJECT_PROGRESS.md`, `handoff/TEST_REPORT.md`, and `docs/LOCALAI_NEXUS_VERIFICATION_MATRIX.md`.
+
+## 2026-05-11 Execution Addendum
+
+This plan was originally written as a future roadmap. The current execution pass completed the seven rounds within the constraints of this local workspace:
+
+- Round 1: Rechecked active structure references and corrected current docs that still pointed at the old `D:\AgentFlowStudio` root where they described active state.
+- Round 2: Completed the Dashboard first-run path with Chinese-first actions for Provider setup, Gateway start, Workflow creation, project opening, Prompt handoff, safety check, and Memory recovery.
+- Round 3: Completed a targeted Chinese-first pass across the main LocalAI Nexus operational pages and repaired Login mojibake; retained Agent, Workflow, Provider, Gateway, Runtime, MCP, API, Token, JSON, CLI, E2E, trace, and Base URL as intentional technical terms.
+- Round 4: Localized Workflow runtime validation/failure/next-step messages and confirmed pause/cancel/retry-safe-node/resume are main-process controlled run/execution records with audit/run-event evidence.
+- Round 5: Preserved Electron security boundaries, main-process credential masking, redaction, audit, and ACL flows; did not expose arbitrary command execution or move Shared Memory Hub.
+- Round 6: Added `docs/LOCALAI_NEXUS_VERIFICATION_MATRIX.md` and updated unit/E2E expectations for Chinese-first UI/runtime behavior.
+- Round 7: Preserved the existing desktop launcher/shortcut flow and recorded packaging as environment-limited after a fresh `dist` run proved build/unpacked output but failed final installer packaging on local `winCodeSign` symlink privileges.
+
+Not claimed as fully proven in this execution pass: live credentialed provider forwarding, real upstream streaming through external providers, real MCP/tool approval against external actions, and final installer packaging beyond the existing unpacked app evidence.
 
 ## User-Readable Summary
 
@@ -34,7 +48,7 @@ This archived plan defines seven future implementation rounds. Each round is int
 - The active product identity is LocalAI Nexus, while compatibility names such as `window.agentflow` and `start-agentflow*.bat` still exist for bridge, storage, and launcher continuity.
 - Current active documentation says the desktop Electron app is primary and the static app is a recovery fallback.
 - Existing status docs record verified checks for typecheck, lint, unit tests, smoke, verify, build, E2E, static browser, launch-static, Electron startup, auth bridge, long-run, shortcut, COM inspection, and Gateway HTTP smoke.
-- Packaging remains environment-limited: `npm.cmd run dist` produced `release/win-unpacked/LocalAI Nexus.exe`, but the final electron-builder/app-builder package step timed out locally.
+- Packaging remains environment-limited: `npm.cmd run dist` produced `release/win-unpacked/LocalAI Nexus.exe`, but the final electron-builder package step failed when `7za.exe` could not create `winCodeSign` symlinks under the current Windows account.
 - The project has many active product surfaces: Dashboard, Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Skill Hub, Agent Studio, Workflow Studio, Shared Memory, Security Center, Ecosystem, Git/Handoff, Admin, and Settings.
 - `src/main/ipc.ts`, `src/renderer/routes/ProjectDetail.tsx`, `src/renderer/routes/SharedMemoryHub.tsx`, `src/renderer/routes/PromptLab.tsx`, and several route files are large enough to deserve careful future decomposition, but this plan does not perform that work.
 - Existing dirty state before this plan included documentation changes plus non-document changes in `scripts/create-shortcut.ps1` and `start-agentflow.bat`; future commits must avoid accidentally staging non-document files when the round is docs-only.
@@ -117,7 +131,7 @@ Known likely sources of English residue:
 | Completed before this plan | LocalAI Nexus identity, broad route shell, flat UI direction, provider/router/gateway/runtime/security/memory surfaces, shortcut COM verification, broad local verification matrix. |
 | Completed this round | Project audit, reference learning, plan archive creation, docs index updates, read-only script/shortcut/Git checks. |
 | Not completed this round | No code implementation, no UI refactor, no localization fixes, no test execution, no shortcut mutation, no dependency or config changes. |
-| Deferred | Live provider smoke, streaming/cancellation, token enforcement, workflow controls, memory graph, packaging timeout, installer verification. |
+| Deferred | Live provider smoke, real upstream streaming/cancellation, live token enforcement proof, real external-tool approvals, memory graph polish, `winCodeSign` symlink packaging blocker, installer verification. |
 
 ## Round 1 - Project Structure Cleanup And File Archiving
 
@@ -527,7 +541,7 @@ Risk: packaging may fail because of local app-builder/electron-builder environme
 | Overstating incomplete behavior | Use Completed/In progress/Planned/Environment-limited labels. | Patch docs immediately and add TEST_REPORT correction. |
 | Localization damages technical terms | Maintain glossary and acronym policy. | Revert affected i18n keys or restore specific terms. |
 | Cleanup moves active files | Search references before moving; update scripts/docs together. | Move archived files back and document the dependency. |
-| Packaging timeout repeats | Separate build success from packaging success; collect exact timeout evidence. | Keep unpacked app/static fallback as documented recovery path. |
+| Packaging environment blocker repeats | Separate build success from packaging success; collect exact electron-builder/`winCodeSign` evidence. | Keep unpacked app/static fallback as documented recovery path. |
 | Secret leakage | Redact at input, storage, renderer output, logs, memory, and export. | Rotate affected keys, purge leaked artifacts, and add regression tests. |
 
 ## Git And Documentation Requirements For Every Future Round
