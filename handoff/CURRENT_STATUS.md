@@ -1,7 +1,7 @@
 # Current Status - LocalAI Nexus
 
 Date: 2026-05-11
-Workspace: `D:\AgentFlowStudio`
+Workspace: `D:\LocalAI Nexus`
 Branch: `refactor-localai-nexus`
 
 ## Current Deliverable
@@ -12,14 +12,15 @@ Desktop shortcut:
 
 ```text
 C:\Users\至亲\Desktop\LocalAI Nexus.lnk
-TargetPath: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
-Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
-WorkingDirectory: D:\AgentFlowStudio
-IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
+TargetPath: D:\LocalAI Nexus\node_modules\electron\dist\electron.exe
+Arguments: "D:\LocalAI Nexus\dist-electron\main\index.js"
+WorkingDirectory: D:\LocalAI Nexus
+IconLocation: D:\LocalAI Nexus\assets\localai-nexus.ico,0
 ```
 
 ## Completed This Round
 
+- Added the plan-only long-term multi-round roadmap archive at `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`.
 - Completed the LocalAI Nexus Iteration 0-12 roadmap to the locally verifiable level.
 - Closed the previous lightweight UI plan.
 - Added first-class product routes for Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Skill Hub, Agent Studio, Workflow Studio, Shared Memory, Security Center, Ecosystem, Git/Handoff, Admin, and Settings.
@@ -47,4 +48,4 @@ IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 
 ## Next
 
-After cleanup commit/push, continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
+After cleanup commit/push, continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` and use `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` as the archived seven-round roadmap for broader optimization planning.

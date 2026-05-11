@@ -2,7 +2,7 @@
 
 LocalAI Nexus is the in-place evolution of AgentFlowStudio: a local AI gateway, runtime switcher, token/health console, skill manager, Agent/Workflow operations hub, Shared Memory recovery surface, and security audit center.
 
-The project remains rooted at `D:\AgentFlowStudio` to preserve Git history, JSON storage, desktop launchers, Shared Memory Hub data, and compatibility contracts such as `window.agentflow`.
+The current workspace is rooted at `D:\LocalAI Nexus`, preserving Git history, JSON storage, desktop launchers, Shared Memory Hub data, and compatibility contracts such as `window.agentflow`.
 
 ## Current Status
 
@@ -25,19 +25,19 @@ The project remains rooted at `D:\AgentFlowStudio` to preserve Git history, JSON
 ## Quick Start
 
 ```bat
-cd /d D:\AgentFlowStudio
+cd /d "D:\LocalAI Nexus"
 npm.cmd install
 npm.cmd run build
-D:\AgentFlowStudio\start-agentflow.bat
+"D:\LocalAI Nexus\start-agentflow.bat"
 ```
 
 Current desktop shortcut:
 
 ```text
 C:\Users\至亲\Desktop\LocalAI Nexus.lnk
-Target: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
-Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
-Icon: D:\AgentFlowStudio\assets\localai-nexus.ico,0
+Target: D:\LocalAI Nexus\node_modules\electron\dist\electron.exe
+Arguments: "D:\LocalAI Nexus\dist-electron\main\index.js"
+Icon: D:\LocalAI Nexus\assets\localai-nexus.ico,0
 ```
 
 The static app remains a recovery fallback, not the primary product target.
@@ -140,6 +140,7 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 - Cleanup report: `docs/cleanup/cleanup-report.md`
 - Completed iteration plan: `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
 - Next-stage plan: `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
+- Long-term multi-round iteration archive: `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`
 - Architecture: `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 - Structure audit: `docs/PROJECT_STRUCTURE_AUDIT.md`
 - Worklog: `docs/PROJECT_WORKLOG.md`

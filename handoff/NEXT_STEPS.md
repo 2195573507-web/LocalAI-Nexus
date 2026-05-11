@@ -6,7 +6,7 @@ LocalAI Nexus is the active product identity on branch `refactor-localai-nexus`.
 
 The app now has a verified desktop shell, icon, shortcut, dashboard, first-class Provider/Token/Health/Router/Gateway/Runtime/Diagnostics/Agent/Security/Ecosystem pages, CI-safe gateway/provider paths, runtime exports, context/security reports, Shared Memory context-pack surfaces, and local bundle registry behavior.
 
-The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
+The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`. The archived long-term multi-round plan is `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`; it is plan-only and does not represent implemented feature work.
 
 ## Next-Round Priorities
 
@@ -47,7 +47,7 @@ The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
 ## Useful Continue Commands
 
 ```bat
-cd /d D:\AgentFlowStudio
+cd /d "D:\LocalAI Nexus"
 git checkout refactor-localai-nexus
 npm.cmd run typecheck
 npm.cmd run test
@@ -69,10 +69,11 @@ powershell -NoProfile -Command "Invoke-RestMethod http://127.0.0.1:8317/v1/model
 3. `handoff/TEST_REPORT.md`
 4. `handoff/NEXT_STEPS.md`
 5. `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
-6. `docs/PROJECT_WORKLOG.md`
-7. `docs/PROJECT_STRUCTURE_AUDIT.md`
-8. `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
-9. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
+6. `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`
+7. `docs/PROJECT_WORKLOG.md`
+8. `docs/PROJECT_STRUCTURE_AUDIT.md`
+9. `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
+10. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 
 ## Completion Discipline
 

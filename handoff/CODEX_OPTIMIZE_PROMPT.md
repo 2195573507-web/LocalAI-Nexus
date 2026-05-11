@@ -14,7 +14,7 @@ Use this prompt when continuing LocalAI Nexus after the Iteration 0-12 closeout.
 
 ## Non-Negotiable Rules
 
-- Work in `D:\AgentFlowStudio`.
+- Work in `D:\LocalAI Nexus`.
 - Do not rebuild from scratch.
 - Preserve Git history.
 - Preserve JSON storage unless the user explicitly approves a migration.

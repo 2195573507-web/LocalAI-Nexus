@@ -1,13 +1,13 @@
 # Project Progress
 
 Date: 2026-05-11
-Workspace: `D:\AgentFlowStudio`
+Workspace: `D:\LocalAI Nexus`
 Branch: `refactor-localai-nexus`
 Product: LocalAI Nexus
 
 ## Current Position
 
-LocalAI Nexus is the active product identity in the existing `D:\AgentFlowStudio` repository. The work stayed in place, preserving Git history, JSON storage, the Shared Memory Hub, Electron security boundaries, static fallback recovery behavior, and `window.agentflow` compatibility.
+LocalAI Nexus is the active product identity in the existing `D:\LocalAI Nexus` repository. The work stayed in place, preserving Git history, JSON storage, the Shared Memory Hub, Electron security boundaries, static fallback recovery behavior, and `window.agentflow` compatibility.
 
 This progress file reflects the closeout of both the previous lightweight UI plan and `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` Iteration 0-12.
 
@@ -23,6 +23,14 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 - Added unit/E2E coverage for i18n helpers, theme persistence, Settings light/dark non-overwrite, reload persistence, and restart-like browser context persistence.
 - Checked Codex/GitHub integration state: GitHub plugin cache exists, but this Codex session only exposed Browser Use; `gh` was unavailable, and `winget install --id GitHub.cli -e` failed while opening the winget source.
 - Re-created the desktop shortcut and verified by COM readback that `LocalAI Nexus.lnk` targets the current built Electron entry in this root.
+- Repaired a stale shortcut state where the target had moved to `D:\LocalAI Nexus`, but the arguments and icon still referenced `D:\AgentFlowStudio`.
+
+## 2026-05-11 Long-Term Iteration Plan Archive
+
+- Created the plan-only long-term roadmap at `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`.
+- The plan defines seven future rounds: structure cleanup, new-user flow, UI/interaction plus Chinese localization, Agent/Workflow capability, security/data reliability, quality gates, and desktop release readiness.
+- This round only updated documentation and progress records; no source, tests, package files, config, dependency, data, shortcut, launcher, or UI implementation changes were made for the plan.
+- Read-only checks recorded in the plan include Git root, origin, tool/plugin availability, package script inventory, and desktop shortcut COM readback.
 
 ## Completed
 
@@ -52,6 +60,7 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 
 ## Planned
 
+- Use `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` as the archived multi-round roadmap when planning future broad optimization work.
 - Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
 - Re-run packaging with a longer timeout or corrected local electron-builder/app-builder environment.
 - Add live-provider and live-streaming smoke evidence only after the user supplies explicit credentials.
@@ -95,10 +104,10 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 ## Shortcut State
 
 - Shortcut: `C:\Users\至亲\Desktop\LocalAI Nexus.lnk`
-- Target: `D:\AgentFlowStudio\node_modules\electron\dist\electron.exe`
-- Arguments: `"D:\AgentFlowStudio\dist-electron\main\index.js"`
-- Working directory: `D:\AgentFlowStudio`
-- Icon: `D:\AgentFlowStudio\assets\localai-nexus.ico,0`
+- Target: `D:\LocalAI Nexus\node_modules\electron\dist\electron.exe`
+- Arguments: `"D:\LocalAI Nexus\dist-electron\main\index.js"`
+- Working directory: `D:\LocalAI Nexus`
+- Icon: `D:\LocalAI Nexus\assets\localai-nexus.ico,0`
 - Old `AgentFlow Studio.lnk`: removed.
 
 ## Current Commit Plan

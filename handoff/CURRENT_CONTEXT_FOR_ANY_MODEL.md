@@ -2,7 +2,7 @@
 
 ## Latest State - 2026-05-11
 
-Workspace: `D:\AgentFlowStudio`
+Workspace: `D:\LocalAI Nexus`
 Branch: `refactor-localai-nexus`
 Product: LocalAI Nexus
 
@@ -12,10 +12,10 @@ The active deliverable is the built Electron LocalAI Nexus app. Static fallback 
 
 ```text
 C:\Users\至亲\Desktop\LocalAI Nexus.lnk
-TargetPath: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
-Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
-WorkingDirectory: D:\AgentFlowStudio
-IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
+TargetPath: D:\LocalAI Nexus\node_modules\electron\dist\electron.exe
+Arguments: "D:\LocalAI Nexus\dist-electron\main\index.js"
+WorkingDirectory: D:\LocalAI Nexus
+IconLocation: D:\LocalAI Nexus\assets\localai-nexus.ico,0
 ```
 
 ## Verified
