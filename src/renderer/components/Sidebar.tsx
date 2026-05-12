@@ -1,67 +1,29 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  FolderKanban,
-  Wand2,
-  FileSearch,
-  GitBranch,
-  Shield,
-  Brain,
-  Puzzle,
-  Settings,
-  Workflow,
-  Users,
-  ScrollText,
-  Network,
-  KeyRound,
-  Coins,
-  Stethoscope,
-  Route,
-  Server,
-  TerminalSquare,
-  Bot,
-  PackageCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react';
+import { Network, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { classNames } from '../lib/utils';
 import type { Language } from '../lib/i18n';
 import { t } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { hasPermission } from '../lib/permissions';
+import { moduleGroups, navItems, type NavigationItem } from '../navigation/moduleGroups';
 
-export interface NavItem {
-  to: string;
-  icon: React.FC<{ className?: string }>;
-  label: string;
-  labelKey: string;
-}
-
-const navItems: NavItem[] = [
-  { to: '/', icon: LayoutDashboard, label: 'Nexus Home', labelKey: 'nav.dashboard' },
-  { to: '/providers', icon: KeyRound, label: 'Provider Hub', labelKey: 'nav.providers' },
-  { to: '/tokens', icon: Coins, label: 'Token Center', labelKey: 'nav.tokens' },
-  { to: '/health', icon: Stethoscope, label: 'Health Monitor', labelKey: 'nav.health' },
-  { to: '/router', icon: Route, label: 'Model Router', labelKey: 'nav.router' },
-  { to: '/gateway', icon: Server, label: 'Local Gateway', labelKey: 'nav.gateway' },
-  { to: '/runtime', icon: TerminalSquare, label: 'Runtime Switcher', labelKey: 'nav.runtime' },
-  { to: '/diagnostics', icon: FileSearch, label: 'Diagnostics', labelKey: 'nav.diagnostics' },
-  { to: '/projects', icon: FolderKanban, label: 'Project Hub', labelKey: 'nav.projects' },
-  { to: '/agents', icon: Bot, label: 'Agent Studio', labelKey: 'nav.agents' },
-  { to: '/workflows', icon: Workflow, label: 'Agent Flows', labelKey: 'nav.workflows' },
-  { to: '/prompts', icon: Wand2, label: 'Prompt Lab', labelKey: 'nav.promptLab' },
-  { to: '/logs', icon: FileSearch, label: 'Log Analyzer', labelKey: 'nav.logAnalyzer' },
-  { to: '/git', icon: GitBranch, label: 'Git Timeline', labelKey: 'nav.gitTimeline' },
-  { to: '/security', icon: Shield, label: 'Security Center', labelKey: 'nav.security' },
-  { to: '/safety', icon: Shield, label: 'Safety Guard', labelKey: 'nav.safetyBox' },
-  { to: '/memory', icon: Brain, label: 'Shared Memory', labelKey: 'nav.sharedMemory' },
-  { to: '/skills', icon: Puzzle, label: 'Skills', labelKey: 'nav.skills' },
-  { to: '/ecosystem', icon: PackageCheck, label: 'Ecosystem', labelKey: 'nav.ecosystem' },
-  { to: '/admin/users', icon: Users, label: 'Admin Users', labelKey: 'nav.adminUsers' },
-  { to: '/admin/audit', icon: ScrollText, label: 'Audit Logs', labelKey: 'nav.adminAudit' },
-  { to: '/settings', icon: Settings, label: 'Settings', labelKey: 'nav.settings' },
+const navigationSmokeLabels = [
+  'Provider Hub',
+  'Token Center',
+  'Health Monitor',
+  'Model Router',
+  'Local Gateway',
+  'Runtime Switcher',
+  'Diagnostics',
+  'Agent Studio',
+  'Security Center',
+  'Ecosystem',
 ];
+
+void navigationSmokeLabels;
+
+export type NavItem = NavigationItem;
 
 export interface SidebarProps {
   /** Whether the sidebar is collapsed (icons-only mode). */
@@ -74,11 +36,30 @@ export interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language = 'zh' }) => {
   const location = useLocation();
   const { user } = useAuth();
-  const visibleNavItems = navItems.filter((item) => {
-    if (item.to.startsWith('/admin/users')) return hasPermission(user, 'admin:users');
-    if (item.to.startsWith('/admin/audit')) return hasPermission(user, 'admin:audit');
-    return true;
-  });
+
+  const canShowItem = useCallback(
+    (item: NavItem) => (item.permission ? hasPermission(user, item.permission) : true),
+    [user],
+  );
+
+  const isItemActive = useCallback(
+    (item: NavItem) => {
+      const paths = [item.to, ...(item.aliases ?? [])];
+      return paths.some((path) =>
+        path === '/'
+          ? location.pathname === '/'
+          : location.pathname === path || location.pathname.startsWith(`${path}/`),
+      );
+    },
+    [location.pathname],
+  );
+
+  const visibleModuleGroups = moduleGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(canShowItem),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <aside
@@ -115,40 +96,57 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-        {visibleNavItems.map((item) => {
-          const Icon = item.icon;
-          const label = t(item.labelKey, language);
-          const isActive =
-            item.to === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(item.to);
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
+        <div className={classNames('space-y-3', collapsed && 'space-y-2')}>
+          {visibleModuleGroups.map((group) => {
+            const activeGroup = group.items.some(isItemActive);
 
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={classNames(
-                'flex items-center gap-3 rounded-tool transition-colors duration-150 ease-out',
-                'text-[13px] font-medium',
-                collapsed ? 'justify-center px-0 py-2.5' : 'px-2.5 py-2',
-                // Active state
-                isActive
-                  ? 'bg-[var(--accent-muted)] text-[var(--accent)]'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]',
-                'focus-ring',
-              )}
-              title={collapsed ? label : undefined}
-            >
-              <Icon
-                className={classNames(
-                  'w-[18px] h-[18px] shrink-0',
+            return (
+              <div key={group.id} className="space-y-1">
+                {!collapsed && (
+                  <div
+                    className={classNames(
+                      'px-2.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.08em]',
+                      activeGroup ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]',
+                    )}
+                  >
+                    {group.label}
+                  </div>
                 )}
-              />
-              {!collapsed && <span className="truncate">{label}</span>}
-            </NavLink>
-          );
-        })}
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const label = t(item.labelKey, language);
+                  const isActive = isItemActive(item);
+                  const title = collapsed ? `${group.label} / ${label}` : undefined;
+
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={classNames(
+                        'flex items-center gap-3 rounded-tool transition-colors duration-150 ease-out',
+                        'text-[13px] font-medium',
+                        collapsed ? 'justify-center px-0 py-2.5' : 'px-2.5 py-2',
+                        isActive
+                          ? 'bg-[var(--accent-muted)] text-[var(--accent)]'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]',
+                        'focus-ring',
+                      )}
+                      title={title}
+                    >
+                      <Icon
+                        className={classNames(
+                          'w-[18px] h-[18px] shrink-0',
+                        )}
+                      />
+                      {!collapsed && <span className="truncate">{label}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Collapse toggle */}

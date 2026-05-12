@@ -11,6 +11,18 @@ LocalAI Nexus is the active product identity in the existing `D:\LocalAI Nexus` 
 
 This progress file reflects the closeout of the previous lightweight UI plan, `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` Iteration 0-12, and the current execution pass for `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md`.
 
+## 2026-05-12 Seven-Module Navigation Consolidation
+
+- Reconfirmed the live Git root with `git rev-parse --show-toplevel`: `D:/LocalAI Nexus`.
+- Kept the work on branch `refactor-localai-nexus` with `origin` set to `https://github.com/2195573507-web/LocalAI-Nexus.git`.
+- Checked skill/tool availability: `using-superpowers` is available, `using-superpower` is not installed, `git`/`node`/`npm.cmd` are available, and `gh` is missing.
+- Consolidated the sidebar from 22 flat visible entries into 7 first-level modules: Workspace, Models, Gateway, Agents, Memory, Security, and Operations.
+- Added `src/renderer/navigation/moduleGroups.tsx` as the navigation configuration source and updated `Sidebar.tsx` to consume grouped configuration instead of owning a hardcoded flat list.
+- Preserved all 22 prior sidebar entries as second-level links, including permission-gated Admin Users and Audit Logs.
+- Kept existing routes and aliases intact: `/login`, `/projects/:id`, `/prompt-lab`, `/log-analyzer`, `/git-timeline`, `/safety-box`, and `/shared-memory-hub` remain registered outside or alongside the canonical sidebar links.
+- Did not create `docs/build-plans/` and did not create any `build-plan.md`; detailed 7-module build plans are the next round.
+- Updated `handoff/NAVIGATION_RESTRUCTURE.md`, README, architecture, and test-report documentation for this navigation-only round.
+
 ## 2026-05-11 Multi-Round Iteration Execution
 
 - Treated `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-20260511.md` as approved execution scope after the user explicitly requested completion.

@@ -90,6 +90,22 @@ Security invariants:
 - Memory, logs, imports, exports, and recovery context are redacted
 - JSON storage remains the active storage strategy
 
+## Navigation Model
+
+The sidebar is grouped into 7 first-level modules while preserving all 22 previous entry points as second-level links:
+
+| Module | Current sidebar entries |
+|---|---|
+| Workspace | Nexus Home, Project Hub, Settings |
+| Models | Provider Hub, Model Router, Runtime Switcher, Health Monitor |
+| Gateway | Local Gateway, Token Center, Diagnostics |
+| Agents | Agent Studio, Agent Flows, Skills, Prompt Lab |
+| Memory | Shared Memory |
+| Security | Security Center, Safety Guard, Admin Users, Audit Logs |
+| Operations | Ecosystem, Git Timeline, Log Analyzer |
+
+Navigation configuration lives in `src/renderer/navigation/moduleGroups.tsx`; `Sidebar.tsx` consumes that config and keeps the existing routes, labels, icons, permission filtering, collapsed titles, and active states. Legacy routes such as `/prompt-lab`, `/log-analyzer`, `/git-timeline`, `/safety-box`, and `/shared-memory-hub` remain registered as aliases.
+
 ## Development Commands
 
 ```bat
@@ -135,6 +151,7 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 
 - Current progress: `PROJECT_PROGRESS.md`
 - Test report: `handoff/TEST_REPORT.md`
+- Navigation restructure: `handoff/NAVIGATION_RESTRUCTURE.md`
 - Next steps: `handoff/NEXT_STEPS.md`
 - Cleanup review: `docs/cleanup/cleanup-review.md`
 - Cleanup report: `docs/cleanup/cleanup-report.md`

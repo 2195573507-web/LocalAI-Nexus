@@ -12,6 +12,33 @@ This run executes `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan
 
 Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the app, produced `release/win-unpacked/LocalAI Nexus.exe`, and then failed during electron-builder `winCodeSign` extraction because the current Windows account cannot create the symlinks inside the downloaded archive. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
 
+## 2026-05-12 Navigation Consolidation Validation
+
+This round groups the sidebar into 7 first-level modules through `src/renderer/navigation/moduleGroups.tsx` and `src/renderer/components/Sidebar.tsx`. The scope is renderer navigation and documentation only: no routes, IPC handlers, storage, auth, RBAC, or main-process domain services were changed.
+
+| Check | Result | Notes |
+|---|---:|---|
+| Root directory | PASS | `git rev-parse --show-toplevel` returned `D:/LocalAI Nexus`. |
+| Branch | PASS | Current branch is `refactor-localai-nexus`. |
+| Remote | PASS | `origin` points to `https://github.com/2195573507-web/LocalAI-Nexus.git`. |
+| Skill probe | PASS | `using-superpowers` is installed; `using-superpower` is not installed. |
+| Tool probe | LIMITED | `git`, `node`, and `npm.cmd` are available; `gh` is missing, so push uses plain Git. |
+| Sidebar entry preservation | PASS | All 22 previous sidebar entries are preserved as second-level links under 7 modules. |
+| Route preservation | PASS | `App.tsx` route registration was not changed; legacy aliases remain documented. |
+| Forbidden build-plan files | PASS | No `docs/build-plans/` directory or `build-plan.md` file was created. |
+| `npm.cmd install` | PASS | Dependencies were already up to date; npm audit still reports existing vulnerabilities. |
+| `npm.cmd run typecheck` | PASS | `tsc --noEmit -p tsconfig.json`. |
+| `npm.cmd run lint` | PASS | 0 errors / 21 existing warnings, within `--max-warnings 50`. |
+| `npm.cmd run test` | PASS | 26 test files / 189 tests passed. |
+| `npm.cmd run build` | PASS | Vite renderer/main/preload build passed; only existing chunk/dynamic-import warnings. |
+| `npm.cmd run verify` | PASS | Verify 131/131 plus smoke 213/213. |
+| `npm.cmd run test:e2e` | PASS | 19/19 Playwright tests passed. |
+| `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured with project-local userData. |
+| `npm.cmd run test:electron-auth-bridge` | PASS | Built renderer loaded with secure auth bridge. |
+| `npm.cmd run shortcut` | PASS | Shortcut script recreated and verified `LocalAI Nexus.lnk`. |
+| Shortcut COM inspection | PASS | Target, arguments, working directory, and icon point to `D:\LocalAI Nexus`. |
+| Commit / push | TO FINALIZE | Git closure runs after this report is updated; exact commit hash and push verification are recorded in the final delivery response. |
+
 ## Current Run Validation Results
 
 | Check | Result | Notes |

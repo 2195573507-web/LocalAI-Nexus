@@ -42,23 +42,21 @@ React Renderer
 
 Active first-class surfaces:
 
-- Dashboard
-- Provider Hub
-- Token Center
-- Health Monitor
-- Model Router
-- Local Gateway
-- Runtime Switcher
-- Diagnostics
-- Skill Hub
-- Agent Studio
-- Workflow Studio
-- Shared Memory
-- Security Center
-- Ecosystem
-- Git/Handoff
-- Admin
-- Settings
+The renderer keeps route registration in `src/renderer/App.tsx`. Sidebar information architecture is configured separately in `src/renderer/navigation/moduleGroups.tsx`, then rendered by `src/renderer/components/Sidebar.tsx`.
+
+| First-level module | Sidebar entries |
+|---|---|
+| Workspace | Dashboard, Project Hub, Settings |
+| Models | Provider Hub, Model Router, Runtime Switcher, Health Monitor |
+| Gateway | Local Gateway, Token Center, Diagnostics |
+| Agents | Agent Studio, Workflow Studio, Skill Hub, Prompt Lab |
+| Memory | Shared Memory |
+| Security | Security Center, Safety Guard, Admin Users, Audit Logs |
+| Operations | Ecosystem, Git/Handoff, Log Analyzer |
+
+The previous 22 visible sidebar entries remain available as second-level links. Legacy/non-sidebar route compatibility remains in `App.tsx`: `/login`, `/projects/:id`, `/prompt-lab`, `/log-analyzer`, `/git-timeline`, `/safety-box`, and `/shared-memory-hub`.
+
+This navigation consolidation did not change IPC, storage, auth, RBAC, or main-process domain service boundaries.
 
 ## Gateway Endpoints
 
