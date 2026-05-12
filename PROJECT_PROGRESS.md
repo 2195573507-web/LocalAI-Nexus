@@ -1,6 +1,6 @@
 # Project Progress
 
-Date: 2026-05-11
+Date: 2026-05-12
 Workspace: `D:\LocalAI Nexus`
 Branch: `refactor-localai-nexus`
 Product: LocalAI Nexus
@@ -20,7 +20,7 @@ This progress file reflects the closeout of the previous lightweight UI plan, `d
 - Added `src/renderer/navigation/moduleGroups.tsx` as the navigation configuration source and updated `Sidebar.tsx` to consume grouped configuration instead of owning a hardcoded flat list.
 - Preserved all 22 prior sidebar entries as second-level links, including permission-gated Admin Users and Audit Logs.
 - Kept existing routes and aliases intact: `/login`, `/projects/:id`, `/prompt-lab`, `/log-analyzer`, `/git-timeline`, `/safety-box`, and `/shared-memory-hub` remain registered outside or alongside the canonical sidebar links.
-- Did not create `docs/build-plans/` and did not create any `build-plan.md`; detailed 7-module build plans are the next round.
+- At that navigation-only checkpoint, `docs/build-plans/` and detailed module `build-plan.md` files were intentionally deferred to the next round.
 - Updated `handoff/NAVIGATION_RESTRUCTURE.md`, README, architecture, and test-report documentation for this navigation-only round.
 
 ## 2026-05-11 Multi-Round Iteration Execution
@@ -82,7 +82,8 @@ Current completion boundary: all seven rounds are completed to the local, creden
 - Live provider validation with user-supplied credentials.
 - Real upstream streaming pass-through and cancellation accounting.
 - Live proof of token policy enforcement against real provider traffic beyond local unit/router coverage.
-- External-tool approval gates and import/export hardening beyond current controlled Agent/Workflow run records.
+- External-tool approval gates beyond current controlled Agent/Workflow run records.
+- Live external config writes remain intentionally manual; Gateway import/export hardening now covers redacted preview, merge record, backup checkpoint, and audit metadata without overwriting external Codex/Claude Code files.
 - Memory graph/recovery-pack polish and richer security risk scoring.
 
 ## Planned
@@ -113,11 +114,11 @@ Current completion boundary: all seven rounds are completed to the local, creden
 |---|---:|
 | `npm.cmd run typecheck` | PASS |
 | `npm.cmd run lint` | PASS, warnings under threshold |
-| `npm.cmd run test` | PASS, 26 files / 189 tests |
-| `npm.cmd run smoke` | PASS |
-| `npm.cmd run verify` | PASS |
+| `npm.cmd run test` | PASS, 32 files / 208 tests |
+| `npm.cmd run smoke` | PASS, 227/227 |
+| `npm.cmd run verify` | PASS, 143/143 plus smoke 227/227 |
 | `npm.cmd run build` | PASS |
-| `npm.cmd run test:e2e` | PASS, 17/17 |
+| `npm.cmd run test:e2e` | PASS, 19/19 |
 | `npm.cmd run test:static-browser` | PASS |
 | `npm.cmd run test:launch-static` | PASS |
 | `npm.cmd run test:electron-startup` | PASS |
@@ -125,8 +126,8 @@ Current completion boundary: all seven rounds are completed to the local, creden
 | `npm.cmd run test:long-run` | PASS |
 | `npm.cmd run shortcut` | PASS |
 | Shortcut COM inspection | PASS |
-| Gateway HTTP smoke | PASS |
-| `npm.cmd run dist` | ENV-LIMITED winCodeSign symlink privilege |
+| Gateway HTTP smoke | PASS, including `/v1/embeddings` |
+| `npm.cmd run dist` | ENV-LIMITED winCodeSign symlink privilege after unpacked app generation |
 
 ## Shortcut State
 
@@ -148,6 +149,15 @@ fix: repair language and theme settings behavior
 - Created `docs/build-plans/` as the dedicated home for future LocalAI Nexus module build plans.
 - Added the master authoring plan and the 00 modular refactor plan README.
 - Recorded that future work must start with module boundary refactoring, then proceed module by module, with each round testing, documentation updates, commit, and push.
-- This round is documentation-only and does not change business code.
 - Added 8 module-level `build-plan.md` files under `docs/build-plans/`: 00 modular refactor, 01 Workspace, 02 Provider, 03 Gateway/API Key, 04 Agent/Workflow/MCP, 05 Knowledge/Prompt/Memory, 06 Observability/Evaluation/Feedback, and 07 Identity/Security/Audit/Ops.
 - Each module plan includes the fixed 26-section structure from `docs/build-plans/BUILD_PLAN_AUTHORING_MASTER_PLAN.md`, including build goal, build requirements, functional scope, acceptance criteria, extension interfaces, testing requirements, implementation phases, deliverables, risks, documentation updates, and Git commit/push requirements.
+
+## Module Build-Plan Implementation - 2026-05-12
+
+- Implemented the Gateway/API key acceptance gaps: key-level daily/monthly quota, rate limit, concurrency limit, endpoint/model whitelist enforcement, request attribution, and copy-once env/Codex/Claude export.
+- Added safe Gateway config import/export coverage for ccs, sub2api, cc-switch, claude-code, codex, and openai-env inputs. The import path produces a redacted preview, merge plan, local backup checkpoint, and audit metadata; it does not write external Codex or Claude Code config files silently.
+- Added/verified Knowledge, Observability, and Ops module services for redacted document preview/retrieval, mock evaluation/reporting, backup manifest creation, and restore preview rejection.
+- Updated smoke coverage so the static verifier checks Gateway import preview/merge/backup/audit, redaction, Ops backup schema, and the module IPC/preload/API surfaces.
+- Latest local evidence after these changes: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (32 files / 208 tests), `npm.cmd run smoke` PASS (227/227), `npm.cmd run verify` PASS (143/143 plus smoke 227/227), and `npm.cmd run test:e2e` PASS (19/19).
+- Final local verification also passed `npm.cmd run lint`, `npm.cmd run scan:mojibake` (177 files checked), `npm.cmd run build`, `npm.cmd run test:static-browser`, `npm.cmd run test:launch-static`, `npm.cmd run test:electron-startup`, `npm.cmd run test:electron-auth-bridge`, `npm.cmd run test:gateway-http`, `npm.cmd run test:long-run`, and `npm.cmd run shortcut`.
+- The latest `npm.cmd run dist` attempt rebuilt source output and produced `release/win-unpacked/LocalAI Nexus.exe`; final installer packaging remains blocked by the local `winCodeSign` symlink privilege failure.

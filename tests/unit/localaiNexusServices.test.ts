@@ -194,6 +194,39 @@ describe('LocalAI Nexus services', () => {
     expect(JSON.stringify(result.body)).toContain('LocalAI Nexus mock provider');
   });
 
+  it('serves CI-safe mock embeddings through the gateway provider pipeline', async () => {
+    seed('providerSettings', [
+      {
+        id: 'mock-embed',
+        providerId: 'localai-mock',
+        providerName: 'LocalAI Mock',
+        baseUrl: 'mock://localai',
+        apiKey: '',
+        modelName: 'mock-embedding',
+        enabled: true,
+        memoryEnabled: false,
+        memoryInjectionMode: 'off',
+        maxMemoryItems: 0,
+        maxMemoryChars: 0,
+        tags: ['default'],
+      },
+    ] satisfies ProviderSetting[]);
+    seed('modelRoutes', []);
+    const route = await routeModel({ model: 'mock-embedding' });
+    const result = await forwardProviderRequest({
+      endpoint: '/v1/embeddings',
+      kind: 'embeddings',
+      body: { model: 'mock-embedding', input: 'LocalAI Nexus' },
+      requestId: 'embedding-trace',
+    }, route);
+    expect(result.ok).toBe(true);
+    expect(result.body).toMatchObject({
+      object: 'list',
+      data: [{ object: 'embedding', index: 0 }],
+    });
+    expect(result.inputTokens).toBeGreaterThan(0);
+  });
+
   it('parses SSE streaming and records stream protocol metadata', async () => {
     const originalFetch = globalThis.fetch;
     vi.stubGlobal('fetch', vi.fn(async () => new Response(

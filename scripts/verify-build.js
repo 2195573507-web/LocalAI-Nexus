@@ -71,6 +71,10 @@ const domainServices = [
   'security/securityReportService',
   'memory/contextPackService',
   'ecosystem/bundleRegistryService',
+  'gateway/gatewayKeyService',
+  'knowledge/knowledgeService',
+  'observability/observabilityService',
+  'ops/backupService',
 ]
 for (const service of domainServices) {
   check(`domain/${service}`, `src/main/domain/${service}.ts`)
@@ -116,6 +120,7 @@ for (const lib of libs) {
 console.log('\n[Source - Shared]')
 check('shared/types', 'src/shared/types.ts')
 check('shared/providerPresets', 'src/shared/providerPresets.ts')
+check('shared/moduleRegistry', 'src/shared/moduleRegistry.ts')
 
 console.log('\n[Skills]')
 const skills = [
@@ -134,6 +139,7 @@ check('smoke-test', 'scripts/smoke-test.js')
 check('long-run-stability-test', 'scripts/long-run-stability-test.js')
 check('electron-startup-smoke', 'scripts/electron-startup-smoke.js')
 check('electron-auth-bridge-smoke', 'scripts/electron-auth-bridge-smoke.js')
+check('gateway-http-smoke', 'scripts/gateway-http-smoke.js')
 
 console.log('\n[Assets]')
 check('icon.svg', 'assets/icon.svg')
@@ -150,6 +156,11 @@ for (const test of tests) {
 check('e2e/app.spec', 'tests/e2e/app.spec.ts')
 check('e2e/playwright.config', 'playwright.config.ts')
 check('test/localaiNexusServices.test', 'tests/unit/localaiNexusServices.test.ts')
+check('test/moduleRegistry.test', 'tests/unit/moduleRegistry.test.ts')
+check('test/gatewayKeyService.test', 'tests/unit/gatewayKeyService.test.ts')
+check('test/knowledgeService.test', 'tests/unit/knowledgeService.test.ts')
+check('test/observabilityService.test', 'tests/unit/observabilityService.test.ts')
+check('test/opsBackupService.test', 'tests/unit/opsBackupService.test.ts')
 
 console.log('\n[Handoff Files]')
 const handoffFiles = [
@@ -168,7 +179,7 @@ check('docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN', 'docs/LOCALAI_NEXUS_NEXT_ITERATI
 console.log('\n[Package Scripts]')
 try {
   const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8'))
-  const requiredScripts = ['dev', 'build', 'dist', 'test', 'test:e2e', 'test:static-browser', 'typecheck', 'lint', 'format', 'icon', 'shortcut', 'verify', 'release']
+  const requiredScripts = ['dev', 'build', 'dist', 'test', 'test:e2e', 'test:static-browser', 'test:gateway-http', 'typecheck', 'lint', 'format', 'icon', 'shortcut', 'verify', 'release']
   for (const script of requiredScripts) {
     if (pkg.scripts && pkg.scripts[script]) {
       console.log(`  PASS  script/${script}`)

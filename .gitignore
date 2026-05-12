@@ -16,7 +16,9 @@ test-results/
 .codex-parallel/test-results/
 .codex-parallel/electron-user-data-smoke/
 .codex-parallel/gateway-smoke-user-data/
+.codex-parallel/gateway-smoke-user-data-*/
 .codex-parallel/gateway-smoke-user-data-direct/
+.codex-parallel/gateway-http-user-data/
 .codex-parallel/logs/
 .codex-parallel/results/
 .codex-parallel/tasks/

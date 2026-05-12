@@ -1,6 +1,6 @@
 // ── Core Data Models ──
 
-export type ProjectStatus = 'planning' | 'active' | 'paused' | 'done'
+export type ProjectStatus = 'planning' | 'active' | 'paused' | 'done' | 'archived'
 export type Platform = 'Web' | 'Desktop' | 'CLI' | 'Mobile' | 'Embedded' | 'Other'
 export type TaskStatus = 'todo' | 'doing' | 'in_progress' | 'blocked' | 'done'
 export type Priority = 'critical' | 'high' | 'medium' | 'low'
@@ -44,6 +44,7 @@ export interface Project {
   status: ProjectStatus
   defaultProviderRef?: string
   defaultModel?: string
+  archivedAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -74,9 +75,20 @@ export interface SavedPrompt {
   name?: string
   templateId?: string
   variables?: Record<string, string>
+  versions?: PromptVersion[]
   starred?: boolean
   createdAt: string
   updatedAt?: string
+}
+
+export interface PromptVersion {
+  id: string
+  version: number
+  content: string
+  variables?: Record<string, string>
+  message?: string
+  createdByUserId?: string
+  createdAt: string
 }
 
 export interface Run {
@@ -427,6 +439,8 @@ export interface NexusUsageRecord {
   id: string
   providerId?: string
   providerName?: string
+  gatewayKeyId?: string
+  gatewayMaskedKey?: string
   model?: string
   endpoint: string
   projectId?: string
@@ -510,7 +524,122 @@ export interface NexusGatewayStatus {
   lastRouteReason?: string
 }
 
-export type NexusGatewayRequestKind = 'chat.completions' | 'responses' | 'messages'
+export type NexusGatewayApiKeyStatus = 'active' | 'disabled' | 'deleted'
+
+export interface NexusGatewayApiKey {
+  id: string
+  name: string
+  keyHash: string
+  maskedKey: string
+  status: NexusGatewayApiKeyStatus
+  scopes: string[]
+  endpointWhitelist: string[]
+  modelWhitelist: string[]
+  dailyQuota: number
+  monthlyQuota: number
+  rateLimitPerMinute: number
+  concurrencyLimit: number
+  createdByUserId?: string
+  createdAt: string
+  updatedAt: string
+  lastUsedAt?: string
+  deletedAt?: string
+}
+
+export interface NexusGatewayApiKeyCreateRequest {
+  name: string
+  scopes?: string[]
+  endpointWhitelist?: string[]
+  modelWhitelist?: string[]
+  dailyQuota?: number
+  monthlyQuota?: number
+  rateLimitPerMinute?: number
+  concurrencyLimit?: number
+}
+
+export interface NexusGatewayApiKeyCreateResult {
+  key: NexusGatewayApiKey
+  rawKey: string
+  copyOnceWarning: string
+}
+
+export type NexusGatewayConfigSource =
+  | 'localai-nexus'
+  | 'ccs'
+  | 'sub2api'
+  | 'cc-switch'
+  | 'claude-code'
+  | 'codex'
+  | 'openai-env'
+  | 'unknown'
+
+export interface NexusGatewayConfigMergeAction {
+  target: 'gatewayApiKeys' | 'gateway.config.imports' | 'claude-code.settings' | 'codex.config' | 'runtime.env'
+  action: 'preview' | 'merge' | 'backup' | 'skip'
+  label: string
+  detail: string
+  riskLevel: 'low' | 'medium' | 'high'
+}
+
+export interface NexusGatewayConfigImportPreview {
+  ok: boolean
+  source: NexusGatewayConfigSource
+  warnings: string[]
+  errors: string[]
+  redaction: 'secrets-redacted'
+  detected: {
+    baseUrls: string[]
+    models: string[]
+    profileCount: number
+    keyRefCount: number
+    gatewayPolicyCount: number
+    supportedTargets: NexusGatewayConfigSource[]
+  }
+  mergePlan: NexusGatewayConfigMergeAction[]
+  backup: {
+    required: true
+    collections: string[]
+    redaction: 'secrets-redacted'
+  }
+  audit: {
+    action: 'gateway.config.imported'
+    metadata: Record<string, unknown>
+  }
+  normalized?: Record<string, unknown>
+}
+
+export interface NexusGatewayConfigApplyResult {
+  ok: boolean
+  source: NexusGatewayConfigSource
+  imported: number
+  warnings: string[]
+  mergePlan: NexusGatewayConfigMergeAction[]
+  backup: {
+    id: string
+    createdAt: string
+    collections: Array<{ name: string; count: number }>
+    hash: string
+    redaction: 'secrets-redacted'
+  }
+  audit: {
+    action: 'gateway.config.imported'
+    status: 'recorded' | 'not-recorded'
+  }
+  record: Record<string, unknown>
+}
+
+export interface NexusGatewayAccessDecision {
+  allowed: boolean
+  reason: string
+  statusCode: number
+  keyId?: string
+  maskedKey?: string
+  failureCategory?: NexusFailureCategory
+  retryAfterSeconds?: number
+  diagnosticOpenMode: boolean
+}
+
+export type NexusGatewayRequestKind = 'chat.completions' | 'responses' | 'messages' | 'embeddings'
 export type NexusGatewayStreamEventType = 'message_start' | 'content_delta' | 'message_delta' | 'message_stop' | 'error'
 
 export interface NexusGatewayForwardInput {
@@ -597,6 +726,88 @@ export interface NexusSecurityReport {
   externalUrlPolicy: 'confirm-before-open'
 }
 
+export interface NexusTraceSummary {
+  traceId: string
+  source: 'gateway' | 'workflow' | 'agent' | 'provider' | 'audit'
+  operation: string
+  status: 'success' | 'failure' | 'denied' | 'info'
+  startedAt: string
+  endedAt?: string
+  latencyMs?: number
+  errorCategory?: NexusFailureCategory
+  redaction: 'secrets-redacted'
+}
+
+export interface NexusEvaluationRun {
+  id: string
+  name: string
+  target: 'prompt' | 'model'
+  providerId?: string
+  model?: string
+  promptId?: string
+  score: number
+  status: 'passed' | 'warning' | 'failed'
+  findings: string[]
+  redaction: 'secrets-redacted'
+  mode: 'mock'
+  createdAt: string
+}
+
+export interface NexusObservabilityReport {
+  id: string
+  generatedAt: string
+  usage: NexusUsageSummary
+  traces: NexusTraceSummary[]
+  slowRequests: NexusUsageRecord[]
+  errorCategories: Array<{ category: NexusFailureCategory; count: number }>
+  evaluation?: NexusEvaluationRun
+  reportRedaction: 'secrets-redacted'
+  compatibility: 'legacy-usage-and-run-events'
+}
+
+export interface NexusKnowledgeDocumentPreview {
+  id: string
+  title: string
+  chunkCount: number
+  chunks: Array<{ id: string; text: string; tokenEstimate: number }>
+  redaction: 'secrets-redacted'
+  createdAt: string
+}
+
+export interface NexusKnowledgeRetrievalResult {
+  query: string
+  topK: number
+  matches: Array<{ chunkId: string; title: string; text: string; score: number }>
+  latencyMs: number
+  mode: 'mock-local'
+  redaction: 'secrets-redacted'
+}
+
+export interface NexusBackupManifest {
+  id: string
+  createdAt: string
+  mode: 'dry-run' | 'created'
+  schemaVersion: 1
+  collections: Array<{ name: string; count: number; redacted: boolean }>
+  checksum: string
+  redaction: 'secrets-redacted'
+  restoreRequiresPreview: true
+  bundle?: {
+    collections: string[]
+    bytes: number
+    hash: string
+    redaction: 'secrets-redacted'
+  }
+}
+
+export interface NexusRestorePreview {
+  ok: boolean
+  warnings: string[]
+  errors: string[]
+  manifest?: NexusBackupManifest
+  changes: Array<{ collection: string; incoming: number; existing: number; action: 'merge-preview' | 'skip' }>
+}
+
 export interface NexusTemplateBundle {
   id: string
   name: string
@@ -672,6 +883,8 @@ export interface ConfigBundle {
   providerPresets: ProviderPreset[]
   providers: Array<Record<string, unknown>>
   projectDefaults: Array<{ projectId: string; defaultProviderRef?: string; defaultModel?: string }>
+  gatewayKeys: Array<Record<string, unknown>>
+  gatewayConfigImports: Array<Record<string, unknown>>
   agents: Array<Record<string, unknown>>
   templates: Array<Record<string, unknown>>
   mcpAllowlist: Array<Record<string, unknown>>
@@ -870,6 +1083,16 @@ export const IPC_CHANNELS = {
   GATEWAY_STATUS: 'gateway:status',
   GATEWAY_START: 'gateway:start',
   GATEWAY_STOP: 'gateway:stop',
+  GATEWAY_KEY_LIST: 'gateway:key:list',
+  GATEWAY_KEY_CREATE: 'gateway:key:create',
+  GATEWAY_KEY_DISABLE: 'gateway:key:disable',
+  GATEWAY_KEY_DELETE: 'gateway:key:delete',
+  GATEWAY_KEY_RESET: 'gateway:key:reset',
+  GATEWAY_EXPORT_ENV: 'gateway:export:env',
+  GATEWAY_EXPORT_CODEX: 'gateway:export:codex',
+  GATEWAY_EXPORT_CLAUDE: 'gateway:export:claude',
+  GATEWAY_IMPORT_PREVIEW: 'gateway:importPreview',
+  GATEWAY_IMPORT_APPLY: 'gateway:importApply',
   USAGE_SUMMARY: 'usage:summary',
   USAGE_LIST: 'usage:list',
   TOKEN_POLICY_LIST: 'tokenPolicy:list',
@@ -880,6 +1103,13 @@ export const IPC_CHANNELS = {
   RUNTIME_PROFILES_GENERATE: 'runtime:profiles:generate',
   ROUTER_DECISIONS_LIST: 'router:decisions:list',
   SECURITY_REPORT_GENERATE: 'security:report:generate',
+  OBSERVABILITY_REPORT_GENERATE: 'observability:report:generate',
+  EVAL_MOCK_RUN: 'eval:mock:run',
+  KNOWLEDGE_DOCUMENT_PREVIEW: 'knowledge:document:preview',
+  KNOWLEDGE_RETRIEVAL_TEST: 'knowledge:retrieval:test',
+  OPS_BACKUP_PREVIEW: 'ops:backup:preview',
+  OPS_BACKUP_CREATE: 'ops:backup:create',
+  OPS_RESTORE_PREVIEW: 'ops:restore:preview',
   CONTEXT_PACK_PREVIEW: 'contextPack:preview',
   CONTEXT_RECOVERY_PACK: 'contextPack:recoveryPack',
   TEMPLATE_BUNDLES_LIST: 'templateBundles:list',

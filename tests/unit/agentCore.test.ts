@@ -6,7 +6,7 @@ describe('agent core helpers', () => {
     const agent = createDemoAgent(new Date('2026-05-10T00:00:00.000Z'))
     expect(agent.type).toBe('demo')
     expect(agent.providerRef).toBe('demo-provider')
-    expect(agent.systemPrompt).toContain('Never call external tools')
+    expect(agent.systemPrompt).toContain('不调用外部工具')
   })
 
   it('maps preflight failures to actionable Chinese messages', () => {

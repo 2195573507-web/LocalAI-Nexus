@@ -344,13 +344,32 @@ function installAgentflowMock() {
         getAll: async () => ({ theme: 'system', defaultProjectPath: '', defaultAITool: 'Claude Code', dataPath: '', appVersion: '1.1.1' }),
         get: async () => null,
         set: async () => true,
+        update: async () => true,
       },
       mcp: { allowlist: async () => [] },
       skills: { list: async () => [], registry: async () => [], toggleRegistry: async () => ({}) },
       agents: {
         list: async () => [],
-        create: async (agent: Record<string, string>) => ({ ...agent, id: 'agent-e2e', createdAt: now(), updatedAt: now() }),
-        executions: async () => [],
+        create: async (agent: Record<string, string>) => ({
+          ...agent,
+          id: 'agent-e2e',
+          name: agent.name || '新手演示 Agent',
+          createdAt: now(),
+          updatedAt: now(),
+        }),
+        executions: async () => [{
+          id: 'execution-e2e',
+          agentId: 'agent-e2e',
+          projectId: 'demo-1',
+          status: 'demo',
+          startedAt: now(),
+          finishedAt: now(),
+          durationMs: 12,
+          inputSummary: '演示输入：整理需求。',
+          outputSummary: '本地模拟执行记录已生成。',
+          customData: { externalCalls: 0 },
+          createdAt: now(),
+        }],
         timeline: async () => [],
       },
       agentFeedback: { create: async (feedback: Record<string, string>) => ({ ...feedback, id: 'feedback-e2e' }) },
@@ -407,9 +426,11 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page).toHaveTitle(/LocalAI Nexus/)
     await expect(page.locator('main').getByRole('heading', { name: /LocalAI Nexus/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
-    await expect(page.getByText(/首次运行检查清单|First-run checklist|Nexus 路径|Nexus path/).first()).toBeVisible()
+    await expect(page.getByText(/1 分钟快速开始/).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /打开新手示例项目/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /运行示例 Workflow/ }).first()).toBeVisible()
 
-    for (const label of [/添加 Provider|Add a provider/, /启动本地 Gateway|Start the local gateway/, /创建第一个 Workflow|Create the first workflow/, /保存恢复上下文|Save recovery context/]) {
+    for (const label of [/打开示例项目/, /创建第一个 Agent/, /运行第一个 Workflow/, /保存第一个 Prompt/]) {
       await expect(page.getByText(label).first()).toBeVisible()
     }
 
@@ -428,9 +449,12 @@ test.describe('LocalAI Nexus React web entry', () => {
 
   test('settings exposes provider presets, MCP skills, and safe config export', async ({ page }) => {
     await page.goto('/#/settings', { waitUntil: 'networkidle' })
-    await expect(page.getByRole('heading', { name: 'Provider Preset Center' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /MCP & Skills/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Provider 预设中心|Provider Preset Center/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /MCP & Skills|MCP & Skills 管理/ })).toBeVisible()
     await expect(page.getByRole('heading', { name: /配置导入 \/ 导出|Config|Import|Export/ })).toBeVisible()
+    await expect(page.locator('main')).toContainText(/选择一个 Provider 预设|Choose a provider preset/)
+    await expect(page.locator('main')).toContainText(/API Key/)
+    await expect(page.locator('main')).toContainText(/测试连接|test the connection/i)
     await page.getByRole('button', { name: /配置真实模型|添加 Provider|Provider/ }).first().click()
     await page.getByLabel(/API Key/).fill('sk-e2e-secret-1234')
     const inputFont = await page.getByLabel(/API Key/).evaluate((el) => getComputedStyle(el).fontFamily)
@@ -478,19 +502,19 @@ test.describe('LocalAI Nexus React web entry', () => {
 
   test('dashboard quick actions use primary routes', async ({ page }) => {
     const quickActions = [
+      { name: /打开示例项目/, url: /\/projects\/onboarding-demo-project$/ },
+      { name: /创建演示 Agent/, url: /\/agents$/ },
+      { name: /运行示例 Workflow/, url: /\/workflows$/ },
       { name: /Provider 中心|Provider Hub/, url: /\/providers$/ },
       { name: /Runtime 配置|Runtime Profile/, url: /\/runtime$/ },
-      { name: /Skill 中心|Skill Hub/, url: /\/skills$/ },
-      { name: /诊断中心|Diagnostics/, url: /\/diagnostics$/ },
       { name: /Shared Memory/, url: /\/memory$/ },
-      { name: /Git 时间线|Git Timeline/, url: /\/git$/ },
     ]
 
     for (const action of quickActions) {
       await page.goto('/', { waitUntil: 'networkidle' })
       await page.getByRole('button', { name: action.name }).first().click()
       await expect(page).toHaveURL(action.url)
-      await expect(page.locator('main')).not.toBeEmpty()
+      await expect(page.getByRole('main').first()).not.toBeEmpty()
     }
   })
 
@@ -582,7 +606,7 @@ test.describe('LocalAI Nexus React web entry', () => {
   test('opens Prompt Lab and shows workflow template next actions', async ({ page }) => {
     await page.goto('/#/prompts', { waitUntil: 'networkidle' })
     await expect(page.locator('main')).toContainText(/Prompt Lab/)
-    for (const step of ['创建工作流', '添加节点', '配置模型/API', '运行', '查看结果和日志']) {
+    for (const step of ['选择模板', '确认输入', '配置 Provider/API Key', '运行', '保存结果和日志']) {
       await expect(page.locator('main').getByText(step, { exact: true })).toBeVisible()
     }
 
@@ -591,7 +615,7 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page.locator('main').getByText(/Git/).first()).toBeVisible()
     await expect(page.getByText(/人工复核|需要人工确认/).first()).toBeVisible()
 
-    await page.getByRole('button', { name: /Prompt/ }).click()
+    await page.getByRole('button', { name: /Prompt 模板/ }).click()
     await page.getByRole('button', { name: /Generate|生成 Prompt|生成/ }).first().click()
     await expect(page.getByText(/下一步建议/)).toBeVisible()
     await expect(page.getByRole('button', { name: /复制.*Agent|Copy.*Agent/i })).toBeVisible()
@@ -601,17 +625,35 @@ test.describe('LocalAI Nexus React web entry', () => {
   test('runs a workflow template and shows Timeline / Trace', async ({ page }) => {
     await page.goto('/#/workflows', { waitUntil: 'networkidle' })
     await expect(page.getByRole('heading', { name: /从模板创建、编辑并运行 Workflow/ })).toBeVisible()
-    await expect(page.getByText(/Start \/ Prompt \/ LLM \/ Tool \/ Condition \/ Human Approval \/ Output/)).toBeVisible()
+    await expect(page.getByRole('main').first()).toContainText(/内置模板可本地 dry-run|创建示例 Workflow/)
 
-    await page.getByRole('button', { name: /Create from template|从模板创建/ }).click()
+    await page.getByRole('button', { name: /创建示例 Workflow|Create from template|从模板创建/ }).click()
     await expect(page.getByText(/已创建 Workflow|可以直接运行/)).toBeVisible()
     await expect(page.getByText('Start').first()).toBeVisible()
-    await expect(page.getByText('Human Approval').first()).toBeVisible()
+    await expect(page.getByText('Output').first()).toBeVisible()
 
-    await page.getByRole('button', { name: /Run Workflow|运行 Workflow/ }).click()
+    await page.getByRole('button', { name: /运行第一个 Workflow|Run Workflow|运行 Workflow/ }).click()
     await expect(page.getByText(/示例工作流运行完成/).first()).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Timeline / Trace' })).toBeVisible()
     await expect(page.getByText(/Start|Output/).first()).toBeVisible()
+  })
+
+  test('creates the first Agent and shows a local demo execution', async ({ page }) => {
+    await page.goto('/#/agents', { waitUntil: 'networkidle' })
+    await expect(page.getByRole('main').first().getByRole('heading', { name: /Agent 工作台|Agent Studio/ })).toBeVisible()
+    await page.getByRole('button', { name: /创建第一个 Agent/ }).first().click()
+    await expect(page.locator('main')).toContainText(/新手演示 Agent/)
+    await expect(page.locator('main')).toContainText(/本地模拟执行记录/)
+    await expect(page.locator('main')).toContainText(/执行时间线|Execution timeline/)
+  })
+
+  test('memory empty state explains examples and first action', async ({ page }) => {
+    await page.goto('/#/memory', { waitUntil: 'networkidle' })
+    await expect(page.getByRole('heading', { name: /共享记忆中心/ })).toBeVisible()
+    await expect(page.locator('main')).toContainText(/项目决策、修复记录和偏好/)
+    await expect(page.locator('main')).toContainText(/暂无共享记忆/)
+    await expect(page.locator('main')).toContainText(/项目目标、技术栈选择、已修复的问题、模型偏好/)
+    await expect(page.getByRole('button', { name: /创建第一条记忆|Create first memory/ })).toBeVisible()
   })
 
   test('opens new projects on detail with plan as the next step', async ({ page }) => {
@@ -643,9 +685,9 @@ test.describe('LocalAI Nexus React web entry', () => {
     })
 
     await page.goto('/#/projects', { waitUntil: 'networkidle' })
-    await page.locator('main').getByRole('button', { name: /New project|新建项目/ }).first().click()
+    await page.getByRole('main').first().getByRole('button', { name: /New project|新建项目|创建第一个项目/ }).first().click()
     await page.getByLabel(/Project name|项目名称/).fill('E2E New Project')
-    await page.getByLabel(/Goal|Project goal|项目描述/).fill('E2E project description')
+    await page.getByLabel(/Goal|Project goal|项目描述|目标/).fill('E2E project description')
     await page.getByLabel(/Tech stack|技术栈/).fill('React, Electron, TypeScript')
     await page.getByRole('button', { name: /Create project|创建项目/ }).click()
 
@@ -674,9 +716,9 @@ test.describe('LocalAI Nexus React web entry', () => {
     })
 
     await page.goto('/#/projects', { waitUntil: 'networkidle' })
-    await page.locator('main').getByRole('button', { name: /New project|新建项目/ }).first().click()
+    await page.getByRole('main').first().getByRole('button', { name: /New project|新建项目|创建第一个项目/ }).first().click()
     await page.getByLabel(/Project name|项目名称/).fill('E2E Create Failed Project')
-    await page.getByLabel(/Goal|Project goal|项目描述/).fill('E2E create failed description')
+    await page.getByLabel(/Goal|Project goal|项目描述|目标/).fill('E2E create failed description')
     await page.getByRole('button', { name: /Create project|创建项目/ }).click()
 
     await expect(page).toHaveURL(/#\/projects$/)

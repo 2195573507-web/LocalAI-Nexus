@@ -14,6 +14,10 @@ export type Permission =
   | 'memory:export'
   | 'provider:read'
   | 'provider:write'
+  | 'gateway:read'
+  | 'gateway:write'
+  | 'ops:backup'
+  | 'ops:restore'
   | 'git:read'
   | 'skill:read'
   | 'export:write'
@@ -35,6 +39,7 @@ const USER_PERMISSIONS: Permission[] = [
   'memory:write',
   'memory:export',
   'provider:read',
+  'gateway:read',
   'git:read',
   'skill:read',
   'export:write',
@@ -46,6 +51,9 @@ const USER_PERMISSIONS: Permission[] = [
 const ADMIN_PERMISSIONS: Permission[] = [
   ...USER_PERMISSIONS,
   'provider:write',
+  'gateway:write',
+  'ops:backup',
+  'ops:restore',
   'admin:users',
   'admin:audit',
   'mcp:write',

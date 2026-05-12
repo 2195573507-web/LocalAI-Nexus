@@ -40,15 +40,15 @@ import { generateId, formatRelativeDate, copyToClipboard, classNames, truncate }
 // ── Demo data ──────────────────────────────────────────────────────────────
 const DEMO_SAVED_PROMPTS: SavedPrompt[] = [
   {
-    id: 'sp1', name: 'System Architect', templateId: 'system-architect',
-    variables: { project_name: 'AI Chat', tech_stack: 'Electron, React' },
-    content: 'You are a senior system architect. Design the architecture for AI Chat using Electron, React...',
+    id: 'sp1', name: '新手交接 Prompt', templateId: 'handoff',
+    variables: { project_name: 'LocalAI Nexus 上手示例', tech_stack: 'Electron, React, TypeScript' },
+    content: '请先阅读项目目标和现有任务，再给出下一步计划。不要执行破坏性命令，完成后报告修改文件、测试结果和下一步建议。',
     starred: true, createdAt: new Date(Date.now() - 2 * 864e5).toISOString(),
   },
   {
-    id: 'sp2', name: 'Bug Fixer v2', templateId: 'bug-fixer',
-    variables: { error_log: 'TypeError: cannot read property...' },
-    content: 'Analyze the following error and provide a fix...',
+    id: 'sp2', name: 'Provider 检查 Prompt', templateId: 'provider-check',
+    variables: { provider_name: 'OpenAI Compatible', base_url: 'http://127.0.0.1:8317/v1' },
+    content: '检查当前 Provider 配置：确认 Base URL、模型名、API Key 是否存在；先测试连接，再切换为当前模型。不要把 API Key 写入日志或 Memory。',
     starred: false, createdAt: new Date(Date.now() - 5 * 864e5).toISOString(),
   },
 ];
@@ -345,18 +345,18 @@ export default function PromptLab() {
       <SurfaceCard className="p-4">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Badge variant="info">新手路径</Badge>
-          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">创建工作流</span>
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">选择模板</span>
           <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
-          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">添加节点</span>
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">确认输入</span>
           <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
-          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">配置模型/API</span>
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">配置 Provider/API Key</span>
           <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
           <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">运行</span>
           <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
-          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">查看结果和日志</span>
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">保存结果和日志</span>
         </div>
         <p className="mt-2 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
-          不懂 Agent 也可以从“工作流模板”开始：选一个场景，看节点结构，再把生成的 Prompt 复制给 Codex、Claude Code 或 Cursor。
+          不懂 Agent 也可以先点“工作流模板”：选一个场景，看每个节点需要什么输入，再把生成的 Prompt 复制给 Codex、Claude Code 或 Cursor。
         </p>
       </SurfaceCard>
 
@@ -586,9 +586,9 @@ export default function PromptLab() {
                 <SurfaceCard className="p-4">
                   <h4 className="text-sm font-semibold text-[var(--text-primary)]">怎么使用这个模板</h4>
                   <ol className="mt-2 space-y-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
-                    <li>1. 先把输入节点需要的信息准备好。</li>
-                    <li>2. 按节点顺序让 Agent 执行，每个节点完成后保存执行记录。</li>
-                    <li>3. 出错时查看 Project Detail 的节点追踪，复制日志给 Log Analyzer。</li>
+                    <li>1. 先准备项目目标、仓库路径、错误日志或验收标准。</li>
+                    <li>2. 按节点顺序把 Prompt 复制给 Codex、Claude Code 或 Cursor 执行。</li>
+                    <li>3. 每个节点完成后把结果记到 Project Detail；出错时复制日志给 Log Analyzer。</li>
                   </ol>
                 </SurfaceCard>
               </div>
@@ -850,7 +850,16 @@ export default function PromptLab() {
             <EmptyState
               icon={Save}
               title="暂无已保存的 Prompt"
-              description={savedSearch ? '没有匹配的 Prompt' : '生成并保存你的第一个 Prompt'}
+              description={
+                savedSearch
+                  ? '没有匹配的 Prompt。清空搜索词，或换一个关键词。'
+                  : '从左侧选择模板，填写项目目标或错误日志，点击“生成 Prompt”，再保存成第一个可复用交接。'
+              }
+              actionLabel="生成第一个 Prompt"
+              onAction={() => {
+                setTemplateMode('prompt');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           </SurfaceCard>
         )}

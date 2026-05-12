@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
+  Archive,
   Clock,
   Cpu,
   FolderKanban,
@@ -14,22 +15,21 @@ import {
   Search,
   Smartphone,
   Terminal,
-  Trash2,
   X,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { Badge, Button, EmptyState, SurfaceCard, Input, Modal, Textarea } from '../components/';
+import { Badge, Button, EmptyState, Input, Modal, SurfaceCard, Textarea } from '../components/';
 import type { Difficulty, Platform, Project, ProjectStatus } from '../lib/types';
 import { classNames, formatRelativeDate, generateId, truncate } from '../lib/utils';
 
 const DEMO_PROJECTS: Project[] = [
   {
     id: 'demo-1',
-    name: 'Local coding cockpit',
-    idea: 'Coordinate agents, prompts, logs, git context, and memory from a compact desktop surface.',
+    name: '1 分钟上手示例',
+    idea: '打开项目、创建演示 Agent、运行示例 Workflow，并查看一次完整本地模拟结果。',
     platform: 'Desktop',
-    techStack: 'Electron, React, TypeScript',
-    uiStyle: 'Compact configuration tool',
+    techStack: 'LocalAI Nexus, Demo Agent, Beginner Workflow',
+    uiStyle: '紧凑桌面工作台',
     difficulty: 'Medium',
     status: 'active',
     createdAt: new Date(Date.now() - 7 * 864e5).toISOString(),
@@ -37,11 +37,11 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-2',
-    name: 'Provider switchboard',
-    idea: 'Track model providers, gateway status, masked secrets, and health diagnostics.',
+    name: 'Provider 切换练习',
+    idea: '添加本地或云端 Provider，检查健康状态，并让 Workflow 使用默认模型。',
     platform: 'Desktop',
-    techStack: 'Node.js, Electron IPC',
-    uiStyle: 'Dense admin panel',
+    techStack: 'Provider Preset, Gateway, Health Monitor',
+    uiStyle: '配置型控制台',
     difficulty: 'Hard',
     status: 'planning',
     createdAt: new Date(Date.now() - 3 * 864e5).toISOString(),
@@ -49,11 +49,11 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-3',
-    name: 'Memory recovery kit',
-    idea: 'Capture decisions and fixes so another model can resume work without losing context.',
+    name: '记忆恢复工具包',
+    idea: '保存决策、修复和交接上下文，让下一个模型可以直接接手。',
     platform: 'Web',
     techStack: 'React, JSON storage',
-    uiStyle: 'Clean knowledge hub',
+    uiStyle: '知识管理界面',
     difficulty: 'Medium',
     status: 'done',
     createdAt: new Date(Date.now() - 14 * 864e5).toISOString(),
@@ -64,11 +64,12 @@ const DEMO_PROJECTS: Project[] = [
 const PLATFORMS: Platform[] = ['Web', 'Desktop', 'CLI', 'Mobile', 'Embedded', 'Other'];
 const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 const STATUSES: { value: ProjectStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'planning', label: 'Planning' },
-  { value: 'active', label: 'Active' },
-  { value: 'paused', label: 'Paused' },
-  { value: 'done', label: 'Done' },
+  { value: 'all', label: '全部' },
+  { value: 'planning', label: '规划中' },
+  { value: 'active', label: '进行中' },
+  { value: 'paused', label: '已暂停' },
+  { value: 'done', label: '已完成' },
+  { value: 'archived', label: '已归档' },
 ];
 
 const PLATFORM_LABELS: Record<Platform, string> = {
@@ -94,6 +95,7 @@ const statusVariant: Record<ProjectStatus, 'default' | 'success' | 'warning' | '
   active: 'success',
   paused: 'warning',
   done: 'default',
+  archived: 'default',
 };
 
 const difficultyVariant: Record<Difficulty, 'default' | 'success' | 'warning' | 'danger'> = {
@@ -111,10 +113,10 @@ const isProject = (value: unknown): value is Project =>
       typeof (value as Project).idea === 'string',
   );
 
-const getCreateError = (value: unknown) => {
+const getApiError = (value: unknown, fallback: string) => {
   if (!value || typeof value !== 'object' || !('error' in value)) return null;
   const error = (value as { error?: unknown }).error;
-  return typeof error === 'string' && error.trim() ? error : 'Project create failed';
+  return typeof error === 'string' && error.trim() ? error : fallback;
 };
 
 export default function Projects() {
@@ -126,7 +128,7 @@ export default function Projects() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [showNewModal, setShowNewModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [form, setForm] = useState({
     name: '',
@@ -152,10 +154,9 @@ export default function Projects() {
       setApiAvailable(true);
       setProjects(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
-      console.error('Projects fetch error:', err);
       setApiAvailable(false);
       setProjects(DEMO_PROJECTS);
-      setError(err instanceof Error ? err.message : 'Project data bridge is unavailable.');
+      setError(err instanceof Error ? err.message : '项目数据桥不可用。');
     } finally {
       setLoading(false);
     }
@@ -180,8 +181,8 @@ export default function Projects() {
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    if (!form.name.trim()) errors.name = 'Project name is required.';
-    if (!form.idea.trim()) errors.idea = 'Project goal is required.';
+    if (!form.name.trim()) errors.name = '请填写项目名称。';
+    if (!form.idea.trim()) errors.idea = '请写一句项目目标，方便 Agent 知道要做什么。';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -211,7 +212,7 @@ export default function Projects() {
         api && typeof api.projects?.create === 'function'
           ? await api.projects.create(newProject)
           : newProject;
-      const createError = getCreateError(createdProject);
+      const createError = getApiError(createdProject, '项目创建失败。');
       if (createError) throw new Error(createError);
       const savedProject = isProject(createdProject) ? createdProject : newProject;
       setProjects((prev) => [savedProject, ...prev]);
@@ -221,7 +222,7 @@ export default function Projects() {
         state: { highlightPlan: true, project: savedProject },
       });
     } catch (err: unknown) {
-      setFormErrors({ _form: err instanceof Error ? err.message : 'Project create failed.' });
+      setFormErrors({ _form: err instanceof Error ? err.message : '项目创建失败。' });
     } finally {
       setSaving(false);
     }
@@ -248,22 +249,33 @@ export default function Projects() {
       resetForm();
       setEditingProject(null);
     } catch (err: unknown) {
-      setFormErrors({ _form: err instanceof Error ? err.message : 'Project update failed.' });
+      setFormErrors({ _form: err instanceof Error ? err.message : '项目更新失败。' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  const handleArchive = async () => {
+    if (!archiveTarget) return;
     try {
       if (api && typeof api.projects?.delete === 'function') {
-        await api.projects.delete(deleteTarget.id);
+        await api.projects.delete(archiveTarget.id);
       }
-      setProjects((prev) => prev.filter((project) => project.id !== deleteTarget.id));
-      setDeleteTarget(null);
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === archiveTarget.id
+            ? {
+                ...project,
+                status: 'archived',
+                archivedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }
+            : project,
+        ),
+      );
+      setArchiveTarget(null);
     } catch (err: unknown) {
-      console.error('Delete error:', err);
+      setError(err instanceof Error ? err.message : '项目归档失败。');
     }
   };
 
@@ -295,18 +307,18 @@ export default function Projects() {
       )}
 
       <Input
-        label="Project name *"
+        label="项目名称 *"
         value={form.name}
         onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-        placeholder="e.g. Provider switchboard"
+        placeholder="例如：我的第一个 AI 项目"
         error={formErrors.name}
       />
 
       <Textarea
-        label="Goal *"
+        label="目标 *"
         value={form.idea}
         onChange={(event) => setForm((current) => ({ ...current, idea: event.target.value }))}
-        placeholder="Describe the project goal, constraints, and expected outcome."
+        placeholder="用一句话说明要做什么、给谁用、希望得到什么结果。"
         rows={4}
         error={formErrors.idea}
       />
@@ -314,7 +326,7 @@ export default function Projects() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-            Platform
+            平台
           </span>
           <select
             value={form.platform}
@@ -330,7 +342,7 @@ export default function Projects() {
         </label>
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-            Difficulty
+            难度
           </span>
           <select
             value={form.difficulty}
@@ -348,16 +360,16 @@ export default function Projects() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input
-          label="Tech stack"
+          label="技术栈"
           value={form.techStack}
           onChange={(event) => setForm((current) => ({ ...current, techStack: event.target.value }))}
           placeholder="React, Node.js, Python"
         />
         <Input
-          label="UI direction"
+          label="界面方向"
           value={form.uiStyle}
           onChange={(event) => setForm((current) => ({ ...current, uiStyle: event.target.value }))}
-          placeholder="Compact desktop tool"
+          placeholder="紧凑桌面工具"
         />
       </div>
     </div>
@@ -382,10 +394,10 @@ export default function Projects() {
       <div className="mx-auto max-w-7xl p-5">
         <SurfaceCard className="p-8 text-center">
           <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-[var(--danger)]" />
-          <h2 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">Projects failed to load</h2>
+          <h2 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">项目加载失败</h2>
           <p className="mb-4 text-sm text-[var(--text-secondary)]">{error}</p>
           <Button onClick={() => void fetchProjects()} icon={<RefreshCw className="h-4 w-4" />}>
-            Retry
+            重试
           </Button>
         </SurfaceCard>
       </div>
@@ -396,19 +408,25 @@ export default function Projects() {
     <div className="mx-auto max-w-7xl space-y-5 p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Projects</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">项目</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {filtered.length} of {projects.length} projects. Start here, then configure agents and workflows.
+            共 {projects.length} 个项目，当前显示 {filtered.length} 个。先打开示例或新建项目，再配置 Agent 和 Workflow。
           </p>
         </div>
         <Button onClick={openNew} icon={<Plus className="h-4 w-4" />}>
-          New project
+          创建第一个项目
         </Button>
       </div>
 
       {!apiAvailable && (
         <div className="rounded-panel border border-[var(--warning)] bg-[var(--warning-muted)] px-3 py-2 text-sm text-[var(--warning)]">
-          Demo data is shown because the desktop data bridge is unavailable in this session.
+          当前显示演示数据，因为本次会话无法访问桌面数据桥。
+        </div>
+      )}
+
+      {error && projects.length > 0 && (
+        <div className="rounded-panel border border-[var(--danger)] bg-[var(--danger-muted)] px-3 py-2 text-sm text-[var(--danger)]">
+          {error}
         </div>
       )}
 
@@ -419,7 +437,7 @@ export default function Projects() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search projects, goals, or stack..."
+              placeholder="搜索项目、目标或技术栈..."
               className="control-input pl-9 pr-9"
             />
             {search && (
@@ -487,17 +505,19 @@ export default function Projects() {
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setDeleteTarget(project);
-                      }}
-                      className="focus-ring rounded-tool p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-muted)] hover:text-[var(--danger)]"
-                      aria-label={`删除 ${project.name}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {project.status !== 'archived' && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setArchiveTarget(project);
+                        }}
+                        className="focus-ring rounded-tool p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                        aria-label={`归档 ${project.name}`}
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -532,9 +552,9 @@ export default function Projects() {
             description={
               search || statusFilter !== 'all'
                 ? '调整搜索词或状态筛选，查找其他项目。'
-                : '先创建项目定义目标，再配置 Agent 和 Workflow。'
+                : '项目是 LocalAI Nexus 的起点。先定义目标，然后创建 Agent、运行 Workflow、保存 Prompt 和 Memory。'
             }
-            actionLabel="新建项目"
+            actionLabel="创建第一个项目"
             onAction={openNew}
           />
         </SurfaceCard>
@@ -572,20 +592,20 @@ export default function Projects() {
         </div>
       </Modal>
 
-      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="删除项目" size="sm">
+      <Modal open={Boolean(archiveTarget)} onClose={() => setArchiveTarget(null)} title="归档项目" size="sm">
         <div className="py-3 text-center">
-          <Trash2 className="mx-auto mb-3 h-10 w-10 text-[var(--danger)]" />
-          <p className="mb-1 font-medium text-[var(--text-primary)]">删除“{deleteTarget?.name}”？</p>
+          <Archive className="mx-auto mb-3 h-10 w-10 text-[var(--text-muted)]" />
+          <p className="mb-1 font-medium text-[var(--text-primary)]">归档“{archiveTarget?.name}”？</p>
           <p className="text-sm text-[var(--text-secondary)]">
-            这会从本地存储移除该项目，相关任务和记忆可能变成孤立记录。
+            项目记录会保留在本地存储中，并标记为已归档；相关任务、记忆和运行记录不会被删除。
           </p>
         </div>
         <div className="mt-4 flex justify-center gap-3 border-t border-[var(--border)] pt-4">
-          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
+          <Button variant="ghost" onClick={() => setArchiveTarget(null)}>
             取消
           </Button>
-          <Button variant="danger" onClick={handleDelete} icon={<Trash2 className="h-4 w-4" />}>
-            删除
+          <Button variant="secondary" onClick={handleArchive} icon={<Archive className="h-4 w-4" />}>
+            归档
           </Button>
         </div>
       </Modal>

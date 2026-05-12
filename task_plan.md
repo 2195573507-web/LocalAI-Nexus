@@ -45,6 +45,49 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | Localization breadth | Classify visible UI vs internal/test-only strings and avoid mechanical breakage. |
 | Packaging environment blocker | Recorded exact `winCodeSign` symlink privilege failure after build and unpacked app generation. |
 
+## 2026-05-11 First-Run Onboarding Goal
+
+| Phase | Status | Parallel tracks |
+|---|---:|---|
+| 1. Root/tool/skill/plugin check | complete | Confirmed Git root, origin, tool/plugin state, and current onboarding implementation. |
+| 2. First-use audit | complete | Audited Dashboard, Projects, Workflow, Agent, Prompt, Memory, Settings, seed data, and IPC/runtime paths. |
+| 3. Implementation | complete | Improved one-minute quick start, beginner examples, empty states, seeded run data, and demo Agent execution persistence. |
+| 4. Verification | complete | Ran current source, build, smoke, and E2E gates after the quick closeout. |
+| 5. Git closure | ready | Relevant files are ready for the final `feat: improve first-run onboarding` commit/push if requested. |
+
+### 2026-05-12 Quick Closeout
+
+| Item | Evidence | Status |
+|---|---|---:|
+| Missing task scan | Remaining actionable local gap was first-run onboarding status drift plus demo Agent execution persistence. | complete |
+| Demo Agent execution persistence | `agent:create` now creates a main-process `agentExecutions` record for demo agents; Agent Studio reloads executions through IPC. | complete |
+| Test alignment | Smoke and E2E selectors now match the one-minute onboarding route, persisted demo execution, and updated Chinese-first UI labels. | complete |
+| Verification | `typecheck`, `test`, `scan:mojibake`, `build`, `verify`, and `test:e2e` passed in this closeout pass. | complete |
+| Not claimed | Live provider forwarding, real upstream streaming, external MCP/tool approval, and final installer packaging still require credentials or release-machine privileges. | honest |
+
+### 2026-05-12 Module Build-Plan Implementation Closeout
+
+| Item | Evidence | Status |
+|---|---|---:|
+| Gateway key enforcement | Key-level daily/monthly quota, rate limit, concurrency limit, endpoint/model whitelist, and request attribution are implemented in main/Gateway services and covered by unit/smoke. | complete |
+| Gateway config import/export | ccs/sub2api/cc-switch/claude-code/codex/openai-env inputs now get redacted preview, merge plan, backup checkpoint, and audit metadata; external config files are not silently overwritten. | complete |
+| Knowledge/Observability/Ops modules | Knowledge preview/retrieval, observability report/mock eval, redacted backup manifest, and restore preview rejection exist and are covered by unit/smoke. | complete |
+| Current local verification | `typecheck` PASS, `test` PASS 32 files / 208 tests, `smoke` PASS 227/227, `verify` PASS 143/143 + 227/227, and `test:e2e` PASS 19/19 after the latest Gateway import adapter and HTTP smoke changes. | complete |
+| Full final gate rerun | `diff --check`, lint, mojibake scan, build, static browser, static launch, Electron startup, auth bridge, Gateway HTTP, 30-minute long-run, shortcut, and dist attempt all completed with source gates passing. | complete |
+| Remaining external limits | Live provider forwarding, real upstream streaming, real external tool approval, and final installer packaging remain credential/environment-limited, not source-build blockers. | honest |
+
+### Required checks for this goal
+
+| Check | Result |
+|---|---|
+| Real Git root | `D:/LocalAI Nexus` from `git rev-parse --show-toplevel`; all work stays inside this root. |
+| `using-superpower` skill | Not found at `C:\Users\至亲\.codex\skills\using-superpower\SKILL.md`. |
+| `using-superpowers` skill | Found and read at `C:\Users\至亲\.codex\skills\using-superpowers\SKILL.md`. |
+| GitHub plugin | `.agents/plugins` and `.codex-plugin` are absent; no GitHub plugin resource was available. |
+| GitHub CLI | `gh` is not on PATH; use normal Git remote/push flow. |
+| Origin remote | `https://github.com/2195573507-web/LocalAI-Nexus.git` verified. |
+| Tool baseline | Node `v24.14.1`, npm `11.11.0`, Git `2.54.0.windows.1`; `rg.exe` access denied, so use PowerShell/Node fallbacks. |
+
 ## Completion Audit Checklist
 
 | Requirement | Evidence | Status |
@@ -59,4 +102,4 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | Round 7 desktop/release | Electron startup/auth bridge, shortcut, COM inspection, static fallback, long-run, Gateway smoke, build, verify, and dist attempt completed. | complete |
 | Packaging honesty | `npm.cmd run dist` built and produced `release/win-unpacked/LocalAI Nexus.exe`, then failed on electron-builder `winCodeSign` symlink privilege; recorded as ENV-LIMITED. | complete |
 | Live external claims | Live provider forwarding, real upstream streaming, and real external MCP/tool approval are not claimed without credentials/permission. | complete |
-| Worktree cleanup | Parallel audits completed; dirty tree integrated, committed, pushed, and confirmed clean against `origin/refactor-localai-nexus`. | complete |
+| Worktree cleanup | Parallel audits completed; final commit/push and remote confirmation remain the last closure step after the final validation matrix. | pending |

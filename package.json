@@ -25,6 +25,7 @@
     "test:launch-static": "node scripts/launch-static-test.js",
     "test:static-browser": "node scripts/static-browser-smoke.js",
     "test:long-run": "node scripts/long-run-stability-test.js",
+    "test:gateway-http": "node scripts/gateway-http-smoke.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src/ tests/ --ext .ts,.tsx --max-warnings 50",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",

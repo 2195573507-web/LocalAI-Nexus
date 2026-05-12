@@ -15,6 +15,7 @@ import {
   Square,
   Workflow as WorkflowIcon,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { AgentWorkflowTemplate, Project, Run, Workflow, WorkflowNode, WorkflowVersion } from '../lib/types';
 
@@ -36,6 +37,7 @@ function nodeColor(type: string) {
 }
 
 export default function Workflows() {
+  const navigate = useNavigate();
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [templates, setTemplates] = React.useState<AgentWorkflowTemplate[]>([]);
   const [workflows, setWorkflows] = React.useState<Workflow[]>([]);
@@ -136,6 +138,7 @@ export default function Workflows() {
     setSelectedWorkflowId(result.id);
     await loadProjectWorkflows(selectedProjectId);
     setStatus('已创建 Workflow，可以直接运行示例。');
+    await loadWorkflow(result.id);
   };
 
   const updateNodePrompt = (nodeId: string, value: string) => {
@@ -225,7 +228,7 @@ export default function Workflows() {
             </div>
             <h1 className="mt-3 text-2xl font-bold text-[var(--text-primary)]">从模板创建、编辑并运行 Workflow</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
-              新手路径：选择项目和模板，检查 Start / Prompt / LLM / Tool / Condition / Human Approval / Output 节点，运行后查看 Timeline / Trace。错误会告诉你原因和下一步怎么修。
+              新手路径：选择项目和模板，点击“从模板创建”，再点击“运行 Workflow”。内置模板可本地 dry-run，不需要先配置 API Key。
             </p>
           </div>
           <button onClick={() => void loadBase()} className="btn-secondary" title="刷新" aria-label="刷新">
@@ -252,6 +255,18 @@ export default function Workflows() {
         </div>
       )}
 
+      {projects.length === 0 && (
+        <div className="surface-card border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>还没有项目。Workflow 必须挂在项目下，先创建一个项目即可继续。</span>
+            <button className="btn-secondary" onClick={() => navigate('/projects')}>
+              <Plus className="h-4 w-4" />
+              创建第一个项目
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-5">
           <div className="surface-card p-5">
@@ -274,9 +289,9 @@ export default function Workflows() {
                   {selectedTemplate.description}
                 </p>
               )}
-              <button className="btn-primary w-full justify-center" onClick={createFromTemplate}>
+              <button className="btn-primary w-full justify-center" onClick={createFromTemplate} disabled={projects.length === 0 || templates.length === 0}>
                 <Plus className="h-4 w-4" />
-                从模板创建
+                创建示例 Workflow
               </button>
             </div>
           </div>
@@ -289,7 +304,7 @@ export default function Workflows() {
             <div className="mt-3 space-y-2">
               {workflows.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-[var(--border)] p-3 text-sm text-[var(--text-secondary)]">
-                  还没有 Workflow。下一步：选择一个模板并创建。
+                  还没有 Workflow。下一步：选择一个模板并点击“创建示例 Workflow”。
                 </p>
               ) : workflows.map((workflow) => (
                 <button
@@ -344,7 +359,7 @@ export default function Workflows() {
               </div>
             ) : (
               <div className="mt-5 rounded-lg border border-dashed border-[var(--border)] p-5 text-sm text-[var(--text-secondary)]">
-                请选择或创建一个 Workflow。下一步：左侧点击“从模板创建”。
+                请选择或创建一个 Workflow。下一步：左侧点击“创建示例 Workflow”。
               </div>
             )}
           </section>
@@ -353,11 +368,11 @@ export default function Workflows() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">3. 运行并查看 Trace</h2>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">运行会写入 Run、RunEvent 和审计日志；Provider 未配置时会给出修复建议。</p>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">点击后会写入 Run、RunEvent、AgentExecution 和审计日志；失败时会给出原因和下一步。</p>
               </div>
               <button className="btn-primary" onClick={runSelectedWorkflow} disabled={!selectedWorkflow}>
                 <Play className="h-4 w-4" />
-                运行 Workflow
+                运行第一个 Workflow
               </button>
             </div>
             <textarea className="control-input mt-4 min-h-[80px]" value={runInput} onChange={(event) => setRunInput(event.target.value)} />
@@ -370,7 +385,7 @@ export default function Workflows() {
                 </h3>
                 <div className="space-y-2">
                   {recentWorkflowRuns.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-[var(--border)] p-3 text-sm text-[var(--text-secondary)]">暂无运行记录。下一步：点击运行。</p>
+                    <p className="rounded-lg border border-dashed border-[var(--border)] p-3 text-sm text-[var(--text-secondary)]">暂无运行记录。下一步：点击“运行第一个 Workflow”。</p>
                   ) : recentWorkflowRuns.map((run) => (
                     <article key={run.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
                       <div className="flex items-center justify-between gap-3">

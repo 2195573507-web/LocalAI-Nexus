@@ -199,6 +199,42 @@ Completed runs are listed below. Each run records command, start/end time, durat
 - Result JSON: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260511130846.json`
 - Screenshot: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260511130846.png`
 - Server log: `D:\LocalAI Nexus\.codex-parallel\logs\long-run-static-server-20260511130846.log`
+- Console errors:
+- Page errors:
+- Network failures:
+- Process crashed: no
+- Memory conclusion: JS heap delta 0.00 MB across 31 samples.
+- Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.
+
+## 2026-05-12T11:37:06.998Z Static Fallback Long-Run
+
+- Startup command: `node scripts/static-server.js static-app 4173` with launch-token URL parsing
+- Start time: 2026-05-12T11:37:06.998Z
+- End time: 2026-05-12T12:07:09.538Z
+- Duration: 30.04 minutes
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings
+- Verified functions: HTTP availability; page navigation; language/theme shell load; static server process liveness; browser console/page/network error collection; heap sampling
+- Result JSON: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260512113706.json`
+- Screenshot: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260512113706.png`
+- Server log: `D:\LocalAI Nexus\.codex-parallel\logs\long-run-static-server-20260512113706.log`
+- Console errors:
+- Page errors:
+- Network failures:
+- Process crashed: no
+- Memory conclusion: JS heap delta 0.00 MB across 31 samples.
+- Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.
+
+## 2026-05-12T13:17:05.197Z Static Fallback Long-Run
+
+- Startup command: `node scripts/static-server.js static-app 4173` with launch-token URL parsing
+- Start time: 2026-05-12T13:17:05.197Z
+- End time: 2026-05-12T13:47:07.936Z
+- Duration: 30.05 minutes
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings
+- Verified functions: HTTP availability; page navigation; language/theme shell load; static server process liveness; browser console/page/network error collection; heap sampling
+- Result JSON: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260512131705.json`
+- Screenshot: `D:\LocalAI Nexus\.codex-parallel\results\long-run-static-20260512131705.png`
+- Server log: `D:\LocalAI Nexus\.codex-parallel\logs\long-run-static-server-20260512131705.log`
 - Console errors: 
 - Page errors: 
 - Network failures: 

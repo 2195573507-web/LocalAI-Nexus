@@ -8,6 +8,7 @@ interface SecretPattern {
 const PATTERNS: SecretPattern[] = [
   { name: 'Short sk-style Secret', pattern: /sk-[a-zA-Z0-9_-]*/g },
   { name: 'OpenAI/Claude API Key', pattern: /sk-[a-zA-Z0-9_-]{16,}/g },
+  { name: 'LocalAI Nexus Gateway Key', pattern: /lnx_\d{8}_[a-zA-Z0-9_-]+/g },
   { name: 'Bearer Token', pattern: /Bearer\s+([a-zA-Z0-9_.=:+/-]{8,})/gi },
   { name: 'Authorization Header', pattern: /authorization\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },
   { name: 'API Key Assignment', pattern: /api[_-]?key\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },
@@ -23,7 +24,7 @@ const PATTERNS: SecretPattern[] = [
 ];
 
 const SENSITIVE_KEY_PATTERN =
-  /^(?:api[_-]?key|authorization|bearer|token|access[_-]?token|refresh[_-]?token|password|secret|client[_-]?secret|private[_-]?key)$/i;
+  /(?:^|[_-])(?:api[_-]?key|authorization|bearer|token|auth[_-]?token|access[_-]?token|refresh[_-]?token|password|secret|client[_-]?secret|private[_-]?key)$/i;
 
 export function containsSecret(text?: string | null): boolean {
   if (!text) return false;

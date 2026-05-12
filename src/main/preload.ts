@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { McpGatewayRequest, MemoryInjectionMode } from '../shared/types.js';
+import type { McpGatewayRequest, MemoryInjectionMode, NexusGatewayApiKeyCreateRequest } from '../shared/types.js';
 import type { AuditQuery } from '../shared/auditTypes.js';
 import type { ChangePasswordRequest, CreateUserRequest, LoginRequest, ResetPasswordRequest, UpdateUserRequest } from '../shared/authTypes.js';
 import type { Workflow } from '../shared/workflowTypes.js';
@@ -108,6 +108,16 @@ export interface AgentFlowAPI {
     status(): Promise<unknown>;
     start(): Promise<unknown>;
     stop(): Promise<unknown>;
+    keys(): Promise<unknown>;
+    createKey(request: NexusGatewayApiKeyCreateRequest): Promise<unknown>;
+    disableKey(id: string): Promise<unknown>;
+    deleteKey(id: string): Promise<unknown>;
+    resetKey(id: string): Promise<unknown>;
+    exportEnv(key?: string): Promise<unknown>;
+    exportCodex(key?: string): Promise<unknown>;
+    exportClaude(key?: string): Promise<unknown>;
+    importPreview(raw: string): Promise<unknown>;
+    importApply(raw: string): Promise<unknown>;
   };
   usage: {
     summary(): Promise<unknown>;
@@ -130,6 +140,19 @@ export interface AgentFlowAPI {
   };
   security: {
     report(scope?: string): Promise<unknown>;
+  };
+  observability: {
+    report(options?: unknown): Promise<unknown>;
+    runMockEvaluation(input?: unknown): Promise<unknown>;
+  };
+  knowledge: {
+    previewDocument(input: { title?: string; content: string }): Promise<unknown>;
+    testRetrieval(input: { query: string; content?: string; topK?: number }): Promise<unknown>;
+  };
+  ops: {
+    backupPreview(): Promise<unknown>;
+    createBackup(): Promise<unknown>;
+    restorePreview(raw: string): Promise<unknown>;
   };
   contextPack: {
     preview(options?: unknown): Promise<unknown>;
@@ -316,6 +339,17 @@ const api: AgentFlowAPI = {
     status: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_STATUS, buildAuthEnvelope()),
     start: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_START, buildAuthEnvelope()),
     stop: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_STOP, buildAuthEnvelope()),
+    keys: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_LIST, buildAuthEnvelope()),
+    createKey: (request: NexusGatewayApiKeyCreateRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_CREATE, buildAuthEnvelope(), request),
+    disableKey: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_DISABLE, buildAuthEnvelope(), id),
+    deleteKey: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_DELETE, buildAuthEnvelope(), id),
+    resetKey: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_RESET, buildAuthEnvelope(), id),
+    exportEnv: (key?: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_EXPORT_ENV, buildAuthEnvelope(), key),
+    exportCodex: (key?: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_EXPORT_CODEX, buildAuthEnvelope(), key),
+    exportClaude: (key?: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_EXPORT_CLAUDE, buildAuthEnvelope(), key),
+    importPreview: (raw: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_IMPORT_PREVIEW, buildAuthEnvelope(), raw),
+    importApply: (raw: string) => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_IMPORT_APPLY, buildAuthEnvelope(), raw),
   },
 
   usage: {
@@ -345,6 +379,26 @@ const api: AgentFlowAPI = {
 
   security: {
     report: (scope?: string) => ipcRenderer.invoke(IPC_CHANNELS.SECURITY_REPORT_GENERATE, buildAuthEnvelope(), scope),
+  },
+
+  observability: {
+    report: (options?: unknown) =>
+      ipcRenderer.invoke(IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE, buildAuthEnvelope(), options),
+    runMockEvaluation: (input?: unknown) =>
+      ipcRenderer.invoke(IPC_CHANNELS.EVAL_MOCK_RUN, buildAuthEnvelope(), input),
+  },
+
+  knowledge: {
+    previewDocument: (input: { title?: string; content: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW, buildAuthEnvelope(), input),
+    testRetrieval: (input: { query: string; content?: string; topK?: number }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST, buildAuthEnvelope(), input),
+  },
+
+  ops: {
+    backupPreview: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_BACKUP_PREVIEW, buildAuthEnvelope()),
+    createBackup: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_BACKUP_CREATE, buildAuthEnvelope()),
+    restorePreview: (raw: string) => ipcRenderer.invoke(IPC_CHANNELS.OPS_RESTORE_PREVIEW, buildAuthEnvelope(), raw),
   },
 
   contextPack: {

@@ -3,11 +3,11 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, MemoryType, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SkillRegistryEntry } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, MemoryType, NexusGatewayApiKey, NexusGatewayApiKeyCreateRequest, NexusGatewayConfigApplyResult, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SavedPrompt, PromptVersion, SkillRegistryEntry } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import { buildAuditExportManifest } from '../shared/auditCore.js';
 import { PROVIDER_PRESETS } from '../shared/providerPresets.js';
-import { buildConfigBundle, previewConfigImport } from '../shared/configPortability.js';
+import { buildConfigBundle, previewConfigImport, previewGatewayConfigImport, simpleHash } from '../shared/configPortability.js';
 import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
@@ -37,14 +37,25 @@ import { runWorkflow } from '../core/workflowRuntime.js';
 import { BEGINNER_WORKFLOW_TEMPLATES } from '../templates/workflowTemplates.js';
 import type { Workflow, WorkflowVersion } from '../shared/workflowTypes.js';
 import { getGatewayStatus, startGateway, stopGateway } from './domain/gateway/gatewayService.js';
+import {
+  buildGatewayEnvExport,
+  createGatewayApiKey,
+  listGatewayApiKeys,
+  resetGatewayApiKey,
+  updateGatewayApiKeyStatus,
+} from './domain/gateway/gatewayKeyService.js';
 import { checkProviderHealth, healthSummary } from './domain/health/healthService.js';
 import { listUsageRecords, summarizeUsage } from './domain/usage/usageService.js';
 import { evaluateTokenPolicy, listTokenPolicies, upsertTokenPolicy } from './domain/usage/tokenPolicyService.js';
 import { generateRuntimeProfiles } from './domain/runtime/runtimeProfileService.js';
 import { createPromptSkill, testPromptSkill } from './domain/skills/skillService.js';
 import { generateSecurityReport } from './domain/security/securityReportService.js';
+import { generateObservabilityReport, runMockEvaluation } from './domain/observability/observabilityService.js';
+import { saveKnowledgeDocumentPreview, testKnowledgeRetrieval } from './domain/knowledge/knowledgeService.js';
+import { createBackupManifest, previewBackup, previewRestore } from './domain/ops/backupService.js';
 import { buildRecoveryPack, previewContextPack } from './domain/memory/contextPackService.js';
 import { listTemplateBundles, toggleTemplateBundle, upsertTemplateBundle } from './domain/ecosystem/bundleRegistryService.js';
+import { createDemoExecution } from '../shared/agentCore.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,6 +64,22 @@ import { listTemplateBundles, toggleTemplateBundle, upsertTemplateBundle } from 
 function handleError(err: unknown): { error: string } {
   if (err instanceof Error) return { error: err.message };
   return { error: String(err) };
+}
+
+async function createDemoExecutionForAgent(agent: AgentRecord, context: SessionContext): Promise<AgentExecutionRecord> {
+  const execution = createDemoExecution(agent.id, new Date());
+  return storage.create('agentExecutions', {
+    ...execution,
+    projectId: agent.projectId || execution.projectId,
+    workflowId: agent.workflowId || execution.workflowId,
+    customData: sanitizeObject({
+      ...(execution.customData ?? {}),
+      ownerUserId: context.user.id,
+      providerRef: agent.providerRef,
+      model: agent.model,
+      humanOwner: context.user.email,
+    }) as Record<string, unknown>,
+  } as never);
 }
 
 const PUBLIC_CHANNELS = new Set<string>([
@@ -122,9 +149,19 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.PROVIDER_TEST]: 'provider:write',
   [IPC_CHANNELS.PROVIDER_ACTIVE_GET]: 'provider:read',
   [IPC_CHANNELS.PROVIDER_ACTIVE_SET]: 'provider:write',
-  [IPC_CHANNELS.GATEWAY_STATUS]: 'provider:read',
-  [IPC_CHANNELS.GATEWAY_START]: 'provider:write',
-  [IPC_CHANNELS.GATEWAY_STOP]: 'provider:write',
+  [IPC_CHANNELS.GATEWAY_STATUS]: 'gateway:read',
+  [IPC_CHANNELS.GATEWAY_START]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_STOP]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_KEY_LIST]: 'gateway:read',
+  [IPC_CHANNELS.GATEWAY_KEY_CREATE]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_KEY_DISABLE]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_KEY_DELETE]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_KEY_RESET]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_EXPORT_ENV]: 'gateway:read',
+  [IPC_CHANNELS.GATEWAY_EXPORT_CODEX]: 'gateway:read',
+  [IPC_CHANNELS.GATEWAY_EXPORT_CLAUDE]: 'gateway:read',
+  [IPC_CHANNELS.GATEWAY_IMPORT_PREVIEW]: 'gateway:read',
+  [IPC_CHANNELS.GATEWAY_IMPORT_APPLY]: 'gateway:write',
   [IPC_CHANNELS.USAGE_SUMMARY]: 'provider:read',
   [IPC_CHANNELS.USAGE_LIST]: 'provider:read',
   [IPC_CHANNELS.TOKEN_POLICY_LIST]: 'provider:read',
@@ -135,6 +172,13 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.RUNTIME_PROFILES_GENERATE]: 'provider:read',
   [IPC_CHANNELS.ROUTER_DECISIONS_LIST]: 'provider:read',
   [IPC_CHANNELS.SECURITY_REPORT_GENERATE]: 'admin:audit',
+  [IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE]: 'provider:read',
+  [IPC_CHANNELS.EVAL_MOCK_RUN]: 'provider:read',
+  [IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW]: 'memory:write',
+  [IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST]: 'memory:read',
+  [IPC_CHANNELS.OPS_BACKUP_PREVIEW]: 'ops:backup',
+  [IPC_CHANNELS.OPS_BACKUP_CREATE]: 'ops:backup',
+  [IPC_CHANNELS.OPS_RESTORE_PREVIEW]: 'ops:restore',
   [IPC_CHANNELS.CONTEXT_PACK_PREVIEW]: 'memory:read',
   [IPC_CHANNELS.CONTEXT_RECOVERY_PACK]: 'memory:export',
   [IPC_CHANNELS.TEMPLATE_BUNDLES_LIST]: 'skill:read',
@@ -337,6 +381,24 @@ async function recordMutationAudit(context: SessionContext | undefined, action: 
   });
 }
 
+function buildPromptVersion(
+  prompt: Partial<SavedPrompt>,
+  previousVersions: PromptVersion[] = [],
+  context?: SessionContext,
+  message = 'Saved prompt version',
+): PromptVersion {
+  const nextVersion = previousVersions.reduce((max, version) => Math.max(max, Number(version.version) || 0), 0) + 1;
+  return {
+    id: randomUUID(),
+    version: nextVersion,
+    content: String(prompt.content ?? ''),
+    variables: prompt.variables,
+    message,
+    createdByUserId: context?.user.id,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
   const frameUrl = event.senderFrame?.url ?? '';
   if (frameUrl.startsWith('file://')) return;
@@ -378,6 +440,10 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'skills',
   'skillRuns',
   'gatewayRequests',
+  'gatewayApiKeys',
+  'evaluationRuns',
+  'knowledgeDocuments',
+  'backupManifests',
   'memories',
   'riskChecks',
   'settings',
@@ -818,6 +884,90 @@ async function getSettingValue<T = unknown>(key: string): Promise<T | undefined>
   return all.find((s) => s.id === key)?.value;
 }
 
+async function createGatewayConfigImportRecord(raw: string, context?: SessionContext): Promise<NexusGatewayConfigApplyResult> {
+  const preview = previewGatewayConfigImport(raw);
+  if (!preview.ok || !preview.normalized) {
+    return {
+      ok: false,
+      source: preview.source,
+      imported: 0,
+      warnings: preview.warnings,
+      mergePlan: preview.mergePlan,
+      backup: {
+        id: '',
+        createdAt: new Date().toISOString(),
+        collections: [],
+        hash: '',
+        redaction: 'secrets-redacted',
+      },
+      audit: { action: 'gateway.config.imported', status: 'not-recorded' },
+      record: { errors: preview.errors },
+    };
+  }
+
+  const now = new Date().toISOString();
+  const [gatewayKeys, settings, auditLogs] = await Promise.all([
+    storage.getAll<NexusGatewayApiKey>('gatewayApiKeys').catch(() => []),
+    storage.getAll<{ id: string; value?: unknown }>('settings').catch(() => []),
+    storage.getAll<{ id: string; [key: string]: unknown }>('auditLogs').catch(() => []),
+  ]);
+  const backupSeed = sanitizeObject({
+    createdAt: now,
+    collections: {
+      gatewayApiKeys: gatewayKeys,
+      settings,
+      auditLogs,
+    },
+    redaction: 'secrets-redacted',
+  }) as Record<string, unknown>;
+  const backup = {
+    id: randomUUID(),
+    createdAt: now,
+    collections: [
+      { name: 'gatewayApiKeys', count: gatewayKeys.length },
+      { name: 'settings', count: settings.length },
+      { name: 'auditLogs', count: auditLogs.length },
+    ],
+    hash: simpleHash(backupSeed),
+    redaction: 'secrets-redacted' as const,
+  };
+  const record = sanitizeObject({
+    id: randomUUID(),
+    source: preview.source,
+    detected: preview.detected,
+    normalized: preview.normalized,
+    mergePlan: preview.mergePlan,
+    backup,
+    redaction: 'secrets-redacted',
+    createdByUserId: context?.user.id,
+    createdAt: now,
+  }) as Record<string, unknown>;
+  await setSettingValue('gateway.config.imports', [
+    ...(await getSettingValue<Array<Record<string, unknown>>>('gateway.config.imports') ?? []),
+    record,
+  ]);
+  await recordMutationAudit(context, 'gateway.config.imported', { type: 'gateway_config_import', id: String(record.id), label: String(preview.source) }, {
+    source: preview.source,
+    detected: preview.detected,
+    mergeActions: preview.mergePlan.map((action) => `${action.action}:${action.target}`),
+    backupHash: backup.hash,
+    redaction: 'secrets-redacted',
+  });
+  return {
+    ok: true,
+    source: preview.source,
+    imported: 1,
+    warnings: preview.warnings,
+    mergePlan: preview.mergePlan,
+    backup,
+    audit: {
+      action: 'gateway.config.imported',
+      status: context ? 'recorded' : 'not-recorded',
+    },
+    record,
+  };
+}
+
 async function filterAgentsForContext(context: SessionContext | undefined, agents: AgentRecord[]) {
   if (!context) return [];
   if (context.user.role === 'admin') return agents;
@@ -1182,9 +1332,17 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROJECT_DELETE, async (_event, id: string, context?: SessionContext) => {
     try {
       await assertProjectResourceAccess(context, id, 'admin');
-      const deleted = await storage.delete('projects', id);
-      await recordMutationAudit(context, 'workflow.delete', { type: 'workflow', id });
-      return deleted;
+      const existing = await storage.getById<Project>('projects', id);
+      if (!existing) return false;
+      const archived = await storage.update<Project>('projects', id, {
+        status: 'archived',
+        archivedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      await recordMutationAudit(context, 'project.archive', { type: 'project', id, label: existing.name }, {
+        previousStatus: existing.status,
+      });
+      return Boolean(archived);
     } catch (err) {
       return handleError(err);
     }
@@ -1252,8 +1410,18 @@ export function registerIpcHandlers(): void {
     try {
       const projectId = String((data as { projectId?: unknown })?.projectId ?? '');
       if (projectId) await assertProjectResourceAccess(context, projectId, 'write');
-      const created = await storage.create('prompts', data as never);
-      await recordMutationAudit(context, 'prompt.create', { type: 'prompt', id: created.id }, { projectId });
+      const payload = data && typeof data === 'object' ? data as Partial<SavedPrompt> : {};
+      const created = await storage.create<SavedPrompt>('prompts', {
+        ...payload,
+        versions: [
+          ...(Array.isArray(payload.versions) ? payload.versions : []),
+          buildPromptVersion(payload, Array.isArray(payload.versions) ? payload.versions : [], context, 'Created prompt'),
+        ],
+      });
+      await recordMutationAudit(context, 'prompt.create', { type: 'prompt', id: created.id }, {
+        projectId,
+        version: created.versions?.at(-1)?.version,
+      });
       return created;
     } catch (err) {
       return handleError(err);
@@ -1262,9 +1430,25 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROMPT_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
     try {
-      const existing = await assertChildResourceAccess(context, 'prompts', id, 'write');
-      const updated = await storage.update('prompts', id, { ...(data as Record<string, unknown>), projectId: existing.projectId } as never);
-      await recordMutationAudit(context, 'prompt.update', { type: 'prompt', id }, { projectId: existing.projectId });
+      const existing = await assertChildResourceAccess(context, 'prompts', id, 'write') as unknown as SavedPrompt;
+      const payload = data && typeof data === 'object' ? data as Partial<SavedPrompt> : {};
+      const versions = Array.isArray(existing.versions) ? existing.versions : [];
+      const shouldVersion =
+        typeof payload.content === 'string' && payload.content !== existing.content
+        || JSON.stringify(payload.variables ?? existing.variables ?? {}) !== JSON.stringify(existing.variables ?? {});
+      const updated = await storage.update<SavedPrompt>('prompts', id, {
+        ...payload,
+        projectId: existing.projectId,
+        versions: shouldVersion
+          ? [...versions, buildPromptVersion({ ...existing, ...payload }, versions, context, 'Updated prompt')]
+          : versions,
+        updatedAt: new Date().toISOString(),
+      });
+      await recordMutationAudit(context, 'prompt.update', { type: 'prompt', id }, {
+        projectId: existing.projectId,
+        version: updated?.versions?.at(-1)?.version,
+        versionCreated: shouldVersion,
+      });
       return updated;
     } catch (err) {
       return handleError(err);
@@ -2032,6 +2216,117 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_KEY_LIST, async () => {
+    try {
+      return await listGatewayApiKeys();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_KEY_CREATE, async (_event, input: NexusGatewayApiKeyCreateRequest, context?: SessionContext) => {
+    try {
+      const result = await createGatewayApiKey(sanitizeObject(input) as NexusGatewayApiKeyCreateRequest, context?.user.id);
+      await recordMutationAudit(context, 'gateway.key.created', { type: 'gateway_key', id: result.key.id, label: result.key.name }, {
+        scopes: result.key.scopes,
+        endpoints: result.key.endpointWhitelist,
+        models: result.key.modelWhitelist,
+        maskedKey: result.key.maskedKey,
+      });
+      return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_KEY_DISABLE, async (_event, id: string, context?: SessionContext) => {
+    try {
+      const key = await updateGatewayApiKeyStatus(id, 'disabled');
+      await recordMutationAudit(context, 'gateway.key.disabled', { type: 'gateway_key', id, label: key.name }, { maskedKey: key.maskedKey });
+      return key;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_KEY_DELETE, async (_event, id: string, context?: SessionContext) => {
+    try {
+      const key = await updateGatewayApiKeyStatus(id, 'deleted');
+      await recordMutationAudit(context, 'gateway.key.deleted', { type: 'gateway_key', id, label: key.name }, { maskedKey: key.maskedKey });
+      return key;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_KEY_RESET, async (_event, id: string, context?: SessionContext) => {
+    try {
+      const result = await resetGatewayApiKey(id);
+      await recordMutationAudit(context, 'gateway.key.reset', { type: 'gateway_key', id, label: result.key.name }, { maskedKey: result.key.maskedKey });
+      return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_EXPORT_ENV, async (_event, rawKeyOrMaskedKey?: string) => {
+    try {
+      const status = await getGatewayStatus();
+      return buildGatewayEnvExport({
+        baseUrl: status.baseUrl,
+        rawKey: rawKeyOrMaskedKey?.startsWith('lnx_') ? rawKeyOrMaskedKey : undefined,
+        maskedKey: rawKeyOrMaskedKey?.startsWith('lnx_') ? undefined : rawKeyOrMaskedKey,
+        model: status.activeModel,
+      });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_EXPORT_CODEX, async (_event, rawKeyOrMaskedKey?: string) => {
+    try {
+      const status = await getGatewayStatus();
+      return buildGatewayEnvExport({
+        baseUrl: status.baseUrl,
+        rawKey: rawKeyOrMaskedKey?.startsWith('lnx_') ? rawKeyOrMaskedKey : undefined,
+        maskedKey: rawKeyOrMaskedKey?.startsWith('lnx_') ? undefined : rawKeyOrMaskedKey,
+        model: status.activeModel,
+      }).codex;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_EXPORT_CLAUDE, async (_event, rawKeyOrMaskedKey?: string) => {
+    try {
+      const status = await getGatewayStatus();
+      return buildGatewayEnvExport({
+        baseUrl: status.baseUrl,
+        rawKey: rawKeyOrMaskedKey?.startsWith('lnx_') ? rawKeyOrMaskedKey : undefined,
+        maskedKey: rawKeyOrMaskedKey?.startsWith('lnx_') ? undefined : rawKeyOrMaskedKey,
+        model: status.activeModel,
+      }).claudeCode;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_IMPORT_PREVIEW, async (_event, raw: string) => {
+    try {
+      return previewGatewayConfigImport(String(raw ?? ''));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_IMPORT_APPLY, async (_event, raw: string, context?: SessionContext) => {
+    try {
+      return await createGatewayConfigImportRecord(String(raw ?? ''), context);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.USAGE_SUMMARY, async () => {
     try {
       return await summarizeUsage();
@@ -2136,6 +2431,100 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE, async (_event, options?: { includeMockEvaluation?: boolean; evaluationOutput?: string }, context?: SessionContext) => {
+    try {
+      const report = await generateObservabilityReport(options);
+      await recordMutationAudit(context, 'observability.report.generate', { type: 'observability_report', id: report.id }, {
+        traceCount: report.traces.length,
+        slowRequestCount: report.slowRequests.length,
+        hasEvaluation: Boolean(report.evaluation),
+      });
+      return report;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.EVAL_MOCK_RUN, async (_event, input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }, context?: SessionContext) => {
+    try {
+      const evaluation = await runMockEvaluation(sanitizeObject(input ?? {}) as never);
+      await recordMutationAudit(context, 'eval.mock.completed', { type: 'evaluation_run', id: evaluation.id, label: evaluation.name }, {
+        score: evaluation.score,
+        status: evaluation.status,
+      });
+      return evaluation;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW, async (_event, input: { title?: string; content: string }, context?: SessionContext) => {
+    try {
+      const preview = await saveKnowledgeDocumentPreview(input);
+      await recordMutationAudit(context, 'knowledge.document.previewed', { type: 'knowledge_document', id: preview.id, label: preview.title }, {
+        chunkCount: preview.chunkCount,
+        redaction: preview.redaction,
+      });
+      return preview;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST, async (_event, input: { query: string; content?: string; topK?: number }, context?: SessionContext) => {
+    try {
+      const result = await testKnowledgeRetrieval(input);
+      await recordMutationAudit(context, 'knowledge.retrieval.tested', { type: 'knowledge_retrieval', label: result.query }, {
+        matchCount: result.matches.length,
+        latencyMs: result.latencyMs,
+      });
+      return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.OPS_BACKUP_PREVIEW, async (_event, context?: SessionContext) => {
+    try {
+      const manifest = await previewBackup();
+      await recordMutationAudit(context, 'ops.backup.previewed', { type: 'backup_manifest', id: manifest.id }, {
+        collectionCount: manifest.collections.length,
+        mode: manifest.mode,
+      });
+      return manifest;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.OPS_BACKUP_CREATE, async (_event, context?: SessionContext) => {
+    try {
+      const manifest = await createBackupManifest();
+      await recordMutationAudit(context, 'ops.backup.created', { type: 'backup_manifest', id: manifest.id }, {
+        collectionCount: manifest.collections.length,
+        checksum: manifest.checksum,
+      });
+      return manifest;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.OPS_RESTORE_PREVIEW, async (_event, raw: string, context?: SessionContext) => {
+    try {
+      const preview = await previewRestore(String(raw ?? ''));
+      await recordMutationAudit(context, 'ops.restore.previewed', { type: 'restore_preview' }, {
+        ok: preview.ok,
+        changeCount: preview.changes.length,
+        warningCount: preview.warnings.length,
+        errorCount: preview.errors.length,
+      });
+      return preview;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.CONTEXT_PACK_PREVIEW, async (_event, options?: { projectId?: string }) => {
     try {
       return await previewContextPack(options?.projectId);
@@ -2230,6 +2619,9 @@ export function registerIpcHandlers(): void {
         lastHealthStatus: payload.lastHealthStatus ?? 'unknown',
       } as never);
       await recordMutationAudit(context, 'agent.create', { type: 'agent', id: created.id, label: String((created as AgentRecord).name) });
+      if ((created as AgentRecord).type === 'demo') {
+        await createDemoExecutionForAgent(created as AgentRecord, context);
+      }
       return created;
     } catch (err) {
       return handleError(err);
@@ -2538,9 +2930,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.CONFIG_EXPORT, async (_event, context?: SessionContext) => {
     try {
-      const [providers, projects, agents, templates, mcpAllowlist, skillsRegistry] = await Promise.all([
+      const [providers, projects, gatewayKeys, gatewayConfigImports, agents, templates, mcpAllowlist, skillsRegistry] = await Promise.all([
         storage.getAll<ProviderSetting>('providerSettings'),
         storage.getAll<Project>('projects'),
+        storage.getAll<NexusGatewayApiKey>('gatewayApiKeys').catch(() => []),
+        getSettingValue<Array<Record<string, unknown>>>('gateway.config.imports').then((items) => items ?? []),
         storage.getAll<{ id: string; [key: string]: unknown }>('agents'),
         storage.getAll<{ id: string; [key: string]: unknown }>('prompts'),
         storage.getAll<{ id: string; [key: string]: unknown }>('mcpAllowlist'),
@@ -2559,6 +2953,8 @@ export function registerIpcHandlers(): void {
       const bundle = buildConfigBundle({
         providers: context?.user.role === 'admin' ? providers : [],
         projects: visibleProjects,
+        gatewayKeys: context?.user.role === 'admin' ? gatewayKeys : [],
+        gatewayConfigImports: context?.user.role === 'admin' ? gatewayConfigImports : [],
         agents: visibleAgents,
         templates: visibleTemplates,
         mcpAllowlist: context?.user.role === 'admin' ? mcpAllowlist : [],
@@ -2603,6 +2999,14 @@ export function registerIpcHandlers(): void {
         if (existing) await storage.update('skillsRegistry', skill.id, skill as never);
         else await storage.create('skillsRegistry', skill as never);
         imported += 1;
+      }
+      if (preview.bundle.gatewayConfigImports?.length) {
+        const existingImports = await getSettingValue<Array<Record<string, unknown>>>('gateway.config.imports') ?? [];
+        await setSettingValue('gateway.config.imports', [
+          ...existingImports,
+          ...preview.bundle.gatewayConfigImports.map((item) => sanitizeObject(item) as Record<string, unknown>),
+        ]);
+        imported += preview.bundle.gatewayConfigImports.length;
       }
       for (const entry of preview.bundle.mcpAllowlist ?? []) {
         const id = String(entry.id ?? `${entry.serverName}:${entry.toolName}`);

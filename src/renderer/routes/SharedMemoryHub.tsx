@@ -42,16 +42,24 @@ import { containsSecret, redactSecrets } from '../lib/secretRedaction';
 import { exportMemoriesToMarkdown, exportJSON } from '../lib/exporters';
 import { SurfaceCard, EmptyState, Button, Input, Textarea, Badge, Modal } from '../components/';
 import type {
-  Memory, MemoryType, MemoryStatus, MemoryInjectionMode, NexusContextPackPreview, NexusRecoveryPack, Project,
+  Memory,
+  MemoryType,
+  MemoryStatus,
+  MemoryInjectionMode,
+  NexusContextPackPreview,
+  NexusKnowledgeDocumentPreview,
+  NexusKnowledgeRetrievalResult,
+  NexusRecoveryPack,
+  Project,
 } from '../lib/types';
 import { generateId, formatRelativeDate, copyToClipboard, classNames, truncate } from '../lib/utils';
 
 // ── Demo data ──────────────────────────────────────────────────────────────
 const DEMO_MEMORIES: Memory[] = [
   {
-    id: 'm1', type: 'decision', title: '采用 Electron 作为跨平台桌面方案',
-    content: '决策：桌面正式方案保留 Electron。理由：生态成熟、TypeScript 支持好、社区资料充足。当前环境如遇 esbuild EPERM，则优先使用 Static fallback 交付。',
-    tags: ['architecture', 'frontend', 'decision'],
+    id: 'm1', type: 'project_context', title: '1 分钟上手示例目标',
+    content: '项目目标：打开示例项目，创建新手演示 Agent，运行示例 Workflow，并在 Trace 中看到一次完整本地模拟结果。',
+    tags: ['onboarding', 'demo', 'project'],
     importance: 5, status: 'active',
     projectId: 'demo-1',
     lastUsedAt: new Date(Date.now() - 2 * 3600e3).toISOString(),
@@ -59,9 +67,9 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm2', type: 'pattern', title: '数据访问统一走仓储模式',
-    content: '模式：项目、任务、记忆等实体通过仓储类访问，隐藏底层 JSON/SQLite 存储细节，便于后续替换存储层。',
-    tags: ['backend', 'architecture', 'pattern'],
+    id: 'm2', type: 'decision', title: '首次运行先用本地演示',
+    content: '决策：新用户不需要先配置 API Key。先用内置示例跑通项目、Agent、Workflow、Prompt 和 Memory，再配置真实 Provider。',
+    tags: ['beginner', 'provider', 'decision'],
     importance: 4, status: 'active',
     projectId: 'demo-1',
     lastUsedAt: new Date(Date.now() - 8 * 3600e3).toISOString(),
@@ -69,18 +77,18 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm3', type: 'insight', title: '记忆注入能提升 Prompt 输出质量',
-    content: '洞察：在生成 Prompt 前注入相关共享记忆，可以减少上下文丢失、重复解释和跨模型接力时的信息断层。推荐默认使用“平衡”模式。',
-    tags: ['research', 'ai', 'quality'],
+    id: 'm3', type: 'prompt_pattern', title: '新手交接 Prompt 模式',
+    content: 'Prompt 模式：说明项目目标、已有结果、下一步任务、验收标准和禁止事项。要求 Agent 输出修改文件、测试结果和下一轮建议。',
+    tags: ['prompt', 'handoff', 'beginner'],
     importance: 5, status: 'active',
     lastUsedAt: new Date(Date.now() - 24 * 3600e3).toISOString(),
     createdAt: new Date(Date.now() - 3 * 864e5).toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm4', type: 'security', title: 'IPC 安全使用 contextBridge',
-    content: '安全规则：所有原生能力通过 preload 和 contextBridge 暴露，禁止在渲染进程开启 nodeIntegration，也不使用 remote module。',
-    tags: ['security', 'electron', 'best-practice'],
+    id: 'm4', type: 'security', title: 'API Key 不写入 Memory',
+    content: '安全规则：Provider API Key 只保存在本地 Provider 配置中；Prompt、日志、Memory 和导出文件只允许出现脱敏信息。',
+    tags: ['security', 'provider', 'redaction'],
     importance: 5, status: 'active',
     projectId: 'demo-1',
     lastUsedAt: new Date(Date.now() - 5 * 3600e3).toISOString(),
@@ -88,9 +96,9 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm5', type: 'code_snippet', title: 'SQLite migrations template',
-    content: '```typescript\nimport Database from \'better-sqlite3\';\n\nconst MIGRATIONS = [\n  `CREATE TABLE IF NOT EXISTS projects (\n    id TEXT PRIMARY KEY,\n    name TEXT NOT NULL\n  )`,\n  `CREATE TABLE IF NOT EXISTS tasks (\n    id TEXT PRIMARY KEY,\n    project_id TEXT REFERENCES projects(id)\n  )`\n];\n\nexport function migrate(db: Database.Database) {\n  db.exec(\'PRAGMA journal_mode=WAL\');\n  for (const sql of MIGRATIONS) {\n    db.exec(sql);\n  }\n}\n```',
-    tags: ['database', 'sqlite', 'code'],
+    id: 'm5', type: 'knowledge', title: 'Workflow 运行结果怎么看',
+    content: '运行示例 Workflow 后，先看状态提示，再看最近运行和 Timeline / Trace。Trace 会列出每个节点的输入、输出摘要和下一步。',
+    tags: ['workflow', 'trace', 'result'],
     importance: 3, status: 'active',
     projectId: 'demo-1',
     lastUsedAt: new Date(Date.now() - 10 * 3600e3).toISOString(),
@@ -98,9 +106,9 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm6', type: 'issue_fix', title: '修复流式响应缓冲区溢出',
-    content: '修复：将流式缓冲区从 4KB 提升到 64KB，补充背压处理，并增加 UTF-8 多字节字符边界检测。',
-    tags: ['bug', 'streaming', 'fix'],
+    id: 'm6', type: 'issue_fix', title: '空状态需要给下一步',
+    content: '修复记录：项目、Agent、Workflow、Prompt、Memory 和 Settings 的空状态不能只显示空列表，必须说明用途、给示例，并提供下一步按钮。',
+    tags: ['empty-state', 'ux', 'fix'],
     importance: 3, status: 'pending',
     projectId: 'demo-1',
     lastUsedAt: new Date(Date.now() - 1 * 864e5).toISOString(),
@@ -108,18 +116,18 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm7', type: 'knowledge', title: 'Electron IPC 最佳实践',
-    content: '知识：请求响应使用 invoke/handle，事件使用 on/send；所有跨 IPC 边界的数据都要校验；主进程逻辑保持最小化。',
-    tags: ['electron', 'ipc', 'best-practice'],
+    id: 'm7', type: 'knowledge', title: '设置真实模型的顺序',
+    content: '步骤：选择 Provider 预设，粘贴 API Key，测试连接，切换为当前 Provider，再回到 Workflow 运行真实模型。',
+    tags: ['settings', 'provider', 'api-key'],
     importance: 4, status: 'active',
     lastUsedAt: new Date(Date.now() - 12 * 3600e3).toISOString(),
     createdAt: new Date(Date.now() - 10 * 864e5).toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm8', type: 'decision', title: '优先使用 Tailwind CSS',
-    content: '决策：界面层优先使用 Tailwind CSS。理由：原型速度快、组件协作清晰、暗色模式支持完整，并可通过构建裁剪体积。',
-    tags: ['frontend', 'styling', 'decision'],
+    id: 'm8', type: 'decision', title: '界面保持轻量 flat tool 风格',
+    content: '决策：LocalAI Nexus 使用紧凑、清晰、低干扰的桌面工具界面。避免 heavy blur、大面积透明玻璃效果和装饰性动效。',
+    tags: ['ui', 'flat-tool', 'decision'],
     importance: 3, status: 'archived',
     projectId: 'demo-1',
     lastUsedAt: new Date(Date.now() - 30 * 864e5).toISOString(),
@@ -129,12 +137,28 @@ const DEMO_MEMORIES: Memory[] = [
 ];
 
 const DEMO_PROJECTS: Project[] = [
-  { id: 'demo-1', name: 'AI 聊天助手', idea: '', platform: 'Desktop', techStack: '', uiStyle: '', difficulty: 'Medium', status: 'active', createdAt: '', updatedAt: '' },
-  { id: 'demo-2', name: '开发工具 CLI', idea: '', platform: 'CLI', techStack: '', uiStyle: '', difficulty: 'Hard', status: 'planning', createdAt: '', updatedAt: '' },
+  { id: 'demo-1', name: '1 分钟上手示例', idea: '跑通项目、Agent、Workflow、Prompt 和 Memory。', platform: 'Desktop', techStack: 'LocalAI Nexus', uiStyle: 'Flat desktop tool', difficulty: 'Easy', status: 'active', createdAt: '', updatedAt: '' },
+  { id: 'demo-2', name: 'Provider 配置练习', idea: '选择预设、填写 API Key、测试连接。', platform: 'Desktop', techStack: 'Provider Presets', uiStyle: 'Settings panel', difficulty: 'Easy', status: 'planning', createdAt: '', updatedAt: '' },
 ];
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const MEMORY_TYPES: MemoryType[] = ['decision', 'pattern', 'insight', 'knowledge', 'code_snippet', 'security', 'issue_fix', 'git_summary', 'log_analysis', 'safety_check'];
+const MEMORY_TYPES: MemoryType[] = [
+  'user_preference',
+  'project_context',
+  'decision',
+  'issue_fix',
+  'api_provider',
+  'prompt_pattern',
+  'environment',
+  'pattern',
+  'insight',
+  'knowledge',
+  'code_snippet',
+  'security',
+  'git_summary',
+  'log_analysis',
+  'safety_check',
+];
 const MEMORY_STATUSES: MemoryStatus[] = ['active', 'pending', 'archived'];
 const INJECTION_MODES: MemoryInjectionMode[] = ['off', 'minimal', 'balanced', 'full'];
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
@@ -178,6 +202,11 @@ const TYPE_COLORS: Record<string, string> = {
   code_snippet: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
   security: 'bg-red-500/20 text-red-300 border-red-500/30',
   issue_fix: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  user_preference: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30',
+  project_context: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  api_provider: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+  prompt_pattern: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
+  environment: 'bg-lime-500/20 text-lime-300 border-lime-500/30',
   git_summary: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
   log_analysis: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   safety_check: 'bg-green-500/20 text-green-300 border-green-500/30',
@@ -263,6 +292,11 @@ export default function SharedMemoryHub() {
   const [recoveryPack, setRecoveryPack] = useState<NexusRecoveryPack | null>(null);
   const [generatingContext, setGeneratingContext] = useState(false);
   const [copiedContext, setCopiedContext] = useState(false);
+  const [knowledgeText, setKnowledgeText] = useState('Workflow trace output links every node result to Gateway trace IDs. api_key=sk-demo-secret should be redacted.');
+  const [knowledgeQuery, setKnowledgeQuery] = useState('Workflow trace Gateway');
+  const [knowledgePreview, setKnowledgePreview] = useState<NexusKnowledgeDocumentPreview | null>(null);
+  const [knowledgeRetrieval, setKnowledgeRetrieval] = useState<NexusKnowledgeRetrievalResult | null>(null);
+  const [knowledgeMessage, setKnowledgeMessage] = useState('');
 
   // UI state
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -572,10 +606,10 @@ export default function SharedMemoryHub() {
       const recoveryPrompt = `# LocalAI Nexus 跨模型恢复上下文 Prompt
 
 项目名：${projectName}
-当前方案：Static fallback
-可用启动方式：D:\\AgentFlowStudio\\start-agentflow-static.bat
-已知限制：Electron / Vite / Vitest 在当前环境可能受 esbuild EPERM 限制。
-下一步：继续维护 Static fallback 稳定性，并逐步恢复 Electron 验证。
+当前方案：LocalAI Nexus 桌面端主窗口
+可用启动方式：桌面快捷方式或 npm.cmd run dev
+已知限制：真实 Provider 运行需要用户配置 API Key；内置示例可本地模拟运行。
+下一步：打开示例项目，运行示例 Workflow，保存结果到 Project Detail。
 
 ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n- 已做决策：\\n  - 暂无记录\\n- 当前进度：\\n  - 暂无记录\\n- 已知问题：\\n  - 暂无记录\\n- 用户偏好：\\n  - 暂无记录\\n- API Provider 注意事项：\\n  - 暂无记录\\n[/Shared Memory Context]'}`;
 
@@ -605,6 +639,28 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
     await copyToClipboard(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleKnowledgePreview = async () => {
+    const preview = await api.knowledge.previewDocument({
+      title: 'Local knowledge preview',
+      content: knowledgeText,
+    });
+    if (preview && typeof preview === 'object' && 'error' in preview) {
+      setKnowledgeMessage(preview.error);
+      return;
+    }
+    setKnowledgePreview(preview);
+    const retrieval = await api.knowledge.testRetrieval({
+      query: knowledgeQuery,
+      topK: 3,
+    });
+    if (retrieval && typeof retrieval === 'object' && 'error' in retrieval) {
+      setKnowledgeMessage(retrieval.error);
+      return;
+    }
+    setKnowledgeRetrieval(retrieval);
+    setKnowledgeMessage('知识文档已完成本地解析、脱敏和检索测试。');
   };
 
   // ── Importance stars ──────────────────────────────────────────────────
@@ -781,7 +837,10 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
         <div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">共享记忆中心</h1>
           <p className="text-[var(--text-muted)] text-sm mt-1">
-            {filteredMemories.length} / {memories.length} 条记忆
+            把项目决策、修复记录和偏好保存成可复用上下文，之后可生成恢复 Prompt。
+          </p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">
+            当前显示 {filteredMemories.length} / {memories.length} 条记忆
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -860,6 +919,52 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
             <option value="archived" className="bg-[var(--surface)]">已归档</option>
           </select>
         </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
+              <FileJson className="h-4 w-4" /> 知识文档预览
+            </h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              本地解析文档、自动脱敏、生成 chunk，并用 mock retrieval 验证检索命中。
+            </p>
+          </div>
+          <Button variant="secondary" onClick={handleKnowledgePreview} icon={<Database className="h-4 w-4" />}>
+            解析并检索
+          </Button>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_280px]">
+          <Textarea
+            label="文档内容"
+            value={knowledgeText}
+            onChange={(event) => setKnowledgeText(event.target.value)}
+            rows={4}
+          />
+          <Input
+            label="检索问题"
+            value={knowledgeQuery}
+            onChange={(event) => setKnowledgeQuery(event.target.value)}
+          />
+        </div>
+        {knowledgeMessage && <div className="mt-3 text-sm text-[var(--accent)]">{knowledgeMessage}</div>}
+        {knowledgePreview && (
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm">
+              <div className="text-xs text-[var(--text-muted)]">Chunks</div>
+              <div className="mt-1 text-xl font-bold">{knowledgePreview.chunkCount}</div>
+            </div>
+            <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm">
+              <div className="text-xs text-[var(--text-muted)]">Redaction</div>
+              <div className="mt-1 font-semibold">{knowledgePreview.redaction}</div>
+            </div>
+            <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm">
+              <div className="text-xs text-[var(--text-muted)]">Matches</div>
+              <div className="mt-1 text-xl font-bold">{knowledgeRetrieval?.matches.length ?? 0}</div>
+            </div>
+          </div>
+        )}
       </SurfaceCard>
 
       {/* Pending memories alert */}
@@ -1016,7 +1121,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
             description={
               search || typeFilter !== 'all' || statusFilter !== 'all'
                 ? '尝试更改筛选条件或搜索词'
-                : '创建第一条共享记忆，让 AI 跨项目、跨模型保持知识连续性'
+                : '创建第一条共享记忆，例如：项目目标、技术栈选择、已修复的问题、模型偏好。'
             }
             actionLabel="创建第一条记忆"
             onAction={() => { resetForm(); setShowCreateModal(true); }}
@@ -1155,19 +1260,21 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
 
           {contextPreview && (
             <div className="rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-3">
-              <h4 className="text-xs font-semibold uppercase text-[var(--text-muted)]">Recovery Pack Sources</h4>
+              <h4 className="text-xs font-semibold uppercase text-[var(--text-muted)]">恢复包来源</h4>
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 {contextPreview.sources.map((source) => (
                   <div key={`${source.type}-${source.label}`} className="rounded-tool border border-[var(--border)] bg-[var(--surface)] p-2 text-xs">
                     <div className="font-semibold text-[var(--text-primary)]">{source.label}</div>
-                    <div className="mt-1 text-[var(--text-muted)]">{source.included ? 'included' : 'excluded'} / {source.redacted ? 'redacted' : 'raw'}</div>
+                    <div className="mt-1 text-[var(--text-muted)]">
+                      {source.included ? '已纳入' : '未纳入'} / {source.redacted ? '已脱敏' : '原始内容'}
+                    </div>
                   </div>
                 ))}
               </div>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
-                <Badge>{contextPreview.memoryCount} memories</Badge>
-                <Badge>{contextPreview.staleMemoryCount} stale</Badge>
-                <Badge>{contextPreview.related.length} graph edges</Badge>
+                <Badge>{contextPreview.memoryCount} 条记忆</Badge>
+                <Badge>{contextPreview.staleMemoryCount} 条可能过期</Badge>
+                <Badge>{contextPreview.related.length} 条关联</Badge>
               </div>
             </div>
           )}
@@ -1176,9 +1283,9 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
             <div className="rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs text-[var(--text-secondary)]">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge>{recoveryPack.redaction}</Badge>
-                <span>{recoveryPack.memoryIds.length} memory ids</span>
-                <span>{recoveryPack.providerTraceIds.length} provider traces</span>
-                <span>{recoveryPack.workflowRunIds.length} workflow runs</span>
+                <span>{recoveryPack.memoryIds.length} 条记忆 ID</span>
+                <span>{recoveryPack.providerTraceIds.length} 条 Provider Trace</span>
+                <span>{recoveryPack.workflowRunIds.length} 次 Workflow 运行</span>
               </div>
               <div className="mt-2 max-h-24 overflow-auto font-mono">{recoveryPack.sourceLabels.join(' | ')}</div>
             </div>

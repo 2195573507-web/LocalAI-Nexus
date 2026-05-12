@@ -13,6 +13,7 @@ import {
   FolderKanban,
   GitBranch,
   KeyRound,
+  Bot,
   PlayCircle,
   RefreshCw,
   Settings,
@@ -91,6 +92,13 @@ const DEMO_PROMPTS: SavedPrompt[] = [
 const DEMO_MEMORIES: Memory[] = [
   { id: 'memory-1', type: 'decision', title: '本地优先编排', content: '除非用户主动导出，否则项目上下文、Provider 设置和记忆都留在本地。', tags: ['local-first', 'architecture'], importance: 5, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 3600e3).toISOString(), createdAt: new Date(now - 5 * 864e5).toISOString(), updatedAt: new Date(now - 3600e3).toISOString() },
   { id: 'memory-2', type: 'safety_check', title: '快捷方式启动策略', content: '桌面快捷方式应优先指向 Electron 入口，并跳过 devtools，减少启动噪音。', tags: ['launcher', 'safety'], importance: 4, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 2 * 3600e3).toISOString(), createdAt: new Date(now - 3 * 864e5).toISOString(), updatedAt: new Date(now - 2 * 3600e3).toISOString() },
+];
+
+const ONE_MINUTE_STEPS = [
+  { title: '打开示例项目', body: '先看目标、任务和已保存的运行结果。', route: '/projects/onboarding-demo-project', icon: FolderKanban },
+  { title: '创建第一个 Agent', body: '无需 API Key，先用本地演示 Agent 跑通链路。', route: '/agents', icon: Bot },
+  { title: '运行第一个 Workflow', body: '从模板创建后点击运行，马上看到 Trace。', route: '/workflows', icon: Workflow },
+  { title: '保存第一个 Prompt', body: '把任务变成可复制给 Codex/Claude Code 的交接说明。', route: '/prompts', icon: Wand2 },
 ];
 
 const statusLabel: Record<string, string> = {
@@ -256,7 +264,7 @@ export default function Dashboard() {
     {
       label: 'Workflow',
       title: '创建第一个 Workflow',
-      body: '把任务、Prompt Skill、Provider 路由和审计时间线绑定成可重复运行。',
+      body: '用内置新手模板先跑一次本地模拟结果，再配置真实 Provider。',
       icon: Workflow,
       route: '/workflows',
       done: hasTasks,
@@ -264,7 +272,7 @@ export default function Dashboard() {
     {
       label: 'Project',
       title: '创建或打开项目',
-      body: '让 Agent 执行前先记录目标、约束、技术栈和交付边界。',
+      body: '打开内置示例项目，或创建自己的第一个项目。',
       icon: FolderKanban,
       route: '/projects',
       done: hasProjects,
@@ -298,12 +306,12 @@ export default function Dashboard() {
   const nextStep = firstRunSteps.find((step) => !step.done) || firstRunSteps[firstRunSteps.length - 1];
 
   const quickActions = [
+    { label: '打开示例项目', icon: FolderKanban, route: '/projects/onboarding-demo-project', tone: 'text-emerald-500' },
+    { label: '创建演示 Agent', icon: Bot, route: '/agents', tone: 'text-violet-500' },
+    { label: '运行示例 Workflow', icon: Workflow, route: '/workflows', tone: 'text-blue-500' },
     { label: 'Provider 中心', icon: Settings, route: '/providers', tone: 'text-blue-500' },
     { label: 'Runtime 配置', icon: Activity, route: '/runtime', tone: 'text-emerald-500' },
-    { label: 'Skill 中心', icon: Wand2, route: '/skills', tone: 'text-violet-500' },
-    { label: '诊断中心', icon: FileSearch, route: '/diagnostics', tone: 'text-amber-500' },
     { label: 'Shared Memory', icon: Brain, route: '/memory', tone: 'text-rose-500' },
-    { label: 'Git 时间线', icon: GitBranch, route: '/git', tone: 'text-cyan-500' },
   ];
 
   if (loading) {
@@ -343,20 +351,25 @@ export default function Dashboard() {
               LocalAI Nexus
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-              在一个本地控制台中管理项目、模型 Provider、任务 Prompt、安全检查、日志、Git 上下文和 Shared Memory。
+              新手可以先用内置示例在 1 分钟内完成一次本地模拟运行：打开项目、创建 Agent、运行 Workflow、查看结果，再去配置真实 Provider。
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  if (nextStep.label === 'Gateway') void startGateway();
-                  else navigate(nextStep.route);
-                }}
+                onClick={() => navigate('/projects/onboarding-demo-project')}
                 className="focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white  transition-colors hover:bg-accent-500"
                 disabled={gatewayBusy}
               >
-                {gatewayBusy ? '正在启动 Gateway...' : `继续：${nextStep.title}`}
+                打开新手示例项目
                 <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/workflows')}
+                className="focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)]"
+              >
+                <PlayCircle className="h-4 w-4" />
+                运行示例 Workflow
               </button>
               <button
                 type="button"
@@ -375,7 +388,7 @@ export default function Dashboard() {
               首次运行检查清单
             </div>
             <div className="mt-4 space-y-2">
-              {firstRunSteps.slice(0, 3).map((step) => (
+              {firstRunSteps.slice(0, 4).map((step) => (
                 <button
                   key={step.label}
                   type="button"
@@ -394,6 +407,37 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      <SurfaceCard className="p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">1 分钟快速开始</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              这条路径不需要 API Key，适合第一次打开软件时确认“它到底能做什么”。
+            </p>
+          </div>
+          <span className="text-xs font-medium text-[var(--text-muted)]">示例内容可运行、可查看、可删除</span>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {ONE_MINUTE_STEPS.map((step, index) => (
+            <button
+              key={step.title}
+              type="button"
+              onClick={() => navigate(step.route)}
+              className="focus-ring min-h-[132px] rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-left transition-colors hover:bg-[var(--surface-hover)]"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <step.icon className="h-5 w-5 text-accent-500" />
+                <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+                  {index + 1}
+                </span>
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{step.title}</h3>
+              <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)]">{step.body}</p>
+            </button>
+          ))}
+        </div>
+      </SurfaceCard>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SurfaceCard className="p-4">

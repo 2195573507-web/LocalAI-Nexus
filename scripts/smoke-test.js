@@ -31,7 +31,7 @@ console.log('='.repeat(50))
 
 console.log('\n[Package Scripts]')
 const pkg = JSON.parse(readText('package.json'))
-const requiredScripts = ['typecheck', 'test', 'build', 'verify', 'smoke', 'test:e2e', 'test:static-browser']
+const requiredScripts = ['typecheck', 'test', 'build', 'verify', 'smoke', 'test:e2e', 'test:static-browser', 'test:gateway-http']
 for (const script of requiredScripts) {
   check(`script/${script}`, Boolean(pkg.scripts?.[script]))
 }
@@ -147,6 +147,7 @@ check('e2e runner passes dynamic port', e2eRunner.includes('AGENTFLOW_E2E_PORT')
 check('playwright avoids default external server reuse', playwrightConfig.includes("AGENTFLOW_E2E_REUSE_SERVER === '1'") && !playwrightConfig.includes('reuseExistingServer: true'))
 check('playwright uses strict dynamic Vite port', playwrightConfig.includes('--strictPort') && playwrightConfig.includes('AGENTFLOW_E2E_BASE_URL'))
 check('electron smoke uses separate port range', electronStartupSmoke.includes('reserveFreePort(5200, 5229)') && electronStartupSmoke.includes('AGENTFLOW_ELECTRON_SMOKE_PORT'))
+check('gateway HTTP smoke covers embeddings', fileExists('scripts/gateway-http-smoke.js') && readText('scripts/gateway-http-smoke.js').includes('/v1/embeddings') && readText('scripts/gateway-http-smoke.js').includes('AGENTFLOW_GATEWAY_HTTP_SMOKE'))
 for (const keyword of ['仪表盘', '项目管理', '项目详情', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '技能管理', 'Git 时间线', '设置', '界面偏好', '浅色', '深色', '跟随系统']) {
   check(`static-app localized/${keyword}`, staticText.includes(keyword))
 }
@@ -185,14 +186,19 @@ const preload = readText('src/main/preload.ts')
 const security = readText('src/main/security.ts')
 const mainIpc = readText('src/main/ipc.ts')
 const sharedTypes = readText('src/shared/types.ts')
+const rendererApi = readText('src/renderer/lib/api.ts')
 const gatewayService = readText('src/main/domain/gateway/gatewayService.ts')
 const providerForwardService = readText('src/main/domain/provider/providerForwardService.ts')
 const routerService = readText('src/main/domain/router/modelRouter.ts')
 const runtimeProfileService = readText('src/main/domain/runtime/runtimeProfileService.ts')
+const configPortability = readText('src/shared/configPortability.ts')
 const securityReportService = readText('src/main/domain/security/securityReportService.ts')
 const contextPackService = readText('src/main/domain/memory/contextPackService.ts')
 const tokenPolicyService = readText('src/main/domain/usage/tokenPolicyService.ts')
 const bundleRegistryService = readText('src/main/domain/ecosystem/bundleRegistryService.ts')
+const gatewayKeyService = readText('src/main/domain/gateway/gatewayKeyService.ts')
+const usageService = readText('src/main/domain/usage/usageService.ts')
+const backupService = readText('src/main/domain/ops/backupService.ts')
 check('contextIsolation enabled', main.includes('contextIsolation: true'))
 check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
 check('preload uses contextBridge', preload.includes('contextBridge.exposeInMainWorld'))
@@ -239,14 +245,26 @@ check('LocalAI Nexus IPC channels declared', [
 check('LocalAI Nexus IPC permissions declared', [
   'ROUTER_DECISIONS_LIST',
   'SECURITY_REPORT_GENERATE',
+  'GATEWAY_KEY_CREATE',
+  'GATEWAY_KEY_RESET',
+  'OBSERVABILITY_REPORT_GENERATE',
+  'KNOWLEDGE_DOCUMENT_PREVIEW',
+  'OPS_BACKUP_PREVIEW',
   'CONTEXT_PACK_PREVIEW',
   'TEMPLATE_BUNDLES_LIST',
   'TEMPLATE_BUNDLES_UPSERT',
   'TEMPLATE_BUNDLES_TOGGLE',
 ].every((keyword) => mainIpc.includes(`IPC_CHANNELS.${keyword}`)))
-check('LocalAI Nexus preload bridge exposes domains', ['providers', 'gateway', 'usage', 'health', 'runtimeProfiles', 'router', 'security', 'contextPack', 'templateBundles'].every((keyword) => preload.includes(`${keyword}:`)))
+check('Gateway and Ops use explicit permissions', mainIpc.includes("'gateway:write'") && mainIpc.includes("'gateway:read'") && mainIpc.includes("'ops:backup'") && mainIpc.includes("'ops:restore'"))
+check('LocalAI Nexus preload bridge exposes domains', ['providers', 'gateway', 'usage', 'health', 'runtimeProfiles', 'router', 'security', 'observability', 'knowledge', 'ops', 'contextPack', 'templateBundles'].every((keyword) => preload.includes(`${keyword}:`)))
 check('gateway forwards through provider service', gatewayService.includes('forwardProviderRequest') && gatewayService.includes('routeModel') && gatewayService.includes('recordUsage'))
-check('gateway endpoint surface is complete', ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages'].every((endpoint) => gatewayService.includes(endpoint)))
+check('gateway endpoint surface is complete', ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages', '/v1/embeddings'].every((endpoint) => gatewayService.includes(endpoint)))
+check('gateway key control plane exists', ['gateway:key:create', 'gateway:key:reset', 'gateway:key:disable', 'gateway:key:delete', 'evaluateGatewayAccess'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${gatewayService}`.includes(keyword)))
+check('gateway key policy is enforced in main service', ['evaluateGatewayKeyPolicy', 'daily request quota', 'monthly request quota', 'rate limit', 'concurrency limit'].every((keyword) => gatewayKeyService.includes(keyword)) && gatewayService.includes('gateway_api_key_denied'))
+check('gateway key requests are attributed in usage and logs', ['gatewayKeyId', 'gatewayMaskedKey'].every((keyword) => sharedTypes.includes(keyword) && usageService.includes(keyword) && gatewayService.includes(keyword)))
+check('gateway active request lifecycle includes key id', tokenPolicyService.includes('gatewayKeyId') && gatewayService.includes('clearGatewayRequestActive(requestId)'))
+check('gateway external config import preview merge backup audit exists', ['GATEWAY_IMPORT_PREVIEW', 'GATEWAY_IMPORT_APPLY', 'previewGatewayConfigImport', 'gateway.config.imported', 'backup', 'mergePlan'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${preload}\n${rendererApi}\n${configPortability}`.includes(keyword)))
+check('gateway external config adapters mention required sources', ['ccs', 'sub2api', 'cc-switch', 'claude-code', 'codex', 'openai-env'].every((keyword) => configPortability.includes(keyword) && readText('src/renderer/routes/LocalGateway.tsx').includes(keyword)))
 check('gateway stream event path exists', gatewayService.includes('text/event-stream') && providerForwardService.includes('streamEvents') && providerForwardService.includes('content_delta'))
 check('gateway parses upstream SSE and cancellation metadata', providerForwardService.includes('parseSseStream') && providerForwardService.includes('streamProtocol') && gatewayService.includes('req.once') && gatewayService.includes('cancelled'))
 check('mock provider keeps CI-safe forwarding path', providerForwardService.includes('localai-mock') && providerForwardService.includes('mock://') && providerForwardService.includes('LocalAI Nexus mock provider'))
@@ -257,6 +275,11 @@ check('security report service is redacted', securityReportService.includes('sec
 check('context pack preview includes redacted sources', contextPackService.includes('sanitizeObject') && contextPackService.includes('staleMemoryCount') && contextPackService.includes('provider_trace'))
 check('context recovery pack includes graph and trace ids', contextPackService.includes('buildRecoveryPack') && contextPackService.includes('relatedMemoryPairs') && contextPackService.includes('providerTraceIds') && contextPackService.includes('workflowRunIds'))
 check('local template bundle registry is local-only', bundleRegistryService.includes('localOnly === false') && bundleRegistryService.includes('BUILTIN_TEMPLATE_BUNDLES') && bundleRegistryService.includes('toggleTemplateBundle'))
+check('knowledge preview and retrieval IPC exist', ['KNOWLEDGE_DOCUMENT_PREVIEW', 'KNOWLEDGE_RETRIEVAL_TEST', 'knowledgeDocuments'].every((keyword) => `${sharedTypes}\n${mainIpc}`.includes(keyword)))
+check('observability report and mock eval IPC exist', ['OBSERVABILITY_REPORT_GENERATE', 'EVAL_MOCK_RUN', 'observability.report.generate'].every((keyword) => `${sharedTypes}\n${mainIpc}`.includes(keyword)))
+check('ops backup and restore preview IPC exist', ['OPS_BACKUP_PREVIEW', 'OPS_BACKUP_CREATE', 'OPS_RESTORE_PREVIEW', 'backupManifests'].every((keyword) => `${sharedTypes}\n${mainIpc}`.includes(keyword)))
+check('ops backup bundle is redacted and schema versioned', ['schemaVersion', 'buildRedactedBundle', 'restoreRequiresPreview', 'secrets-redacted'].every((keyword) => `${sharedTypes}\n${backupService}`.includes(keyword)))
+check('prompt append-only versions are preserved', sharedTypes.includes('PromptVersion') && mainIpc.includes('buildPromptVersion') && mainIpc.includes('versionCreated'))
 
 console.log('\n[Shared Memory Safety]')
 const secretRedaction = readText('src/renderer/lib/secretRedaction.ts')
@@ -291,16 +314,15 @@ const rendererStyles = readText('src/renderer/styles.css')
 const surfaceCard = readText('src/renderer/components/SurfaceCard.tsx')
 const dashboard = readText('src/renderer/routes/Dashboard.tsx')
 const sidebar = readText('src/renderer/components/Sidebar.tsx')
-const apiWrapper = readText('src/renderer/lib/api.ts')
 const tailwindConfig = readText('tailwind.config.ts')
 check('renderer flat surface token set exists', ['--surface', '--surface-muted', '--surface-hover', '--border', '--focus-ring'].every((keyword) => rendererStyles.includes(keyword)) && !rendererStyles.includes('--gla' + 'ss-') && !rendererStyles.includes('backdrop-filter'))
 check('renderer SurfaceCard uses shared surface primitive', surfaceCard.includes('surface-card') && surfaceCard.includes('focus-ring'))
 check('Tailwind accent palette supports used shades', ['400', '500', '600', '700'].every((shade) => tailwindConfig.includes(`${shade}:`)))
 check('Dashboard Nexus first-run path exists', ['Provider', 'Gateway', 'Workflow', 'Prompt', 'Guard', 'Memory'].every((keyword) => dashboard.includes(keyword)))
-check('Dashboard next-step copy exists', dashboard.includes('首次运行检查清单') && dashboard.includes('继续：'))
-check('Dashboard quick actions target Nexus modules', ['/providers', '/runtime', '/diagnostics', '/gateway'].every((route) => dashboard.includes(route)) && dashboard.includes('Provider 中心'))
+check('Dashboard one-minute onboarding exists', dashboard.includes('ONE_MINUTE_STEPS') && dashboard.includes('/projects/onboarding-demo-project') && dashboard.includes('/workflows'))
+check('Dashboard quick actions target beginner modules', ['/projects/onboarding-demo-project', '/agents', '/workflows', '/providers', '/runtime', '/memory'].every((route) => dashboard.includes(route)))
 check('Sidebar includes Nexus IA modules', ['Provider Hub', 'Token Center', 'Health Monitor', 'Model Router', 'Local Gateway', 'Runtime Switcher', 'Diagnostics', 'Agent Studio', 'Security Center', 'Ecosystem'].every((label) => sidebar.includes(label)))
-check('renderer API wraps Nexus domains', ['gateway:', 'usage:', 'health:', 'runtimeProfiles:', 'router:', 'security:', 'contextPack:', 'templateBundles:'].every((keyword) => apiWrapper.includes(keyword)))
+check('renderer API wraps Nexus domains', ['gateway:', 'usage:', 'health:', 'runtimeProfiles:', 'router:', 'security:', 'contextPack:', 'templateBundles:'].every((keyword) => rendererApi.includes(keyword)))
 
 const promptLab = readText('src/renderer/routes/PromptLab.tsx')
 const templates = readText('src/renderer/lib/templates.ts')

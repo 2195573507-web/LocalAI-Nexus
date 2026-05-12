@@ -27,6 +27,8 @@ import type {
   NexusGatewayStatus,
   NexusHealthCheckResult,
   NexusContextPackPreview,
+  NexusBackupManifest,
+  NexusEvaluationRun,
   NexusRecoveryPack,
   NexusRouterDecision,
   NexusSecurityReport,
@@ -37,6 +39,15 @@ import type {
   NexusSkillTestResult,
   NexusUsageRecord,
   NexusUsageSummary,
+  NexusGatewayApiKey,
+  NexusGatewayApiKeyCreateRequest,
+  NexusGatewayApiKeyCreateResult,
+  NexusGatewayConfigApplyResult,
+  NexusGatewayConfigImportPreview,
+  NexusKnowledgeDocumentPreview,
+  NexusKnowledgeRetrievalResult,
+  NexusObservabilityReport,
+  NexusRestorePreview,
 } from '../../shared/types';
 import type {
   Workflow,
@@ -170,6 +181,16 @@ interface AgentFlowPreloadAPI {
     status(): Promise<NexusGatewayStatus | { error: string }>;
     start(): Promise<NexusGatewayStatus | { error: string }>;
     stop(): Promise<NexusGatewayStatus | { error: string }>;
+    keys?(): Promise<NexusGatewayApiKey[] | { error: string }>;
+    createKey?(request: NexusGatewayApiKeyCreateRequest): Promise<NexusGatewayApiKeyCreateResult | { error: string }>;
+    disableKey?(id: string): Promise<NexusGatewayApiKey | { error: string }>;
+    deleteKey?(id: string): Promise<NexusGatewayApiKey | { error: string }>;
+    resetKey?(id: string): Promise<NexusGatewayApiKeyCreateResult | { error: string }>;
+    exportEnv?(key?: string): Promise<unknown>;
+    exportCodex?(key?: string): Promise<unknown>;
+    exportClaude?(key?: string): Promise<unknown>;
+    importPreview?(raw: string): Promise<NexusGatewayConfigImportPreview | { error: string }>;
+    importApply?(raw: string): Promise<NexusGatewayConfigApplyResult | { error: string }>;
   };
   usage?: {
     summary(): Promise<NexusUsageSummary | { error: string }>;
@@ -192,6 +213,19 @@ interface AgentFlowPreloadAPI {
   };
   security?: {
     report(scope?: string): Promise<NexusSecurityReport | { error: string }>;
+  };
+  observability?: {
+    report(options?: { includeMockEvaluation?: boolean; evaluationOutput?: string }): Promise<NexusObservabilityReport | { error: string }>;
+    runMockEvaluation(input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }): Promise<NexusEvaluationRun | { error: string }>;
+  };
+  knowledge?: {
+    previewDocument(input: { title?: string; content: string }): Promise<NexusKnowledgeDocumentPreview | { error: string }>;
+    testRetrieval(input: { query: string; content?: string; topK?: number }): Promise<NexusKnowledgeRetrievalResult | { error: string }>;
+  };
+  ops?: {
+    backupPreview(): Promise<NexusBackupManifest | { error: string }>;
+    createBackup(): Promise<NexusBackupManifest | { error: string }>;
+    restorePreview(raw: string): Promise<NexusRestorePreview | { error: string }>;
   };
   contextPack?: {
     preview(options?: { projectId?: string }): Promise<NexusContextPackPreview | { error: string }>;
@@ -1028,6 +1062,66 @@ export const api = {
         (a) => a.gateway?.stop() ?? Promise.resolve({ error: 'Gateway bridge unavailable.' }),
         { error: 'Gateway bridge unavailable.' },
       ),
+    keys: () =>
+      apiCall<NexusGatewayApiKey[] | { error: string }>(
+        'gateway.keys',
+        (a) => a.gateway?.keys?.() ?? Promise.resolve([]),
+        [],
+      ),
+    createKey: (request: NexusGatewayApiKeyCreateRequest) =>
+      apiCall<NexusGatewayApiKeyCreateResult | { error: string }>(
+        'gateway.createKey',
+        (a) => a.gateway?.createKey?.(request) ?? Promise.resolve({ error: 'Gateway key bridge unavailable.' }),
+        { error: 'Gateway key bridge unavailable.' },
+      ),
+    disableKey: (id: string) =>
+      apiCall<NexusGatewayApiKey | { error: string }>(
+        'gateway.disableKey',
+        (a) => a.gateway?.disableKey?.(id) ?? Promise.resolve({ error: 'Gateway key bridge unavailable.' }),
+        { error: 'Gateway key bridge unavailable.' },
+      ),
+    deleteKey: (id: string) =>
+      apiCall<NexusGatewayApiKey | { error: string }>(
+        'gateway.deleteKey',
+        (a) => a.gateway?.deleteKey?.(id) ?? Promise.resolve({ error: 'Gateway key bridge unavailable.' }),
+        { error: 'Gateway key bridge unavailable.' },
+      ),
+    resetKey: (id: string) =>
+      apiCall<NexusGatewayApiKeyCreateResult | { error: string }>(
+        'gateway.resetKey',
+        (a) => a.gateway?.resetKey?.(id) ?? Promise.resolve({ error: 'Gateway key bridge unavailable.' }),
+        { error: 'Gateway key bridge unavailable.' },
+      ),
+    exportEnv: (key?: string) =>
+      apiCall<unknown>(
+        'gateway.exportEnv',
+        (a) => a.gateway?.exportEnv?.(key) ?? Promise.resolve({ error: 'Gateway export bridge unavailable.' }),
+        { error: 'Gateway export bridge unavailable.' },
+      ),
+    exportCodex: (key?: string) =>
+      apiCall<unknown>(
+        'gateway.exportCodex',
+        (a) => a.gateway?.exportCodex?.(key) ?? Promise.resolve({ error: 'Gateway export bridge unavailable.' }),
+        { error: 'Gateway export bridge unavailable.' },
+      ),
+    exportClaude: (key?: string) =>
+      apiCall<unknown>(
+        'gateway.exportClaude',
+        (a) => a.gateway?.exportClaude?.(key) ?? Promise.resolve({ error: 'Gateway export bridge unavailable.' }),
+        { error: 'Gateway export bridge unavailable.' },
+      ),
+    importPreview: (raw: string) =>
+      apiCall<NexusGatewayConfigImportPreview | { error: string }>(
+        'gateway.importPreview',
+        (a) => a.gateway?.importPreview?.(raw) ?? Promise.resolve({ error: 'Gateway import bridge unavailable.' }),
+        { error: 'Gateway import bridge unavailable.' },
+      ),
+    importApply: (raw: string) =>
+      apiCall<NexusGatewayConfigApplyResult | { error: string }>(
+        'gateway.importApply',
+        (a) => a.gateway?.importApply?.(raw) ?? Promise.resolve({ error: 'Gateway import bridge unavailable.' }),
+        { error: 'Gateway import bridge unavailable.' },
+      ),
   },
 
   usage: {
@@ -1118,6 +1212,57 @@ export const api = {
         'security.report',
         (a) => a.security?.report(scope) ?? Promise.resolve({ error: 'Security report bridge unavailable.' }),
         { error: 'Security report bridge unavailable.' },
+      ),
+  },
+
+  observability: {
+    report: (options?: { includeMockEvaluation?: boolean; evaluationOutput?: string }) =>
+      apiCall<NexusObservabilityReport | { error: string }>(
+        'observability.report',
+        (a) => a.observability?.report(options) ?? Promise.resolve({ error: 'Observability bridge unavailable.' }),
+        { error: 'Observability bridge unavailable.' },
+      ),
+    runMockEvaluation: (input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }) =>
+      apiCall<NexusEvaluationRun | { error: string }>(
+        'observability.runMockEvaluation',
+        (a) => a.observability?.runMockEvaluation(input) ?? Promise.resolve({ error: 'Evaluation bridge unavailable.' }),
+        { error: 'Evaluation bridge unavailable.' },
+      ),
+  },
+
+  knowledge: {
+    previewDocument: (input: { title?: string; content: string }) =>
+      apiCall<NexusKnowledgeDocumentPreview | { error: string }>(
+        'knowledge.previewDocument',
+        (a) => a.knowledge?.previewDocument(input) ?? Promise.resolve({ error: 'Knowledge bridge unavailable.' }),
+        { error: 'Knowledge bridge unavailable.' },
+      ),
+    testRetrieval: (input: { query: string; content?: string; topK?: number }) =>
+      apiCall<NexusKnowledgeRetrievalResult | { error: string }>(
+        'knowledge.testRetrieval',
+        (a) => a.knowledge?.testRetrieval(input) ?? Promise.resolve({ error: 'Knowledge bridge unavailable.' }),
+        { error: 'Knowledge bridge unavailable.' },
+      ),
+  },
+
+  ops: {
+    backupPreview: () =>
+      apiCall<NexusBackupManifest | { error: string }>(
+        'ops.backupPreview',
+        (a) => a.ops?.backupPreview() ?? Promise.resolve({ error: 'Ops bridge unavailable.' }),
+        { error: 'Ops bridge unavailable.' },
+      ),
+    createBackup: () =>
+      apiCall<NexusBackupManifest | { error: string }>(
+        'ops.createBackup',
+        (a) => a.ops?.createBackup() ?? Promise.resolve({ error: 'Ops bridge unavailable.' }),
+        { error: 'Ops bridge unavailable.' },
+      ),
+    restorePreview: (raw: string) =>
+      apiCall<NexusRestorePreview | { error: string }>(
+        'ops.restorePreview',
+        (a) => a.ops?.restorePreview(raw) ?? Promise.resolve({ error: 'Ops bridge unavailable.' }),
+        { error: 'Ops bridge unavailable.' },
       ),
   },
 

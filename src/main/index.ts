@@ -3,10 +3,14 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc.js';
 import storage from './storage.js';
-import type { Project, Task, Memory } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentRecord, Project, Run, SavedPrompt, Task, Memory } from '../shared/types.js';
+import type { Workflow, WorkflowVersion } from '../shared/workflowTypes.js';
 import { isHttpUrl, normalizeDevServerUrl } from './security.js';
 import { bootstrapAuth } from './session.js';
 import { startGateway } from './domain/gateway/gatewayService.js';
+import { createDemoAgent, createDemoExecution } from '../shared/agentCore.js';
+import { BEGINNER_WORKFLOW_TEMPLATES } from '../templates/workflowTemplates.js';
+import { runWorkflow } from '../core/workflowRuntime.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -18,6 +22,7 @@ const isDev =
   Boolean(process.env.VITE_DEV_SERVER_URL);
 const devServerUrl = normalizeDevServerUrl(process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173');
 const startupSmoke = process.env.AGENTFLOW_STARTUP_SMOKE === '1';
+const gatewayHttpSmoke = process.env.AGENTFLOW_GATEWAY_HTTP_SMOKE === '1';
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 if (process.env.AGENTFLOW_USER_DATA_DIR) {
@@ -30,19 +35,20 @@ if (process.env.AGENTFLOW_USER_DATA_DIR) {
 
 async function seedDemoDataIfNeeded(): Promise<void> {
   const existingProjects = await storage.getAll('projects');
-  if (existingProjects.length > 0) return; // Already seeded
+  if (existingProjects.some((project) => project.id === 'onboarding-demo-project')) return;
 
   const now = new Date().toISOString();
+  const earlier = (days: number) => new Date(Date.now() - 86400000 * days).toISOString();
 
   // ── Demo projects ──────────────────────────────────────────────────
 
   const project1: Project = {
-    id: 'demo-proj-1',
-    name: 'AI Chat Desktop App',
-    idea: 'A cross-platform desktop chat application powered by local LLMs, featuring conversation history, prompt templates, and plugin support.',
+    id: 'onboarding-demo-project',
+    name: '1 分钟上手示例：需求到运行结果',
+    idea: '把“做一个项目管理小工具”的想法交给本地演示 Agent，生成计划、运行 Workflow，并留下可查看的结果记录。',
     platform: 'Desktop',
-    techStack: 'Electron, React, TypeScript, TailwindCSS, Ollama',
-    uiStyle: 'Clean desktop-tool UI with compact panels, clear status badges, and a restrained dark mode.',
+    techStack: 'LocalAI Nexus, Demo Agent, Beginner Workflow',
+    uiStyle: '紧凑、清晰、适合桌面工作的 flat tool UI',
     difficulty: 'Medium',
     status: 'active',
     createdAt: now,
@@ -50,16 +56,16 @@ async function seedDemoDataIfNeeded(): Promise<void> {
   };
 
   const project2: Project = {
-    id: 'demo-proj-2',
-    name: 'Personal Blog Engine',
-    idea: 'A static-site blog engine with markdown editing, live preview, tag-based navigation, and RSS feed generation.',
-    platform: 'Web',
-    techStack: 'Next.js, MDX, TailwindCSS, Vercel',
-    uiStyle: 'Minimalist typography-first design with soft shadows and generous whitespace.',
+    id: 'onboarding-provider-practice',
+    name: 'Provider 切换台练习',
+    idea: '学习如何添加 OpenAI 兼容或本地 Ollama Provider，检查健康状态，并把默认模型交给 Workflow 使用。',
+    platform: 'Desktop',
+    techStack: 'Provider Preset, Local Gateway, Health Monitor',
+    uiStyle: '配置型控制台',
     difficulty: 'Easy',
     status: 'planning',
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    createdAt: earlier(3),
+    updatedAt: earlier(3),
   };
 
   await storage.create('projects', project1);
@@ -69,113 +75,85 @@ async function seedDemoDataIfNeeded(): Promise<void> {
 
   const tasks: Task[] = [
     {
-      id: 'demo-task-1',
+      id: 'onboarding-task-open-project',
       projectId: project1.id,
-      role: 'Architect',
-      title: 'Design UI component tree',
-      description: 'Create a full component hierarchy for the chat application covering sidebar, chat area, message list, input bar, and settings panel.',
-      input: 'Project requirements from PRD',
-      output: 'Complete component tree diagram with prop interfaces',
-      acceptance: 'All UI sections are covered, each component has defined props and state',
+      role: '新手引导',
+      title: '打开示例项目',
+      description: '先从示例项目理解 LocalAI Nexus：项目负责目标，Agent 负责角色，Workflow 负责可重复运行。',
+      input: '第一次打开软件',
+      output: '看到示例项目、示例 Agent、示例 Workflow 和一次运行结果',
+      acceptance: '用户能在首页或项目页找到下一步入口',
       priority: 'high',
       status: 'done',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000).toISOString(),
+      createdAt: earlier(2),
+      updatedAt: earlier(1),
     },
     {
-      id: 'demo-task-2',
+      id: 'onboarding-task-run-workflow',
       projectId: project1.id,
-      role: 'Frontend Dev',
-      title: 'Implement chat message component',
-      description: 'Build the main chat message bubble component with support for markdown rendering, code syntax highlighting, and user/assistant roles.',
-      input: 'Component tree design from architect, UI style guide',
-      output: 'ChatBubble.tsx, ChatMessageList.tsx with full functionality',
-      acceptance: 'Messages render with correct styles, markdown is parsed, code blocks have syntax highlight',
-      priority: 'high',
-      status: 'doing',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: now,
-    },
-    {
-      id: 'demo-task-3',
-      projectId: project1.id,
-      role: 'Backend Dev',
-      title: 'Set up IPC for LLM inference',
-      description: 'Create IPC channels for communicating with local LLM providers (Ollama, LM Studio). Handle streaming responses and error states.',
-      input: 'IPC architecture document, provider API specs',
-      output: 'ipc-llm.ts with invoke/handle pattern for inference',
-      acceptance: 'Can send prompts and receive streaming responses, errors handled gracefully',
-      priority: 'critical',
-      status: 'todo',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'demo-task-4',
-      projectId: project1.id,
-      role: 'Tester',
-      title: 'Write E2E tests for chat flow',
-      description: 'Create Playwright end-to-end tests covering the complete chat flow: send message, receive response, save conversation, load history.',
-      input: 'Test plan document, user flow diagrams',
-      output: 'chat-flow.spec.ts with 10+ test cases',
-      acceptance: 'All critical user flows are tested, tests pass in CI',
-      priority: 'medium',
-      status: 'blocked',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: 'demo-task-5',
-      projectId: project2.id,
-      role: 'Architect',
-      title: 'Design content schema',
-      description: 'Define the MDX frontmatter schema for blog posts, including title, date, tags, excerpt, cover image, and custom components.',
-      input: 'Blog feature requirements',
-      output: 'TypeScript type definitions and MDX frontmatter specification',
-      acceptance: 'All required metadata fields are defined, optional fields documented',
+      role: 'Demo Agent',
+      title: '运行第一个 Workflow',
+      description: '使用“新手 Prompt 到输出”模板，本地模拟一次从输入到输出的完整流程。',
+      input: '请把这个需求整理成一个可执行计划',
+      output: 'Run、RunEvent、AgentExecution 记录',
+      acceptance: 'Workflow 页面显示成功摘要和节点 Trace',
       priority: 'high',
       status: 'done',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-    {
-      id: 'demo-task-6',
-      projectId: project2.id,
-      role: 'Frontend Dev',
-      title: 'Build blog post layout',
-      description: 'Create the responsive blog post layout with reading progress bar, table of contents sidebar, and estimated reading time.',
-      input: 'Content schema, design mockups',
-      output: 'PostLayout.tsx, TableOfContents.tsx, ReadingProgress.tsx',
-      acceptance: 'Layout matches mockups, responsive across devices, TOC links work',
-      priority: 'high',
-      status: 'doing',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      createdAt: earlier(1),
       updatedAt: now,
     },
     {
-      id: 'demo-task-7',
-      projectId: project2.id,
-      role: 'Backend Dev',
-      title: 'Implement RSS feed generation',
-      description: 'Generate RSS 2.0 and Atom feeds at build time from all published posts. Include full content and proper metadata.',
-      input: 'RSS specification documents, content schema',
-      output: 'rss-feed.ts utility and build-time generation script',
-      acceptance: 'Feeds validate against W3C Feed Validator, all published posts included',
+      id: 'onboarding-task-save-prompt',
+      projectId: project1.id,
+      role: 'Prompt',
+      title: '保存第一个 Prompt',
+      description: '从 Prompt Lab 生成一个可复制给 Codex 或 Claude Code 的交接 Prompt。',
+      input: '项目目标和约束',
+      output: '已保存 Prompt',
+      acceptance: 'Prompt Lab 中能看到示例 Prompt，并能复制或保存新 Prompt',
       priority: 'medium',
       status: 'todo',
       createdAt: now,
       updatedAt: now,
     },
     {
-      id: 'demo-task-8',
+      id: 'onboarding-task-save-memory',
+      projectId: project1.id,
+      role: 'Memory',
+      title: '保存恢复上下文',
+      description: '把关键决定写入 Shared Memory，方便下一个模型接手时不用重新解释。',
+      input: '示例运行结果',
+      output: '一条项目上下文记忆',
+      acceptance: 'Shared Memory 页面能看到可理解的示例记忆',
+      priority: 'medium',
+      status: 'todo',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'onboarding-task-add-provider',
       projectId: project2.id,
-      role: 'DevOps',
-      title: 'Set up Vercel deployment',
-      description: 'Configure Vercel project with environment variables, custom domain, and automatic preview deployments for PRs.',
-      input: 'Vercel configuration guide, domain credentials',
-      output: 'vercel.json, deployment documentation',
-      acceptance: 'Main branch auto-deploys to production, PRs get preview URLs',
-      priority: 'low',
+      role: 'Provider',
+      title: '添加一个本地或云端 Provider',
+      description: '可以选择 Ollama 本地模型，也可以添加 OpenAI 兼容 Base URL。',
+      input: 'Provider Preset',
+      output: 'Provider 配置和健康检查记录',
+      acceptance: 'API Key 不写入 Prompt 或 Memory',
+      priority: 'high',
+      status: 'todo',
+      createdAt: earlier(3),
+      updatedAt: earlier(2),
+    },
+    {
+      id: 'onboarding-task-start-gateway',
+      projectId: project2.id,
+      role: 'Gateway',
+      title: '启动本地 Gateway',
+      description: '让外部工具使用 http://127.0.0.1:8317/v1 访问本地路由。',
+      input: 'Provider 配置',
+      output: 'Gateway 状态和路由决策',
+      acceptance: 'Gateway 页面显示 Base URL 和支持端点',
+      priority: 'medium',
       status: 'todo',
       createdAt: now,
       updatedAt: now,
@@ -190,67 +168,67 @@ async function seedDemoDataIfNeeded(): Promise<void> {
 
   const memories: Memory[] = [
     {
-      id: 'demo-mem-1',
-      type: 'user_preference',
-      title: 'Preferred AI workflow is auditable local-first delivery',
-      content: 'The developer prefers agent-driven work that starts with a short plan, uses the smallest safe commands needed, records tests and risks, and keeps all project context local.',
-      tags: ['ai-tool', 'preference', 'safety'],
-      projectId: '',
-      providerScope: 'claude',
-      modelScope: '',
-      importance: 9,
-      status: 'active',
-      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-      lastUsedAt: now,
-    },
-    {
-      id: 'demo-mem-2',
-      type: 'decision',
-      title: 'Use TailwindCSS for all styling',
-      content: 'Decided to use TailwindCSS with custom design tokens for all project styling. No CSS-in-JS libraries. Configuration in tailwind.config.ts with custom theme extensions for brand colors and fonts.',
-      tags: ['tailwind', 'styling', 'architecture'],
-      projectId: '',
-      providerScope: '',
-      modelScope: '',
-      importance: 8,
-      status: 'active',
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-      lastUsedAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: 'demo-mem-3',
-      type: 'issue_fix',
-      title: 'Electron CSP: allow inline styles for Tailwind',
-      content: 'TailwindCSS requires inline styles in dev mode. Added Content-Security-Policy header that allows "style-src \'self\' \'unsafe-inline\'" in the Electron renderer. Also needed to allow ws:// for HMR in Vite dev server.',
-      tags: ['electron', 'csp', 'tailwind', 'security'],
+      id: 'onboarding-mem-project-goal',
+      type: 'project_context',
+      title: '示例项目目标',
+      content: '这个示例展示 LocalAI Nexus 的基本路径：创建项目，创建 Agent，运行 Workflow，查看结果，再把关键上下文写入 Shared Memory。',
+      tags: ['onboarding', 'demo', 'workflow'],
       projectId: project1.id,
       providerScope: '',
       modelScope: '',
-      importance: 7,
+      importance: 5,
       status: 'active',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      lastUsedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-    {
-      id: 'demo-mem-4',
-      type: 'prompt_pattern',
-      title: 'Component creation prompt template',
-      content: 'When asking the AI to create a new React component, use: "Create a React functional component named [Name] in TypeScript. It should accept props: [list props]. Use TailwindCSS for styling. Include JSDoc comments. Export as default. Handle loading, empty, error, and edge case states."',
-      tags: ['prompt', 'react', 'component', 'template'],
-      projectId: '',
-      providerScope: 'claude',
-      modelScope: '',
-      importance: 6,
-      status: 'active',
-      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      createdAt: earlier(7),
+      updatedAt: earlier(7),
       lastUsedAt: now,
     },
     {
-      id: 'demo-mem-5',
+      id: 'onboarding-mem-no-key-first',
+      type: 'decision',
+      title: '首次运行不需要 API Key',
+      content: '新用户可以先用本地 Demo Agent 和示例 Workflow 跑通一次结果，再去 Settings 或 Provider 中心配置真实模型。',
+      tags: ['first-run', 'demo-agent', 'provider'],
+      projectId: '',
+      providerScope: '',
+      modelScope: '',
+      importance: 5,
+      status: 'active',
+      createdAt: earlier(5),
+      updatedAt: earlier(5),
+      lastUsedAt: earlier(1),
+    },
+    {
+      id: 'onboarding-mem-trace-help',
+      type: 'issue_fix',
+      title: '如果 Workflow 失败，先看 Trace',
+      content: 'Workflow 页面会显示每个节点的状态、失败原因和下一步建议。先修节点配置，再检查 Provider/API Key。',
+      tags: ['workflow', 'trace', 'help'],
+      projectId: project1.id,
+      providerScope: '',
+      modelScope: '',
+      importance: 4,
+      status: 'active',
+      createdAt: earlier(3),
+      updatedAt: earlier(3),
+      lastUsedAt: earlier(2),
+    },
+    {
+      id: 'onboarding-mem-handoff-prompt',
+      type: 'prompt_pattern',
+      title: '第一个交接 Prompt 模式',
+      content: '把目标、现状、约束、必须验证的命令和完成标准写清楚，再交给 Codex、Claude Code 或 Cursor 执行。',
+      tags: ['prompt', 'handoff', 'agent'],
+      projectId: project1.id,
+      providerScope: 'codex',
+      modelScope: '',
+      importance: 4,
+      status: 'active',
+      createdAt: earlier(4),
+      updatedAt: earlier(4),
+      lastUsedAt: now,
+    },
+    {
+      id: 'onboarding-mem-product-overview',
       type: 'project_context',
       title: 'LocalAI Nexus project overview',
       content: 'LocalAI Nexus is a local AI gateway, runtime switcher, AgentOps hub, and project orchestration desktop app. It manages providers, gateway diagnostics, projects, tasks, prompts, skills, workflows, shared memory, audit logs, and local JSON data.',
@@ -258,7 +236,7 @@ async function seedDemoDataIfNeeded(): Promise<void> {
       projectId: '',
       providerScope: '',
       modelScope: '',
-      importance: 10,
+      importance: 5,
       status: 'active',
       createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
       updatedAt: new Date(Date.now() - 86400000 * 10).toISOString(),
@@ -269,6 +247,122 @@ async function seedDemoDataIfNeeded(): Promise<void> {
   for (const memory of memories) {
     await storage.create('memories', memory);
   }
+
+  const prompts: SavedPrompt[] = [
+    {
+      id: 'onboarding-demo-prompt',
+      projectId: project1.id,
+      name: '新手交接 Prompt',
+      templateId: 'beginner-handoff',
+      variables: {},
+      content: '目标：把一个想法整理成可执行计划。请先确认项目目标，再列出 3 个任务、验证方式和下一步建议。所有输出都用中文，避免调用外部工具。',
+      starred: true,
+      favorite: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'provider-check-prompt',
+      projectId: project2.id,
+      name: 'Provider 检查 Prompt',
+      templateId: 'provider-check',
+      variables: {},
+      content: '请检查 Provider 配置：Base URL、模型名、API Key 是否已保存、健康检查结果和失败修复建议。不要输出任何密钥。',
+      starred: false,
+      createdAt: earlier(1),
+      updatedAt: earlier(1),
+    },
+  ];
+
+  for (const prompt of prompts) {
+    await storage.create('prompts', prompt);
+  }
+
+  const template = BEGINNER_WORKFLOW_TEMPLATES[0];
+  const workflow: Workflow = {
+    id: 'onboarding-demo-workflow',
+    projectId: project1.id,
+    name: '新手示例 Workflow',
+    description: '无需真实 API Key 的本地模拟流程：输入 -> Prompt -> LLM dry-run -> Output。',
+    status: 'active',
+    templateId: template.id,
+    version: 1,
+    nodes: template.nodes,
+    edges: template.edges,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await storage.create('workflows', workflow);
+  await storage.create<WorkflowVersion>('workflowVersions', {
+    id: 'onboarding-demo-workflow-v1',
+    workflowId: workflow.id,
+    version: 1,
+    message: '内置新手示例版本',
+    nodes: workflow.nodes,
+    edges: workflow.edges,
+    createdAt: now,
+  });
+
+  const workflowResult = runWorkflow(workflow, '请把“做一个项目管理小工具”整理成三步执行计划。');
+  const run: Run = {
+    id: 'onboarding-demo-run',
+    projectId: project1.id,
+    workflowTemplateId: workflow.templateId,
+    versionId: '1',
+    title: `Workflow: ${workflow.name}`,
+    tool: 'LocalAI Nexus Workflow Runtime',
+    status: workflowResult.status,
+    log: workflowResult.nodeTrace.map((item) => `${item.nodeTitle} [${item.status}] ${item.outputSummary ?? item.failureReason ?? ''}`).join('\n'),
+    summary: workflowResult.summary,
+    startedAt: earlier(0),
+    endedAt: now,
+    durationMs: 32,
+    retryCount: 0,
+    nodeTrace: workflowResult.nodeTrace.map((item) => ({
+      id: item.id,
+      name: item.nodeTitle,
+      status: item.status === 'failure' ? 'failed' : item.status === 'blocked' ? 'blocked' : 'success',
+      durationMs: item.durationMs,
+      inputSummary: item.inputSummary,
+      outputSummary: item.outputSummary,
+      failureReason: item.failureReason,
+      retryCount: 0,
+    })),
+    metadata: { workflowId: workflow.id, demo: true },
+    createdAt: now,
+  };
+  await storage.create('runs', run);
+  for (const event of workflowResult.nodeTrace) {
+    await storage.create('runEvents', {
+      id: `onboarding-${event.nodeId}-${event.id}`,
+      runId: run.id,
+      projectId: project1.id,
+      workflowId: workflow.id,
+      type: 'agent.execution',
+      status: event.status === 'failure' ? 'failure' : event.status === 'blocked' ? 'denied' : 'success',
+      title: `${event.nodeTitle} (${event.nodeType})`,
+      detail: event.failureReason ?? event.outputSummary ?? event.nextStep,
+      metadata: event,
+      createdAt: event.endedAt ?? now,
+    });
+  }
+
+  const demoAgent: AgentRecord = {
+    ...createDemoAgent(new Date(), 'onboarding-demo-agent'),
+    projectId: project1.id,
+    workflowId: workflow.id,
+    lastRunAt: now,
+  };
+  await storage.create('agents', demoAgent);
+  const demoExecution: AgentExecutionRecord = {
+    ...createDemoExecution(demoAgent.id, new Date()),
+    id: 'onboarding-demo-agent-execution',
+    runId: run.id,
+    workflowId: workflow.id,
+    projectId: project1.id,
+    outputSummary: workflowResult.summary,
+  };
+  await storage.create('agentExecutions', demoExecution);
 
   // ── Demo settings ──────────────────────────────────────────────────
 
@@ -296,7 +390,7 @@ function createWindow(): BrowserWindow {
     height: 900,
     minWidth: 1024,
     minHeight: 680,
-    show: !startupSmoke,
+    show: !(startupSmoke || gatewayHttpSmoke),
     frame: true,
     titleBarStyle: 'default',
     title: 'LocalAI Nexus',
@@ -354,7 +448,7 @@ function createWindow(): BrowserWindow {
 
   if (isDev) {
     win.loadURL(devServerUrl);
-    if (!startupSmoke && process.env.AGENTFLOW_SKIP_DEVTOOLS !== '1') {
+    if (!startupSmoke && !gatewayHttpSmoke && process.env.AGENTFLOW_SKIP_DEVTOOLS !== '1') {
       win.webContents.openDevTools({ mode: 'detach' });
     }
   } else {

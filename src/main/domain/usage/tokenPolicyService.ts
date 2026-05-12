@@ -98,11 +98,17 @@ export async function upsertTokenPolicy(input: Partial<NexusTokenPolicy>): Promi
     : storage.create<NexusTokenPolicy>('tokenPolicies', policy);
 }
 
-export async function markGatewayRequestActive(id: string, providerId?: string, model?: string): Promise<void> {
+export async function markGatewayRequestActive(
+  id: string,
+  providerId?: string,
+  model?: string,
+  gatewayKeyId?: string,
+): Promise<void> {
   await storage.create('activeGatewayRequests', {
     id,
     providerId,
     model,
+    gatewayKeyId,
     startedAt: new Date().toISOString(),
   } as never).catch(() => undefined);
 }

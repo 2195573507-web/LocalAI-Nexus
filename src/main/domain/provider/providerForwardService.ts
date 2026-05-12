@@ -35,6 +35,7 @@ function normalizeBaseUrl(provider: ProviderSetting): string {
 function endpointPath(kind: NexusGatewayRequestKind): string {
   if (kind === 'responses') return '/responses';
   if (kind === 'messages') return '/messages';
+  if (kind === 'embeddings') return '/embeddings';
   return '/chat/completions';
 }
 
@@ -147,6 +148,19 @@ async function readResponseBody(response: Response, stream: boolean): Promise<{ 
 }
 
 function formatMockBody(kind: NexusGatewayRequestKind, model: string, text: string, traceId: string, inputTokens: number, outputTokens: number) {
+  if (kind === 'embeddings') {
+    return {
+      object: 'list',
+      model,
+      data: [{
+        object: 'embedding',
+        index: 0,
+        embedding: [0.031, 0.127, 0.512, 0.768, 0.256],
+      }],
+      usage: { prompt_tokens: inputTokens, total_tokens: inputTokens + outputTokens },
+      id: `emb_${traceId}`,
+    };
+  }
   if (kind === 'responses') {
     return {
       id: `resp_${traceId}`,

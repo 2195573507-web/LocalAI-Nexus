@@ -75,17 +75,17 @@ export function preflightAgentRun(options: {
   return mapErrorToChinese('ok');
 }
 
-export function createDemoAgent(now = new Date()): AgentRecord {
+export function createDemoAgent(now = new Date(), id = 'demo-agent'): AgentRecord {
   const timestamp = now.toISOString();
   return {
-    id: 'demo-agent',
-    name: 'Demo Agent',
-    description: '无需 API Key 的本地模拟 Agent，用于体验 execution/logs/timeline/feedback 链路。',
+    id,
+    name: '新手演示 Agent',
+    description: '无需 API Key 的本地模拟 Agent，用于体验输入、执行记录、时间线和反馈链路。',
     type: 'demo',
     status: 'enabled',
     providerRef: 'demo-provider',
     model: 'mock-local-demo',
-    systemPrompt: 'You are a safe local demo agent. Never call external tools.',
+    systemPrompt: '你是 LocalAI Nexus 的安全演示 Agent。只生成本地模拟结果，不调用外部工具。',
     toolsAllowlistRef: 'demo-readonly',
     skillsRefs: [],
     createdAt: timestamp,
@@ -99,13 +99,13 @@ export function createDemoExecution(agentId = 'demo-agent', now = new Date()): A
   return {
     id: `demo-execution-${now.getTime()}`,
     agentId,
-    projectId: 'demo-project',
+    projectId: 'onboarding-demo-project',
     status: 'demo',
     startedAt,
     finishedAt: startedAt,
     durationMs: 12,
-    inputSummary: 'Demo input: explain LocalAI Nexus onboarding.',
-    outputSummary: 'Demo output: created a local-only simulated response and timeline event.',
+    inputSummary: '演示输入：把一个需求整理成可执行计划。',
+    outputSummary: '演示结果：已生成本地模拟响应，并写入执行时间线。',
     customData: { externalCalls: 0, dangerousOperations: false },
     createdAt: startedAt,
   };

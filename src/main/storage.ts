@@ -15,6 +15,7 @@ type CollectionName =
   | 'runs'
   | 'riskChecks'
   | 'providerSettings'
+  | 'gatewayApiKeys'
   | 'tokenUsage'
   | 'tokenPolicies'
   | 'activeGatewayRequests'
@@ -37,7 +38,10 @@ type CollectionName =
   | 'agents'
   | 'agentExecutions'
   | 'agentFeedback'
-  | 'skillsRegistry';
+  | 'skillsRegistry'
+  | 'evaluationRuns'
+  | 'knowledgeDocuments'
+  | 'backupManifests';
 
 type Identifiable = { id: string };
 type DataRecord = Identifiable;

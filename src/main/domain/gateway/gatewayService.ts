@@ -8,6 +8,7 @@ import { routeModel } from '../router/modelRouter.js';
 import { recordUsage } from '../usage/usageService.js';
 import { clearGatewayRequestActive, markGatewayRequestActive } from '../usage/tokenPolicyService.js';
 import { forwardProviderRequest } from '../provider/providerForwardService.js';
+import { evaluateGatewayAccess } from './gatewayKeyService.js';
 
 const HOST = '127.0.0.1';
 const PORT = 8317;
@@ -119,13 +120,76 @@ async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: s
   const requestId = randomUUID();
   const body = await readBody(req) as Record<string, unknown>;
   const model = typeof body.model === 'string' ? body.model : undefined;
+  const access = await evaluateGatewayAccess({
+    authorization: Array.isArray(req.headers.authorization) ? req.headers.authorization[0] : req.headers.authorization,
+    xApiKey: Array.isArray(req.headers['x-api-key']) ? req.headers['x-api-key'][0] : req.headers['x-api-key'],
+    endpoint,
+    model,
+    method: req.method,
+  });
+  if (!access.allowed) {
+    const traceId = randomUUID();
+    lastTraceId = traceId;
+    lastRouteReason = 'gateway_api_key_denied';
+    await recordUsage({
+      model: model || 'unknown',
+      endpoint,
+      inputTokens: 0,
+      outputTokens: 0,
+      success: false,
+      failureCategory: access.failureCategory ?? (access.statusCode === 401 ? '401' : access.statusCode === 403 ? '403' : '429'),
+      statusCode: access.statusCode,
+      latencyMs: 0,
+      requestId: traceId,
+      gatewayKeyId: access.keyId,
+      gatewayMaskedKey: access.maskedKey,
+    }).catch(() => undefined);
+    await storage.create('gatewayRequests', {
+      id: traceId,
+      endpoint,
+      model: model || 'unknown',
+      gatewayKeyId: access.keyId,
+      gatewayMaskedKey: access.maskedKey,
+      status: 'denied',
+      routeReason: access.reason,
+      failureCategory: access.failureCategory ?? (access.statusCode === 401 ? '401' : access.statusCode === 403 ? '403' : '429'),
+      createdAt: new Date().toISOString(),
+    } as never).catch(() => undefined);
+    await recordAudit({
+      type: 'gateway.request',
+      action: endpoint,
+      status: 'denied',
+      severity: 'warning',
+      actor: {},
+      resource: { type: 'gateway_request', id: traceId, label: endpoint },
+      metadata: {
+        keyId: access.keyId,
+        maskedKey: access.maskedKey,
+        model,
+        reason: access.reason,
+        retryAfterSeconds: access.retryAfterSeconds,
+      },
+    }).catch(() => undefined);
+    json(res, access.statusCode, {
+      error: {
+        code: 'gateway_api_key_denied',
+        message: access.reason,
+        hint: 'Create or enable a local Gateway API key in LocalAI Nexus, then send it as Authorization: Bearer <key> or x-api-key.',
+      },
+      nexus: {
+        traceId,
+        redaction: 'secrets-redacted',
+      },
+    });
+    return;
+  }
   const route = await routeModel({ model, intent: 'default' });
   const controller = new AbortController();
   req.once('aborted', () => controller.abort());
   res.once('close', () => {
     if (!res.writableEnded) controller.abort();
   });
-  await markGatewayRequestActive(requestId, route.provider?.id, route.model);
+  await markGatewayRequestActive(requestId, route.provider?.id, route.model, access.keyId);
   const result = await forwardProviderRequest({
     endpoint,
     kind,
@@ -147,12 +211,16 @@ async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: s
     statusCode: result.statusCode,
     latencyMs: result.latencyMs,
     requestId: result.traceId,
+    gatewayKeyId: access.keyId,
+    gatewayMaskedKey: access.maskedKey,
   });
   await storage.create('gatewayRequests', {
     id: result.traceId,
     endpoint,
     model: result.model,
     providerId: result.providerId,
+    gatewayKeyId: access.keyId,
+    gatewayMaskedKey: access.maskedKey,
     status: result.ok ? 'success' : 'failure',
     routeReason: result.routeReason,
     failureCategory: result.failureCategory,
@@ -171,6 +239,8 @@ async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: s
     metadata: {
       providerId: result.providerId,
       providerName: result.providerName,
+      keyId: access.keyId,
+      maskedKey: access.maskedKey,
       model: result.model,
       failureCategory: result.failureCategory,
       streamed: result.streamed,
@@ -199,7 +269,7 @@ function responsesDiagnostic(res: ServerResponse): void {
     compatibility: {
       rootBaseUrl: 'http://127.0.0.1:8317',
       v1BaseUrl: 'http://127.0.0.1:8317/v1',
-      supported: ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages'],
+      supported: ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages', '/v1/embeddings'],
     },
   });
 }
@@ -235,10 +305,14 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
       await handleChat(req, res, '/v1/messages', 'messages');
       return;
     }
+    if (req.method === 'POST' && url.pathname === '/v1/embeddings') {
+      await handleChat(req, res, '/v1/embeddings', 'embeddings');
+      return;
+    }
     const error = gatewayError(
       'not_found',
       `Unsupported LocalAI Nexus gateway path: ${url.pathname}`,
-      'Supported paths: /health, /v1/models, /v1/chat/completions, /v1/responses, /responses, /v1/messages.',
+      'Supported paths: /health, /v1/models, /v1/chat/completions, /v1/responses, /responses, /v1/messages, /v1/embeddings.',
       404,
     );
     json(res, error.status, error.body);

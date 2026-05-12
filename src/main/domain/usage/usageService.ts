@@ -9,6 +9,8 @@ import storage from '../../storage.js';
 
 export interface RecordUsageInput {
   provider?: Partial<ProviderSetting> & { id?: string };
+  gatewayKeyId?: string;
+  gatewayMaskedKey?: string;
   model?: string;
   endpoint: string;
   projectId?: string;
@@ -73,6 +75,8 @@ export async function recordUsage(input: RecordUsageInput): Promise<NexusUsageRe
     id: randomUUID(),
     providerId: input.provider?.id,
     providerName: input.provider?.providerName,
+    gatewayKeyId: input.gatewayKeyId,
+    gatewayMaskedKey: input.gatewayMaskedKey,
     model: input.model ?? input.provider?.modelName,
     endpoint: input.endpoint,
     projectId: input.projectId,

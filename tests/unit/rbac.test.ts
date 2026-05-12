@@ -25,4 +25,13 @@ describe('rbac', () => {
     expect(canRole('admin', 'mcp:write')).toBe(true)
     expect(canRole('user', 'mcp:write')).toBe(false)
   })
+
+  it('uses explicit gateway and ops permissions without weakening role boundaries', () => {
+    expect(canRole('user', 'gateway:read')).toBe(true)
+    expect(canRole('user', 'gateway:write')).toBe(false)
+    expect(canRole('admin', 'gateway:write')).toBe(true)
+    expect(canRole('user', 'ops:backup')).toBe(false)
+    expect(canRole('admin', 'ops:backup')).toBe(true)
+    expect(canRole('admin', 'ops:restore')).toBe(true)
+  })
 })
