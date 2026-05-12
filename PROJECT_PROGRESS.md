@@ -149,3 +149,5 @@ fix: repair language and theme settings behavior
 - Added the master authoring plan and the 00 modular refactor plan README.
 - Recorded that future work must start with module boundary refactoring, then proceed module by module, with each round testing, documentation updates, commit, and push.
 - This round is documentation-only and does not change business code.
+- Added 8 module-level `build-plan.md` files under `docs/build-plans/`: 00 modular refactor, 01 Workspace, 02 Provider, 03 Gateway/API Key, 04 Agent/Workflow/MCP, 05 Knowledge/Prompt/Memory, 06 Observability/Evaluation/Feedback, and 07 Identity/Security/Audit/Ops.
+- Each module plan includes the fixed 26-section structure from `docs/build-plans/BUILD_PLAN_AUTHORING_MASTER_PLAN.md`, including build goal, build requirements, functional scope, acceptance criteria, extension interfaces, testing requirements, implementation phases, deliverables, risks, documentation updates, and Git commit/push requirements.

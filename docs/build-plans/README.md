@@ -45,6 +45,21 @@ LocalAI Nexus 的最终目标是成为一个本地 AI 控制面与本地网关�
 -> 形成反馈闭环
 ```
 
+## Current Plan Inventory
+
+本目录已经按照总计划创建 8 个可执行模块构建计划。每个 `build-plan.md` 都包含固定 26 个章节，并明确写入构建目标、构建要求、构建功能、验收标准、测试要求、扩展接口、风险和 Git 交付要求。
+
+| Unit | 中文名称 | Plan file | Status |
+|---|---|---|---:|
+| 00 | 模块化重构总计划 | `00-modular-refactor-master-plan/build-plan.md` | Created |
+| 01 | 工作区与项目中枢 | `01-workspace-and-project-center/build-plan.md` | Created |
+| 02 | AI 资源与模型供应商 | `02-ai-resources-and-model-providers/build-plan.md` | Created |
+| 03 | 本地网关与 API Key 控制面 | `03-local-gateway-and-api-keys/build-plan.md` | Created |
+| 04 | Agent / Workflow / MCP 编排 | `04-agent-workflow-and-mcp/build-plan.md` | Created |
+| 05 | 知识库 / Prompt / Memory 资产 | `05-knowledge-prompt-and-memory/build-plan.md` | Created |
+| 06 | 观测 / 评测 / 反馈闭环 | `06-observability-evaluation-and-feedback/build-plan.md` | Created |
+| 07 | 身份权限 / 安全审计 / 系统运维 | `07-identity-security-audit-and-ops/build-plan.md` | Created |
+
 ## Required Planning Structure
 
 后续必须采用以下目录结构：
@@ -151,5 +166,25 @@ build-plan.md
 * `docs/build-plans/` 是后续构建计划总入口。
 * `BUILD_PLAN_AUTHORING_MASTER_PLAN.md` 明确最终产品定位、模块划分、学习来源、固定章节、验收标准和 Git 交付规则。
 * `00-modular-refactor-master-plan/README.md` 明确模块化重构优先级和边界规则。
-* 后续 00 模块化重构计划和 7 个一级功能模块计划必须各自拥有独立 `build-plan.md`。
+* 00 模块化重构计划和 7 个一级功能模块计划各自拥有独立 `build-plan.md`。
 * 每个模块必须功能尽可能完整，并明确学习来源、Extension Interfaces、Testing Requirements、Acceptance Criteria、Deliverables、Risks and Mitigations、Git Commit and Push Requirements。
+
+## Validation Commands
+
+本目录变更后至少运行：
+
+```powershell
+git rev-parse --show-toplevel
+git status -sb
+Test-Path docs/build-plans
+Test-Path docs/build-plans/README.md
+Test-Path docs/build-plans/BUILD_PLAN_AUTHORING_MASTER_PLAN.md
+Test-Path docs/build-plans/00-modular-refactor-master-plan/build-plan.md
+Get-ChildItem docs/build-plans -Recurse -Filter build-plan.md
+Select-String -Path docs/build-plans/**/*.md -Pattern "Final Goal"
+Select-String -Path docs/build-plans/**/*.md -Pattern "Acceptance Criteria"
+Select-String -Path docs/build-plans/**/*.md -Pattern "Testing Requirements"
+Select-String -Path docs/build-plans/**/*.md -Pattern "Extension Interfaces"
+Select-String -Path docs/build-plans/**/*.md -Pattern "Research Sources"
+Select-String -Path docs/build-plans/**/*.md -Pattern "Git Commit and Push Requirements"
+```
