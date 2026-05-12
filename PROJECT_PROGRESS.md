@@ -142,3 +142,10 @@ Current completion boundary: all seven rounds are completed to the local, creden
 ```text
 fix: repair language and theme settings behavior
 ```
+
+## Build Plan System Creation - 2026-05-12
+
+- Created `docs/build-plans/` as the dedicated home for future LocalAI Nexus module build plans.
+- Added the master authoring plan and the 00 modular refactor plan README.
+- Recorded that future work must start with module boundary refactoring, then proceed module by module, with each round testing, documentation updates, commit, and push.
+- This round is documentation-only and does not change business code.
