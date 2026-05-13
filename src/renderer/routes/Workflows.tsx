@@ -11,6 +11,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Send,
   Settings,
   Square,
   Workflow as WorkflowIcon,
@@ -204,6 +205,30 @@ export default function Workflows() {
       resume: '恢复',
     };
     setStatus(`Workflow 运行已${actionLabel[action] ?? action}：${result.status}`);
+  };
+
+  const publishWorkflow = async () => {
+    if (!selectedWorkflow) return;
+    const result = await api.workflows.publish(selectedWorkflow.id, `Published v${selectedWorkflow.version} from Workflow Studio`);
+    if (hasError(result)) {
+      setError(result.error);
+      return;
+    }
+    setSelectedWorkflow(result.workflow);
+    await Promise.all([loadProjectWorkflows(result.workflow.projectId), loadWorkflow(result.workflow.id)]);
+    setStatus(`Workflow 已发布：v${result.workflow.publishedVersion ?? result.workflow.version}`);
+  };
+
+  const rollbackWorkflow = async (versionId: string) => {
+    if (!selectedWorkflow) return;
+    const result = await api.workflows.rollback(selectedWorkflow.id, versionId, 'Rollback from Workflow Studio');
+    if (hasError(result)) {
+      setError(result.error);
+      return;
+    }
+    setSelectedWorkflow(result.workflow);
+    await Promise.all([loadProjectWorkflows(result.workflow.projectId), loadWorkflow(result.workflow.id)]);
+    setStatus(`Workflow 已回滚到 v${result.restoredFrom.version}，并生成草稿 v${result.workflow.version}`);
   };
 
   const editablePromptNodes = selectedWorkflow?.nodes.filter((node) => node.type === 'prompt' || node.type === 'llm') ?? [];
@@ -435,14 +460,45 @@ export default function Workflows() {
           </section>
 
           <section className="surface-card p-5">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">4. 版本记录</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">4. 发布 / 回滚版本</h2>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                  当前版本 v{selectedWorkflow?.version ?? 0}
+                  {selectedWorkflow?.publishedVersion ? ` · 已发布 v${selectedWorkflow.publishedVersion}` : ' · 尚未发布'}
+                  {selectedWorkflow?.lastRollbackVersion ? ` · 最近回滚自 v${selectedWorkflow.lastRollbackVersion}` : ''}
+                </p>
+              </div>
+              <button className="btn-secondary" onClick={publishWorkflow} disabled={!selectedWorkflow}>
+                <Send className="h-4 w-4" />
+                发布当前版本
+              </button>
+            </div>
+            <div className="mt-4 space-y-2">
               {versions.length === 0 ? (
                 <span className="text-sm text-[var(--text-secondary)]">暂无版本。保存后会自动生成 WorkflowVersion。</span>
               ) : versions.map((version) => (
-                <span key={version.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-secondary)]">
-                  v{version.version} · {version.message}
-                </span>
+                <div key={version.id} className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--text-secondary)] sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="font-semibold text-[var(--text-primary)]">
+                      v{version.version} · {version.message}
+                    </div>
+                    <div className="mt-1">
+                      {version.status ?? 'draft'} · {new Date(version.createdAt).toLocaleString()}
+                      {version.publishedAt ? ` · published ${new Date(version.publishedAt).toLocaleString()}` : ''}
+                      {version.restoredFromVersion ? ` · rollback from v${version.restoredFromVersion}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-secondary min-h-[30px] px-2 py-1 text-xs"
+                    onClick={() => void rollbackWorkflow(version.id)}
+                    disabled={!selectedWorkflow || version.version === selectedWorkflow.version}
+                    aria-label={`Rollback Workflow to version ${version.version}`}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    回滚到 v{version.version}
+                  </button>
+                </div>
               ))}
             </div>
           </section>

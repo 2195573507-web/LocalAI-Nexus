@@ -234,6 +234,7 @@ function scoreChunk(query: string, text: string): number {
 export function previewKnowledgeDocument(input: {
   title?: string;
   content: string;
+  source?: NexusKnowledgeDocumentPreview['source'];
 }, now = new Date()): NexusKnowledgeDocumentPreview {
   const safeContent = redactSecrets(String(input.content ?? ''));
   const title = String(input.title || 'Local document preview').trim().slice(0, 120);
@@ -292,6 +293,7 @@ export function previewKnowledgeDocument(input: {
       qualityState: documentQuality.state,
     }),
     quality: documentQuality,
+    source: input.source ?? { type: 'pasted-text' },
   };
   return preview;
 }
@@ -299,6 +301,7 @@ export function previewKnowledgeDocument(input: {
 export async function saveKnowledgeDocumentPreview(input: {
   title?: string;
   content: string;
+  source?: NexusKnowledgeDocumentPreview['source'];
 }): Promise<NexusKnowledgeDocumentPreview> {
   const preview = previewKnowledgeDocument(input);
   await storage.create<NexusKnowledgeDocumentPreview>('knowledgeDocuments', preview).catch(() => undefined);

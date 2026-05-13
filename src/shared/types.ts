@@ -795,6 +795,23 @@ export interface NexusEvaluationDatasetSummary {
   redaction: 'secrets-redacted'
 }
 
+export interface NexusEvaluationDataset {
+  id: string
+  generatedAt: string
+  summary: NexusEvaluationDatasetSummary
+  runs: NexusEvaluationRun[]
+  redaction: 'secrets-redacted'
+}
+
+export interface NexusEvaluationDatasetDeleteResult {
+  ok: boolean
+  id: string
+  deleted: boolean
+  remaining: number
+  summary: NexusEvaluationDatasetSummary
+  redaction: 'secrets-redacted'
+}
+
 export interface NexusRedTeamFinding {
   id: string
   risk: 'prompt-injection' | 'secret-exposure' | 'unsafe-tooling' | 'none'
@@ -886,6 +903,12 @@ export interface NexusKnowledgeDocumentPreview {
     }
   }
   quality?: { state: 'empty' | 'needs-review' | 'ready'; score: number; signals: string[] }
+  source?: {
+    type: 'pasted-text' | 'local-file'
+    filename?: string
+    extension?: string
+    sizeBytes?: number
+  }
   redaction: 'secrets-redacted'
   createdAt: string
 }
@@ -981,6 +1004,30 @@ export interface NexusRestoreApplyResult {
   summary?: { inserted: number; skipped: number; touchedCollections: number }
   auditRedaction: 'secrets-redacted'
   warnings: string[]
+}
+
+export interface NexusOpsRepairPreview {
+  id: string
+  generatedAt: string
+  ok: boolean
+  checks: Array<{
+    id: string
+    name: string
+    status: 'pass' | 'warning' | 'fail'
+    detail: string
+    affectedCollections?: string[]
+  }>
+  actions: Array<{
+    id: string
+    label: string
+    mode: 'manual' | 'preview-only'
+    detail: string
+    requiresBackup: boolean
+  }>
+  warnings: string[]
+  errors: string[]
+  requiresBackup: true
+  redaction: 'secrets-redacted'
 }
 
 export interface NexusTemplateBundle {
@@ -1219,6 +1266,8 @@ export const IPC_CHANNELS = {
   WORKFLOW_RUN: 'workflow:run',
   WORKFLOW_RUN_CONTROL: 'workflow:run:control',
   WORKFLOW_VERSION_LIST: 'workflow:versions:list',
+  WORKFLOW_PUBLISH: 'workflow:publish',
+  WORKFLOW_ROLLBACK: 'workflow:rollback',
 
   // MCP
   MCP_ALLOWLIST_LIST: 'mcp:allowlist:list',
@@ -1281,14 +1330,19 @@ export const IPC_CHANNELS = {
   ROUTER_DECISIONS_LIST: 'router:decisions:list',
   SECURITY_REPORT_GENERATE: 'security:report:generate',
   OBSERVABILITY_REPORT_GENERATE: 'observability:report:generate',
+  OBSERVABILITY_TRACE_GET: 'observability:trace:get',
   EVAL_MOCK_RUN: 'eval:mock:run',
+  EVAL_DATASET_LIST: 'eval:dataset:list',
+  EVAL_DATASET_DELETE: 'eval:dataset:delete',
   KNOWLEDGE_ASSETS_SUMMARY: 'knowledge:assets:summary',
   KNOWLEDGE_DOCUMENT_PREVIEW: 'knowledge:document:preview',
+  KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE: 'knowledge:document:importLocalFile',
   KNOWLEDGE_RETRIEVAL_TEST: 'knowledge:retrieval:test',
   OPS_BACKUP_PREVIEW: 'ops:backup:preview',
   OPS_BACKUP_CREATE: 'ops:backup:create',
   OPS_RESTORE_PREVIEW: 'ops:restore:preview',
   OPS_RESTORE_APPLY: 'ops:restore:apply',
+  OPS_REPAIR_PREVIEW: 'ops:repair:preview',
   CONTEXT_PACK_PREVIEW: 'contextPack:preview',
   CONTEXT_RECOVERY_PACK: 'contextPack:recoveryPack',
   TEMPLATE_BUNDLES_LIST: 'templateBundles:list',

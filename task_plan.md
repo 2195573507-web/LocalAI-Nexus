@@ -72,9 +72,20 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | Gateway key enforcement | Key-level daily/monthly quota, rate limit, concurrency limit, endpoint/model whitelist, and request attribution are implemented in main/Gateway services and covered by unit/smoke. | complete |
 | Gateway config import/export | ccs/sub2api/cc-switch/claude-code/codex/openai-env inputs now get redacted preview, merge plan, backup checkpoint, and audit metadata; external config files are not silently overwritten. | complete |
 | Knowledge/Observability/Ops modules | Knowledge Base route, local index/asset graph/quality state, observability trace details/mock eval/red-team export, redacted backup manifest, restore preview, and merge-only restore apply exist and are covered by unit/smoke/E2E. | complete |
-| Current local verification | `typecheck` PASS, `test` PASS 32 files / 217 tests, `smoke` PASS 228/228, `lint` PASS 0 errors / 21 warnings, `scan:mojibake` PASS 178 files checked, `build` PASS, `verify` PASS 143/143 + 228/228, `test:e2e` PASS 20/20, and `git diff --check` PASS with CRLF warnings only. | complete |
+| 2026-05-12 local verification | `typecheck` PASS, `test` PASS 32 files / 217 tests, `smoke` PASS 228/228, `lint` PASS 0 errors / 21 warnings, `scan:mojibake` PASS 178 files checked, `build` PASS, `verify` PASS 143/143 + 228/228, `test:e2e` PASS 20/20, and `git diff --check` PASS with CRLF warnings only. | complete |
 | Full final gate rerun | `diff --check`, lint, mojibake scan, build, static browser, static launch, Electron startup, auth bridge, Gateway HTTP, 30-minute long-run, shortcut, and dist attempt all completed with source gates passing. | complete |
 | Remaining external limits | Live provider forwarding, real upstream streaming, real external tool approval, and final installer packaging remain credential/environment-limited, not source-build blockers. | honest |
+
+### 2026-05-13 Workflow/Knowledge/Observability/Ops Follow-Up Closeout
+
+| Item | Evidence | Status |
+|---|---|---:|
+| Workflow versioning | Publish/rollback/version history landed through shared types, main-process service, project-write IPC, audit, preload/API, Workflow Studio UI, unit tests, E2E mocks, and smoke. | partial |
+| Knowledge local import | Main-process local file import with dialog/read, filename/extension/size source metadata, no renderer path argument, and unit/API/E2E/smoke coverage. | partial |
+| Observability admin dataset | Trace lookup plus evaluation dataset list/delete use `admin:audit`, redacted service output, Diagnostics UI, unit/API/E2E/smoke, and static permission tests. | partial |
+| Ops repair preview | Preview-only checks/actions/warnings/errors, `ops.repair.previewed` audit, backup-required guidance, and no storage mutation, migration, script execution, or repair apply. | partial |
+| Current local verification | `typecheck` PASS, `test` PASS 34 files / 230 tests, `smoke` PASS 239/239, `lint` PASS 0 errors / 21 warnings, `scan:mojibake` PASS 182 files checked, `build` PASS, `verify` PASS 143/143 + 239/239, `test:e2e` PASS 20/20, and `git diff --check` PASS with CRLF warnings only. | complete |
+| External/package limits | Credentialed provider behavior, real upstream streaming, MCP/tool approvals, embedding/vector RAG, workflow import/export/canvas, repair apply/migration runner, and final installer packaging remain unclaimed. | honest |
 
 ### Required checks for this goal
 
@@ -102,4 +113,4 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | Round 7 desktop/release | Electron startup/auth bridge, shortcut, COM inspection, static fallback, long-run, Gateway smoke, build, verify, and dist attempt completed. | complete |
 | Packaging honesty | `npm.cmd run dist` built and produced `release/win-unpacked/LocalAI Nexus.exe`, then failed on electron-builder `winCodeSign` symlink privilege; recorded as ENV-LIMITED. | complete |
 | Live external claims | Live provider forwarding, real upstream streaming, and real external MCP/tool approval are not claimed without credentials/permission. | complete |
-| Worktree cleanup | Implementation commit `52585d9` was pushed and remote-confirmed against `origin/refactor-localai-nexus`; only this final status-doc closeout remains to commit. | closing |
+| Worktree cleanup | Implementation commit `52585d9` was previously pushed and remote-confirmed; this follow-up implementation/status-doc closeout still requires commit, push, and remote confirmation. | closing |

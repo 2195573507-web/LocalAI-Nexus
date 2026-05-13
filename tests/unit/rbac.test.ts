@@ -34,4 +34,9 @@ describe('rbac', () => {
     expect(canRole('admin', 'ops:backup')).toBe(true)
     expect(canRole('admin', 'ops:restore')).toBe(true)
   })
+
+  it('keeps trace and evaluation dataset access on the admin audit boundary', () => {
+    expect(canRole('user', 'admin:audit')).toBe(false)
+    expect(canRole('admin', 'admin:audit')).toBe(true)
+  })
 })

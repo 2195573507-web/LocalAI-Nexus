@@ -38,6 +38,8 @@ export type {
   NexusGatewayConfigSource,
   NexusContextPackPreview,
   NexusBackupManifest,
+  NexusEvaluationDataset,
+  NexusEvaluationDatasetDeleteResult,
   NexusEvaluationRun,
   NexusEvaluationDatasetSummary,
   NexusRecoveryPack,
@@ -47,6 +49,7 @@ export type {
   NexusKnowledgeRetrievalResult,
   NexusObservabilityReport,
   NexusObservabilityExportSummary,
+  NexusOpsRepairPreview,
   NexusRedTeamFinding,
   NexusRouterDecision,
   NexusRestoreApplyResult,
@@ -91,6 +94,8 @@ export type {
   WorkflowRunResult,
   WorkflowRunStatus,
   AgentWorkflowTemplate,
+  WorkflowPublishResult,
+  WorkflowRollbackResult,
   WorkflowVersion,
 } from '../../shared/workflowTypes';
 import type { MemoryStatus, MemoryType } from '../../shared/types';

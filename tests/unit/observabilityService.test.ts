@@ -5,6 +5,9 @@ import type { NexusUsageRecord, RunEvent } from '../../src/shared/types';
 const collections = new Map<string, Array<Record<string, unknown>>>();
 
 let generateObservabilityReport: typeof import('../../src/main/domain/observability/observabilityService').generateObservabilityReport;
+let getTraceDetail: typeof import('../../src/main/domain/observability/observabilityService').getTraceDetail;
+let listEvaluationDataset: typeof import('../../src/main/domain/observability/observabilityService').listEvaluationDataset;
+let deleteEvaluationRun: typeof import('../../src/main/domain/observability/observabilityService').deleteEvaluationRun;
 let runMockEvaluation: typeof import('../../src/main/domain/observability/observabilityService').runMockEvaluation;
 
 vi.stubGlobal('require', (id: string) => {
@@ -23,6 +26,12 @@ vi.mock('../../src/main/storage', () => ({
       collections.set(collection, items);
       return { ...item };
     },
+    async delete(collection: string, id: string): Promise<boolean> {
+      const items = collections.get(collection) ?? [];
+      const next = items.filter((item) => item.id !== id);
+      collections.set(collection, next);
+      return next.length !== items.length;
+    },
   },
 }));
 
@@ -36,7 +45,13 @@ function seed(collection: string, items: Array<Record<string, unknown>>) {
 
 describe('observability service', () => {
   beforeAll(async () => {
-    ({ generateObservabilityReport, runMockEvaluation } = await import('../../src/main/domain/observability/observabilityService'));
+    ({
+      deleteEvaluationRun,
+      generateObservabilityReport,
+      getTraceDetail,
+      listEvaluationDataset,
+      runMockEvaluation,
+    } = await import('../../src/main/domain/observability/observabilityService'));
   });
 
   beforeEach(() => {
@@ -115,10 +130,114 @@ describe('observability service', () => {
     expect(JSON.stringify(report)).not.toContain('sk-');
   });
 
+  it('returns an empty local report safely for a new workspace', async () => {
+    const report = await generateObservabilityReport();
+    expect(report.traces).toEqual([]);
+    expect(report.traceDetails).toEqual([]);
+    expect(report.evaluationDataset).toMatchObject({
+      sampleCount: 0,
+      passCount: 0,
+      warningCount: 0,
+      failCount: 0,
+      averageScore: 0,
+      redaction: 'secrets-redacted',
+    });
+    expect(report.redTeamFindings.some((finding) => finding.title === 'No traces available yet')).toBe(true);
+  });
+
   it('persists mock evaluation runs as redacted local records', async () => {
     const evaluation = await runMockEvaluation({ output: 'good output' });
     expect(evaluation.score).toBeGreaterThan(0.7);
     expect(evaluation.redaction).toBe('secrets-redacted');
     expect(collections.get('evaluationRuns')).toHaveLength(1);
+  });
+
+  it('lists and deletes local evaluation dataset runs without leaking secrets', async () => {
+    seed('evaluationRuns', [
+      {
+        id: 'eval-old',
+        name: 'Old warning',
+        target: 'prompt',
+        score: 0.6,
+        status: 'warning',
+        findings: ['Bearer secret was redacted before display'],
+        redaction: 'secrets-redacted',
+        mode: 'mock',
+        createdAt: '2026-05-12T00:00:00.000Z',
+      },
+      {
+        id: 'eval-new',
+        name: 'New pass',
+        target: 'model',
+        score: 0.9,
+        status: 'passed',
+        findings: ['sk-token-like sample remains sanitized in caller output'],
+        redaction: 'secrets-redacted',
+        mode: 'mock',
+        createdAt: '2026-05-12T01:00:00.000Z',
+      },
+    ]);
+
+    const dataset = await listEvaluationDataset();
+    expect(dataset.summary).toMatchObject({
+      sampleCount: 2,
+      passCount: 1,
+      warningCount: 1,
+      failCount: 0,
+      averageScore: 0.75,
+      mode: 'mock-local',
+      redaction: 'secrets-redacted',
+    });
+    expect(dataset.runs.map((run) => run.id)).toEqual(['eval-new', 'eval-old']);
+
+    const deleted = await deleteEvaluationRun('eval-old');
+    expect(deleted).toMatchObject({
+      ok: true,
+      deleted: true,
+      remaining: 1,
+      redaction: 'secrets-redacted',
+    });
+    expect((await listEvaluationDataset()).runs.map((run) => run.id)).toEqual(['eval-new']);
+  });
+
+  it('loads trace detail by gateway request id and run event id', async () => {
+    seed('tokenUsage', [
+      {
+        id: 'usage-1',
+        model: 'gpt-local',
+        endpoint: '/v1/messages',
+        inputTokens: 4,
+        outputTokens: 8,
+        totalTokens: 12,
+        success: false,
+        failureCategory: 'timeout',
+        latencyMs: 4000,
+        requestId: 'trace-timeout',
+        createdAt: '2026-05-12T00:00:00.000Z',
+      },
+    ] satisfies NexusUsageRecord[]);
+    seed('runEvents', [
+      {
+        id: 'event-1',
+        executionId: 'exec-1',
+        type: 'agent.execution',
+        status: 'success',
+        title: 'Agent finished',
+        createdAt: '2026-05-12T00:02:00.000Z',
+      },
+    ] satisfies RunEvent[]);
+
+    await expect(getTraceDetail('trace-timeout')).resolves.toMatchObject({
+      traceId: 'trace-timeout',
+      source: 'gateway',
+      durationBucket: 'slow',
+      errorCategory: 'timeout',
+    });
+    await expect(getTraceDetail('exec-1')).resolves.toMatchObject({
+      traceId: 'exec-1',
+      source: 'agent',
+      durationBucket: 'unknown',
+    });
+    await expect(getTraceDetail('missing')).resolves.toBeNull();
   });
 });

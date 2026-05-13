@@ -200,6 +200,12 @@ const gatewayKeyService = readText('src/main/domain/gateway/gatewayKeyService.ts
 const usageService = readText('src/main/domain/usage/usageService.ts')
 const backupService = readText('src/main/domain/ops/backupService.ts')
 const knowledgeService = readText('src/main/domain/knowledge/knowledgeService.ts')
+const observabilityService = readText('src/main/domain/observability/observabilityService.ts')
+const workflowVersionService = readText('src/main/domain/workflow/workflowVersionService.ts')
+const workflowsRoute = readText('src/renderer/routes/Workflows.tsx')
+const diagnosticsRoute = readText('src/renderer/routes/Diagnostics.tsx')
+const knowledgeRoute = readText('src/renderer/routes/KnowledgeBase.tsx')
+const e2eAppSpec = readText('tests/e2e/app.spec.ts')
 const moduleRegistry = readText('src/shared/moduleRegistry.ts')
 check('contextIsolation enabled', main.includes('contextIsolation: true'))
 check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
@@ -230,6 +236,8 @@ check('LocalAI Nexus IPC channels declared', [
   'GATEWAY_STATUS',
   'GATEWAY_START',
   'GATEWAY_STOP',
+  'WORKFLOW_PUBLISH',
+  'WORKFLOW_ROLLBACK',
   'USAGE_SUMMARY',
   'TOKEN_POLICY_LIST',
   'TOKEN_POLICY_UPSERT',
@@ -238,6 +246,12 @@ check('LocalAI Nexus IPC channels declared', [
   'RUNTIME_PROFILES_GENERATE',
   'ROUTER_DECISIONS_LIST',
   'SECURITY_REPORT_GENERATE',
+  'OBSERVABILITY_TRACE_GET',
+  'EVAL_MOCK_RUN',
+  'EVAL_DATASET_LIST',
+  'EVAL_DATASET_DELETE',
+  'KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE',
+  'OPS_REPAIR_PREVIEW',
   'CONTEXT_PACK_PREVIEW',
   'CONTEXT_RECOVERY_PACK',
   'TEMPLATE_BUNDLES_LIST',
@@ -250,9 +264,17 @@ check('LocalAI Nexus IPC permissions declared', [
   'GATEWAY_KEY_CREATE',
   'GATEWAY_KEY_RESET',
   'OBSERVABILITY_REPORT_GENERATE',
+  'OBSERVABILITY_TRACE_GET',
+  'EVAL_MOCK_RUN',
+  'EVAL_DATASET_LIST',
+  'EVAL_DATASET_DELETE',
+  'WORKFLOW_PUBLISH',
+  'WORKFLOW_ROLLBACK',
   'KNOWLEDGE_ASSETS_SUMMARY',
   'KNOWLEDGE_DOCUMENT_PREVIEW',
+  'KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE',
   'OPS_BACKUP_PREVIEW',
+  'OPS_REPAIR_PREVIEW',
   'OPS_RESTORE_APPLY',
   'CONTEXT_PACK_PREVIEW',
   'TEMPLATE_BUNDLES_LIST',
@@ -260,6 +282,27 @@ check('LocalAI Nexus IPC permissions declared', [
   'TEMPLATE_BUNDLES_TOGGLE',
 ].every((keyword) => mainIpc.includes(`IPC_CHANNELS.${keyword}`)))
 check('Gateway and Ops use explicit permissions', mainIpc.includes("'gateway:write'") && mainIpc.includes("'gateway:read'") && mainIpc.includes("'ops:backup'") && mainIpc.includes("'ops:restore'"))
+check('workflow publish and rollback require project write ACL', [
+  '[IPC_CHANNELS.WORKFLOW_PUBLISH]: \'project:write\'',
+  '[IPC_CHANNELS.WORKFLOW_ROLLBACK]: \'project:write\'',
+  "assertProjectResourceAccess(context, workflow.projectId, 'write')",
+  "action: 'workflow.publish'",
+  "action: 'workflow.rollback'",
+].every((keyword) => `${mainIpc}\n${workflowVersionService}`.includes(keyword)))
+check('observability global data channels require admin audit', [
+  '[IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE]: \'admin:audit\'',
+  '[IPC_CHANNELS.OBSERVABILITY_TRACE_GET]: \'admin:audit\'',
+  '[IPC_CHANNELS.EVAL_MOCK_RUN]: \'admin:audit\'',
+  '[IPC_CHANNELS.EVAL_DATASET_LIST]: \'admin:audit\'',
+  '[IPC_CHANNELS.EVAL_DATASET_DELETE]: \'admin:audit\'',
+].every((keyword) => mainIpc.includes(keyword)))
+check('observability trace and dataset actions are audit recorded', [
+  "recordMutationAudit(context, 'observability.report.generate'",
+  "recordMutationAudit(context, 'observability.trace.get'",
+  "recordMutationAudit(context, 'eval.mock.completed'",
+  "recordMutationAudit(context, 'eval.dataset.list'",
+  "recordMutationAudit(context, 'eval.dataset.delete'",
+].every((keyword) => mainIpc.includes(keyword)))
 check('LocalAI Nexus preload bridge exposes domains', ['providers', 'gateway', 'usage', 'health', 'runtimeProfiles', 'router', 'security', 'observability', 'knowledge', 'ops', 'contextPack', 'templateBundles'].every((keyword) => preload.includes(`${keyword}:`)))
 check('gateway forwards through provider service', gatewayService.includes('forwardProviderRequest') && gatewayService.includes('routeModel') && gatewayService.includes('recordUsage'))
 check('gateway endpoint surface is complete', ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages', '/v1/embeddings'].every((endpoint) => gatewayService.includes(endpoint)))
@@ -281,9 +324,17 @@ check('context recovery pack includes graph and trace ids', contextPackService.i
 check('local template bundle registry is local-only', bundleRegistryService.includes('localOnly === false') && bundleRegistryService.includes('BUILTIN_TEMPLATE_BUNDLES') && bundleRegistryService.includes('toggleTemplateBundle'))
 check('knowledge assets summary, preview, and retrieval IPC exist', ['KNOWLEDGE_ASSETS_SUMMARY', 'KNOWLEDGE_DOCUMENT_PREVIEW', 'KNOWLEDGE_RETRIEVAL_TEST', 'knowledgeDocuments'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${knowledgeService}\n${moduleRegistry}`.includes(keyword)))
 check('knowledge local index persists graph and quality metadata', ['persistent-index', 'assetGraph', 'qualityState', 'IndexedKnowledgeChunk', 'tokenEstimate', 'tags', 'keywords'].every((keyword) => knowledgeService.includes(keyword)))
-check('observability report, trace detail, and mock eval IPC exist', ['OBSERVABILITY_REPORT_GENERATE', 'EVAL_MOCK_RUN', 'exportSummary', 'observability.report.generate'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${readText('src/main/domain/observability/observabilityService.ts')}`.includes(keyword)))
-check('ops backup, restore preview, and restore apply IPC exist', ['OPS_BACKUP_PREVIEW', 'OPS_BACKUP_CREATE', 'OPS_RESTORE_PREVIEW', 'OPS_RESTORE_APPLY', 'backupManifests'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${moduleRegistry}`.includes(keyword)))
+check('knowledge local file import is main-process only', ['KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE', 'knowledge:document:importLocalFile', 'importKnowledgeLocalFile', 'dialog.showOpenDialog', "fs.readFile(selectedPath, 'utf-8')", 'source: {'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${preload}\n${rendererApi}\n${knowledgeService}\n${moduleRegistry}`.includes(keyword)) && !preload.includes('importLocalFile: (filePath') && !rendererApi.includes('importLocalFile: (filePath'))
+check('knowledge local file import UI and E2E exist', ['importLocalFile', 'Import Local File', 'local-notes.md'].every((keyword) => `${knowledgeRoute}\n${e2eAppSpec}`.includes(keyword)))
+check('workflow publish and rollback IPC bridge exists', ['WORKFLOW_PUBLISH', 'WORKFLOW_ROLLBACK', 'workflow:publish', 'workflow:rollback', 'workflow.publish', 'workflow.rollback'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${preload}\n${rendererApi}\n${workflowVersionService}\n${moduleRegistry}`.includes(keyword)))
+check('workflow publish and rollback UI/E2E exist', ['publishWorkflow', 'rollbackWorkflow', '发布当前版本', '回滚到 v', 'workflows.publish', 'workflows.rollback'].every((keyword) => `${workflowsRoute}\n${e2eAppSpec}`.includes(keyword)))
+check('observability report, trace detail, and mock eval IPC exist', ['OBSERVABILITY_REPORT_GENERATE', 'OBSERVABILITY_TRACE_GET', 'EVAL_MOCK_RUN', 'EVAL_DATASET_LIST', 'EVAL_DATASET_DELETE', 'exportSummary', 'observability.report.generate', 'observability.trace.get'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${preload}\n${rendererApi}\n${observabilityService}\n${moduleRegistry}`.includes(keyword)))
+check('observability local evaluation dataset management exists', ['evaluationRuns', 'evaluationDataset', 'latestRuns', 'listEvaluationDataset', 'deleteEvaluationRun', 'secrets-redacted', 'listEvaluationDataset', 'deleteEvaluationRun'].every((keyword) => `${sharedTypes}\n${observabilityService}\n${diagnosticsRoute}\n${e2eAppSpec}`.includes(keyword)))
+check('observability trace lookup UI/E2E exists', ['Trace Lookup', 'lookupTrace', 'selectedTrace', 'getTrace', 'observability.getTrace'].every((keyword) => `${diagnosticsRoute}\n${e2eAppSpec}`.includes(keyword)))
+check('ops backup, repair preview, restore preview, and restore apply IPC exist', ['OPS_BACKUP_PREVIEW', 'OPS_BACKUP_CREATE', 'OPS_REPAIR_PREVIEW', 'OPS_RESTORE_PREVIEW', 'OPS_RESTORE_APPLY', 'backupManifests'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${moduleRegistry}`.includes(keyword)))
 check('ops backup bundle is redacted, schema versioned, and explicit-apply guarded', ['schemaVersion', 'buildRedactedBundle', 'restoreRequiresPreview', 'applyToken', 'mergeMany', 'secrets-redacted'].every((keyword) => `${sharedTypes}\n${backupService}\n${readText('src/main/storage.ts')}`.includes(keyword)))
+check('ops repair preview is preview-only with UI and E2E coverage', ['previewOpsRepair', 'repair-mode', 'preview-only', 'does not write storage', 'repairPreview', 'Repair Preview'].every((keyword) => `${backupService}\n${preload}\n${rendererApi}\n${diagnosticsRoute}\n${e2eAppSpec}`.includes(keyword)))
+check('module registry includes follow-up build-plan channels', ['REQUIRED_BUILD_PLAN_CHANNELS', 'KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE', 'OPS_REPAIR_PREVIEW', 'knowledge:document:importLocalFile', 'ops:repair:preview'].every((keyword) => moduleRegistry.includes(keyword)))
 check('prompt append-only versions are preserved', sharedTypes.includes('PromptVersion') && mainIpc.includes('buildPromptVersion') && mainIpc.includes('versionCreated'))
 
 console.log('\n[Shared Memory Safety]')

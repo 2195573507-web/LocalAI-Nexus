@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import type {
   AgentExecutionRecord,
+  NexusEvaluationDataset,
+  NexusEvaluationDatasetDeleteResult,
   NexusEvaluationDatasetSummary,
   NexusEvaluationRun,
   NexusFailureCategory,
@@ -103,6 +105,50 @@ function summarizeEvaluationDataset(runs: NexusEvaluationRun[], now = new Date()
     mode: 'mock-local',
     redaction: 'secrets-redacted',
   };
+}
+
+async function readEvaluationRuns(): Promise<NexusEvaluationRun[]> {
+  const runs = await storage.getAll<NexusEvaluationRun>('evaluationRuns').catch(() => []);
+  return runs
+    .map((run) => sanitizeObject(run) as NexusEvaluationRun)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function listEvaluationDataset(): Promise<NexusEvaluationDataset> {
+  const runs = await readEvaluationRuns();
+  const summary = summarizeEvaluationDataset(runs);
+  return sanitizeObject({
+    id: summary.id,
+    generatedAt: summary.generatedAt,
+    summary,
+    runs,
+    redaction: 'secrets-redacted',
+  }) as NexusEvaluationDataset;
+}
+
+export async function deleteEvaluationRun(id: string): Promise<NexusEvaluationDatasetDeleteResult> {
+  const runId = String(id || '').trim();
+  if (!runId) throw new Error('Evaluation run id is required.');
+  const deleted = await storage.delete('evaluationRuns', runId).catch(() => false);
+  const dataset = await listEvaluationDataset();
+  const result: NexusEvaluationDatasetDeleteResult = {
+    ok: deleted,
+    id: runId,
+    deleted,
+    remaining: dataset.runs.length,
+    summary: dataset.summary,
+    redaction: 'secrets-redacted',
+  };
+  await recordAudit({
+    type: 'admin.operation',
+    action: 'eval.dataset.delete',
+    status: deleted ? 'success' : 'failure',
+    severity: deleted ? 'info' : 'warning',
+    actor: {},
+    resource: { type: 'evaluation_run', id: runId },
+    metadata: sanitizeObject({ remaining: result.remaining }),
+  }).catch(() => undefined);
+  return sanitizeObject(result) as NexusEvaluationDatasetDeleteResult;
 }
 
 function buildRedTeamFindings(report: {
@@ -281,6 +327,20 @@ export async function generateObservabilityReport(options: {
     metadata: sanitizeObject({ traceCount: report.traces.length, slowRequestCount: report.slowRequests.length }),
   }).catch(() => undefined);
   return sanitizeObject(report) as NexusObservabilityReport;
+}
+
+export async function getTraceDetail(traceId: string): Promise<NexusTraceDetail | null> {
+  const target = String(traceId || '').trim();
+  if (!target) throw new Error('Trace id is required.');
+  const [records, runEvents] = await Promise.all([
+    storage.getAll<NexusUsageRecord>('tokenUsage').catch(() => []),
+    storage.getAll<RunEvent>('runEvents').catch(() => []),
+  ]);
+  const usageRecord = records.find((record) => record.requestId === target || record.id === target);
+  if (usageRecord) return sanitizeObject(traceDetail(gatewayTrace(usageRecord))) as NexusTraceDetail;
+  const event = runEvents.find((item) => [item.id, item.executionId, item.runId, item.auditEventId].includes(target));
+  if (event) return sanitizeObject(traceDetail(runEventTrace(event))) as NexusTraceDetail;
+  return null;
 }
 
 export async function createFeedbackFromExecution(execution: AgentExecutionRecord): Promise<NexusEvaluationRun> {

@@ -6,7 +6,7 @@ Workspace: `D:\LocalAI Nexus`
 
 ## Summary
 
-Latest validation is **PASS at the local, credential-free boundary** for the module build-plan implementation. Gateway key enforcement, Gateway config import/export preview, Gateway restart wiring, Knowledge Base route/index/asset graph/quality state, Observability trace detail/mock evaluation/red-team report export, Ops backup/restore preview, merge-only restore apply, onboarding persistence, and the cross-module smoke surface are implemented and verified locally.
+Latest validation is **PASS at the local, credential-free boundary** for the module build-plan implementation. Gateway key enforcement, Gateway config import/export preview, Gateway restart wiring, Workflow publish/rollback versioning, Knowledge Base route/index/asset graph/quality state/local file import, Observability trace detail/evaluation dataset management/admin audit, Ops backup/restore preview, merge-only restore apply, repair preview, onboarding persistence, and the cross-module smoke surface are implemented and verified locally.
 
 Packaging remains **environment-limited**: `npm.cmd run dist` builds the app and produces `release\win-unpacked\LocalAI Nexus.exe`, then electron-builder fails extracting `winCodeSign-2.6.0.7z` because the current Windows account cannot create bundled symlinks. No raw provider API keys were supplied, so live credentialed provider forwarding and real upstream streaming remain intentionally unclaimed.
 
@@ -16,15 +16,15 @@ Packaging remains **environment-limited**: `npm.cmd run dist` builds the app and
 |---|---:|---|
 | `git rev-parse --show-toplevel` | PASS | `D:/LocalAI Nexus`. |
 | `npm.cmd run typecheck` | PASS | `tsc --noEmit -p tsconfig.json`. |
-| `npm.cmd run test` | PASS | 32 test files / 217 tests passed. |
-| `npm.cmd run smoke` | PASS | 228/228 smoke checks passed. |
+| `npm.cmd run test` | PASS | 34 test files / 230 tests passed. |
+| `npm.cmd run smoke` | PASS | 239/239 smoke checks passed. |
 | `npm.cmd run lint` | PASS | 0 errors / 21 existing warnings, within `--max-warnings 50`. |
-| `npm.cmd run scan:mojibake` | PASS | 178 files checked; 3 legacy docs allowlisted. |
+| `npm.cmd run scan:mojibake` | PASS | 182 files checked; 3 legacy docs allowlisted. |
 | `npm.cmd run build` | PASS | Vite/Electron build passed with existing chunk/dynamic import warnings. |
-| `npm.cmd run verify` | PASS | Verify 143/143 plus smoke 228/228 passed after the latest Knowledge/Observability/Ops additions. |
-| `npm.cmd run test:e2e` | PASS | 20/20 Playwright tests passed after aligning the Knowledge Base E2E selectors to the current page. |
+| `npm.cmd run verify` | PASS | Verify 143/143 plus smoke 239/239 passed after the latest Workflow/Knowledge/Observability/Ops additions. |
+| `npm.cmd run test:e2e` | PASS | 20/20 Playwright tests passed; first sandbox attempt failed on port-lock `EPERM`, then the approved project runner passed. |
 | `npm.cmd run dist` | ENV-LIMITED | App build and `release\win-unpacked\LocalAI Nexus.exe` produced; final installer blocked by `winCodeSign` symlink privilege. |
-| Git closure | COMPLETE | This closeout is included in the final commit for this report; confirm `origin/refactor-localai-nexus` matches local `HEAD` after push. |
+| Git closure | PENDING | Commit, push, and remote-ref confirmation are still required for this report. |
 
 ## Previously Verified In This Goal
 
@@ -45,9 +45,10 @@ Packaging remains **environment-limited**: `npm.cmd run dist` builds the app and
 |---|---:|---|
 | Build-plan files | PASS | 8 module `build-plan.md` files exist under `docs/build-plans/00-*` through `07-*`, each with the required 26-section structure. |
 | Gateway/API Keys | PASS | Key create/list/disable/delete/reset, endpoint/model whitelist, daily/monthly quota, rate limit, concurrency limit, request attribution, env/Codex/Claude export, and ccs/sub2api/cc-switch/claude-code/codex/openai-env import preview/merge/backup/audit are covered by source, unit tests, and smoke. |
-| Knowledge / Prompt / Memory | PASS | Knowledge Base route, document preview/save, persistent local index, asset graph, quality state, retrieval metadata, context pack, recovery pack, prompt versioning, and redacted memory flows are covered by unit/smoke/E2E. |
-| Observability / Evaluation | PASS | Observability report and mock evaluation IPC/services are present and covered by unit/smoke. |
-| Identity / Security / Audit / Ops | PASS | RBAC guard, audit hash/export, MCP sandbox decision, redacted backup manifest, restore preview, merge-only restore apply, and secret redaction are covered by unit/smoke. |
+| Agent / Workflow / MCP | PARTIAL PASS | Workflow publish/rollback versioning is implemented through main service, IPC/preload/API, Workflow Studio controls, audit, unit tests, E2E mocks, and smoke. Visual canvas, workflow import/export, external MCP discovery, and risky tool approval remain incomplete. |
+| Knowledge / Prompt / Memory | PARTIAL PASS | Knowledge Base route, document preview/save, main-process-only local file import with source metadata, persistent local index, asset graph, quality state, retrieval metadata, context pack, recovery pack, prompt versioning, and redacted memory flows are covered by unit/smoke/E2E. Embedding/vector RAG remains incomplete. |
+| Observability / Evaluation | PARTIAL PASS | Observability report, trace lookup, mock evaluation, evaluation dataset list/delete, admin-audit permission boundary, redaction, and UI/E2E coverage are present. Credentialed red-team and feedback automation remain incomplete. |
+| Identity / Security / Audit / Ops | PARTIAL PASS | RBAC guard, audit hash/export, MCP sandbox decision, redacted backup manifest, restore preview, merge-only restore apply, repair preview, and secret redaction are covered by unit/smoke/E2E. Repair apply and migration runner remain incomplete. |
 
 ## Not Yet Fully Tested
 
@@ -55,6 +56,9 @@ Packaging remains **environment-limited**: `npm.cmd run dist` builds the app and
 - Live credentialed provider forwarding with user-supplied API keys.
 - Real upstream streaming against a live provider.
 - Real external MCP/tool approvals beyond the local sandbox/audit decision path.
+- Workflow visual canvas, workflow import/export, and external MCP tool discovery/approval.
+- Embedding/vector RAG, multi-file parser adapters, and quality evaluation against real corpora.
+- Repair apply, migration runner, secret rotation, and destructive/full restore workflows.
 
 ## Packaging Note
 

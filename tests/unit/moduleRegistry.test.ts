@@ -48,13 +48,26 @@ describe('LocalAI module registry', () => {
     expect(getModuleContract('05-knowledge-memory').ipcChannels).toEqual(
       expect.arrayContaining([
         IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW,
+        IPC_CHANNELS.KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE,
         IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY,
         IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST,
       ]),
     );
-    expect(getModuleContract('06-observability').ipcChannels).toContain(IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE);
+    expect(getModuleContract('06-observability').ipcChannels).toEqual(
+      expect.arrayContaining([
+        IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE,
+        IPC_CHANNELS.OBSERVABILITY_TRACE_GET,
+        IPC_CHANNELS.EVAL_DATASET_LIST,
+        IPC_CHANNELS.EVAL_DATASET_DELETE,
+      ]),
+    );
     expect(getModuleContract('07-security-ops').ipcChannels).toEqual(
-      expect.arrayContaining([IPC_CHANNELS.OPS_BACKUP_PREVIEW, IPC_CHANNELS.OPS_RESTORE_PREVIEW, IPC_CHANNELS.OPS_RESTORE_APPLY]),
+      expect.arrayContaining([
+        IPC_CHANNELS.OPS_BACKUP_PREVIEW,
+        IPC_CHANNELS.OPS_REPAIR_PREVIEW,
+        IPC_CHANNELS.OPS_RESTORE_PREVIEW,
+        IPC_CHANNELS.OPS_RESTORE_APPLY,
+      ]),
     );
   });
 
@@ -77,13 +90,13 @@ describe('LocalAI module registry', () => {
       completionPercent: 90,
     });
     expect(getModuleContract('05-knowledge-memory')).toMatchObject({
-      completionPercent: 76,
+      completionPercent: 80,
     });
     expect(getModuleContract('06-observability')).toMatchObject({
-      completionPercent: 70,
+      completionPercent: 78,
     });
     expect(getModuleContract('07-security-ops')).toMatchObject({
-      completionPercent: 82,
+      completionPercent: 84,
     });
     expect(getModuleContract('02-providers').permissions).toEqual(
       expect.arrayContaining(['provider:read', 'provider:write']),
@@ -107,6 +120,8 @@ describe('LocalAI module registry', () => {
     expect(getIpcContract(IPC_CHANNELS.GATEWAY_RESTART)).toMatchObject({ moduleId: '03-gateway' });
     expect(getRouteContract('/knowledge')).toMatchObject({ moduleId: '05-knowledge-memory' });
     expect(getIpcContract(IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY)).toMatchObject({ moduleId: '05-knowledge-memory' });
+    expect(getIpcContract(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE)).toMatchObject({ moduleId: '05-knowledge-memory' });
+    expect(getIpcContract(IPC_CHANNELS.OPS_REPAIR_PREVIEW)).toMatchObject({ moduleId: '07-security-ops' });
     expect(getIpcContract(IPC_CHANNELS.OPS_RESTORE_APPLY)).toMatchObject({ moduleId: '07-security-ops' });
     expect(getModuleStorageCollections('03-gateway')).toEqual(
       expect.arrayContaining(['gatewayApiKeys', 'gatewayRequests', 'tokenUsage', 'tokenPolicies']),

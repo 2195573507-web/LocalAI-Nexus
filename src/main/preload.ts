@@ -65,6 +65,8 @@ export interface AgentFlowAPI {
     run(data: unknown): Promise<unknown>;
     controlRun(runId: string, action: string): Promise<unknown>;
     versions(workflowId: string): Promise<unknown>;
+    publish(workflowId: string, message?: string): Promise<unknown>;
+    rollback(workflowId: string, versionId: string, message?: string): Promise<unknown>;
   };
   mcp: {
     allowlist(): Promise<unknown>;
@@ -145,16 +147,21 @@ export interface AgentFlowAPI {
   };
   observability: {
     report(options?: unknown): Promise<unknown>;
+    getTrace(traceId: string): Promise<unknown>;
     runMockEvaluation(input?: unknown): Promise<unknown>;
+    listEvaluationDataset(): Promise<unknown>;
+    deleteEvaluationRun(id: string): Promise<unknown>;
   };
   knowledge: {
     assetsSummary(): Promise<unknown>;
     previewDocument(input: { title?: string; content: string }): Promise<unknown>;
+    importLocalFile(): Promise<unknown>;
     testRetrieval(input: { query: string; content?: string; topK?: number }): Promise<unknown>;
   };
   ops: {
     backupPreview(): Promise<unknown>;
     createBackup(): Promise<unknown>;
+    repairPreview(): Promise<unknown>;
     restorePreview(raw: string): Promise<unknown>;
     restoreApply(input: { raw: string; confirmToken: string }): Promise<unknown>;
   };
@@ -289,6 +296,10 @@ const api: AgentFlowAPI = {
     controlRun: (runId: string, action: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_RUN_CONTROL, buildAuthEnvelope(), runId, action),
     versions: (workflowId: string) => ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_VERSION_LIST, buildAuthEnvelope(), workflowId),
+    publish: (workflowId: string, message?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_PUBLISH, buildAuthEnvelope(), workflowId, message),
+    rollback: (workflowId: string, versionId: string, message?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_ROLLBACK, buildAuthEnvelope(), workflowId, versionId, message),
   },
 
   mcp: {
@@ -390,14 +401,22 @@ const api: AgentFlowAPI = {
   observability: {
     report: (options?: unknown) =>
       ipcRenderer.invoke(IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE, buildAuthEnvelope(), options),
+    getTrace: (traceId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.OBSERVABILITY_TRACE_GET, buildAuthEnvelope(), traceId),
     runMockEvaluation: (input?: unknown) =>
       ipcRenderer.invoke(IPC_CHANNELS.EVAL_MOCK_RUN, buildAuthEnvelope(), input),
+    listEvaluationDataset: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.EVAL_DATASET_LIST, buildAuthEnvelope()),
+    deleteEvaluationRun: (id: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.EVAL_DATASET_DELETE, buildAuthEnvelope(), id),
   },
 
   knowledge: {
     assetsSummary: () => ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY, buildAuthEnvelope()),
     previewDocument: (input: { title?: string; content: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW, buildAuthEnvelope(), input),
+    importLocalFile: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE, buildAuthEnvelope()),
     testRetrieval: (input: { query: string; content?: string; topK?: number }) =>
       ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST, buildAuthEnvelope(), input),
   },
@@ -405,6 +424,7 @@ const api: AgentFlowAPI = {
   ops: {
     backupPreview: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_BACKUP_PREVIEW, buildAuthEnvelope()),
     createBackup: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_BACKUP_CREATE, buildAuthEnvelope()),
+    repairPreview: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_REPAIR_PREVIEW, buildAuthEnvelope()),
     restorePreview: (raw: string) => ipcRenderer.invoke(IPC_CHANNELS.OPS_RESTORE_PREVIEW, buildAuthEnvelope(), raw),
     restoreApply: (input: { raw: string; confirmToken: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.OPS_RESTORE_APPLY, buildAuthEnvelope(), input),

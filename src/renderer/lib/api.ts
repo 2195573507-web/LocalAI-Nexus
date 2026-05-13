@@ -44,10 +44,14 @@ import type {
   NexusGatewayApiKeyCreateResult,
   NexusGatewayConfigApplyResult,
   NexusGatewayConfigImportPreview,
+  NexusEvaluationDataset,
+  NexusEvaluationDatasetDeleteResult,
   NexusKnowledgeAssetSummary,
   NexusKnowledgeDocumentPreview,
   NexusKnowledgeRetrievalResult,
   NexusObservabilityReport,
+  NexusOpsRepairPreview,
+  NexusTraceDetail,
   NexusRestoreApplyResult,
   NexusRestorePreview,
   NexusWorkspaceSummary,
@@ -56,6 +60,8 @@ import type {
   Workflow,
   WorkflowRunResult,
   AgentWorkflowTemplate,
+  WorkflowPublishResult,
+  WorkflowRollbackResult,
   WorkflowVersion,
 } from '../../shared/workflowTypes';
 import type { AuditEvent, AuditExportManifest, AuditIntegrityReport, AuditQuery } from '../../shared/auditTypes';
@@ -136,6 +142,8 @@ interface AgentFlowPreloadAPI {
     run(data: { workflowId: string; input?: string }): Promise<{ run: Run; result: WorkflowRunResult } | { error: string }>;
     controlRun?(runId: string, action: string): Promise<Run | { error: string }>;
     versions(workflowId: string): Promise<WorkflowVersion[] | { error: string }>;
+    publish?(workflowId: string, message?: string): Promise<WorkflowPublishResult | { error: string }>;
+    rollback?(workflowId: string, versionId: string, message?: string): Promise<WorkflowRollbackResult | { error: string }>;
   };
   mcp?: {
     allowlist(): Promise<unknown[]>;
@@ -221,16 +229,21 @@ interface AgentFlowPreloadAPI {
   };
   observability?: {
     report(options?: { includeMockEvaluation?: boolean; evaluationOutput?: string }): Promise<NexusObservabilityReport | { error: string }>;
+    getTrace?(traceId: string): Promise<NexusTraceDetail | { error: string }>;
     runMockEvaluation(input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }): Promise<NexusEvaluationRun | { error: string }>;
+    listEvaluationDataset?(): Promise<NexusEvaluationDataset | { error: string }>;
+    deleteEvaluationRun?(id: string): Promise<NexusEvaluationDatasetDeleteResult | { error: string }>;
   };
   knowledge?: {
     assetsSummary?(): Promise<NexusKnowledgeAssetSummary | { error: string }>;
     previewDocument(input: { title?: string; content: string }): Promise<NexusKnowledgeDocumentPreview | { error: string }>;
+    importLocalFile?(): Promise<NexusKnowledgeDocumentPreview | { canceled: true } | { error: string }>;
     testRetrieval(input: { query: string; content?: string; topK?: number }): Promise<NexusKnowledgeRetrievalResult | { error: string }>;
   };
   ops?: {
     backupPreview(): Promise<NexusBackupManifest | { error: string }>;
     createBackup(): Promise<NexusBackupManifest | { error: string }>;
+    repairPreview?(): Promise<NexusOpsRepairPreview | { error: string }>;
     restorePreview(raw: string): Promise<NexusRestorePreview | { error: string }>;
     restoreApply?(input: { raw: string; confirmToken: string }): Promise<NexusRestoreApplyResult | { error: string }>;
   };
@@ -727,6 +740,18 @@ export const api = {
         'workflows.versions',
         (a) => a.workflows?.versions(workflowId) ?? Promise.resolve([]),
         [],
+      ),
+    publish: (workflowId: string, message?: string) =>
+      apiCall<WorkflowPublishResult | { error: string }>(
+        'workflows.publish',
+        (a) => a.workflows?.publish?.(workflowId, message) ?? Promise.resolve({ error: 'Workflow publish bridge unavailable.' }),
+        { error: 'Workflow publish bridge unavailable.' },
+      ),
+    rollback: (workflowId: string, versionId: string, message?: string) =>
+      apiCall<WorkflowRollbackResult | { error: string }>(
+        'workflows.rollback',
+        (a) => a.workflows?.rollback?.(workflowId, versionId, message) ?? Promise.resolve({ error: 'Workflow rollback bridge unavailable.' }),
+        { error: 'Workflow rollback bridge unavailable.' },
       ),
   },
 
@@ -1241,11 +1266,29 @@ export const api = {
         (a) => a.observability?.report(options) ?? Promise.resolve({ error: 'Observability bridge unavailable.' }),
         { error: 'Observability bridge unavailable.' },
       ),
+    getTrace: (traceId: string) =>
+      apiCall<NexusTraceDetail | { error: string }>(
+        'observability.getTrace',
+        (a) => a.observability?.getTrace?.(traceId) ?? Promise.resolve({ error: 'Trace bridge unavailable.' }),
+        { error: 'Trace bridge unavailable.' },
+      ),
     runMockEvaluation: (input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }) =>
       apiCall<NexusEvaluationRun | { error: string }>(
         'observability.runMockEvaluation',
         (a) => a.observability?.runMockEvaluation(input) ?? Promise.resolve({ error: 'Evaluation bridge unavailable.' }),
         { error: 'Evaluation bridge unavailable.' },
+      ),
+    listEvaluationDataset: () =>
+      apiCall<NexusEvaluationDataset | { error: string }>(
+        'observability.listEvaluationDataset',
+        (a) => a.observability?.listEvaluationDataset?.() ?? Promise.resolve({ error: 'Evaluation dataset bridge unavailable.' }),
+        { error: 'Evaluation dataset bridge unavailable.' },
+      ),
+    deleteEvaluationRun: (id: string) =>
+      apiCall<NexusEvaluationDatasetDeleteResult | { error: string }>(
+        'observability.deleteEvaluationRun',
+        (a) => a.observability?.deleteEvaluationRun?.(id) ?? Promise.resolve({ error: 'Evaluation dataset delete bridge unavailable.' }),
+        { error: 'Evaluation dataset delete bridge unavailable.' },
       ),
   },
 
@@ -1261,6 +1304,12 @@ export const api = {
         'knowledge.previewDocument',
         (a) => a.knowledge?.previewDocument(input) ?? Promise.resolve({ error: 'Knowledge bridge unavailable.' }),
         { error: 'Knowledge bridge unavailable.' },
+      ),
+    importLocalFile: () =>
+      apiCall<NexusKnowledgeDocumentPreview | { canceled: true } | { error: string }>(
+        'knowledge.importLocalFile',
+        (a) => a.knowledge?.importLocalFile?.() ?? Promise.resolve({ error: 'Knowledge local file import bridge unavailable.' }),
+        { error: 'Knowledge local file import bridge unavailable.' },
       ),
     testRetrieval: (input: { query: string; content?: string; topK?: number }) =>
       apiCall<NexusKnowledgeRetrievalResult | { error: string }>(
@@ -1282,6 +1331,12 @@ export const api = {
         'ops.createBackup',
         (a) => a.ops?.createBackup() ?? Promise.resolve({ error: 'Ops bridge unavailable.' }),
         { error: 'Ops bridge unavailable.' },
+      ),
+    repairPreview: () =>
+      apiCall<NexusOpsRepairPreview | { error: string }>(
+        'ops.repairPreview',
+        (a) => a.ops?.repairPreview?.() ?? Promise.resolve({ error: 'Ops repair preview bridge unavailable.' }),
+        { error: 'Ops repair preview bridge unavailable.' },
       ),
     restorePreview: (raw: string) =>
       apiCall<NexusRestorePreview | { error: string }>(

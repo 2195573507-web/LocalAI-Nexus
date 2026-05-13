@@ -7,6 +7,7 @@ let previewBackup: typeof import('../../src/main/domain/ops/backupService').prev
 let createBackupManifest: typeof import('../../src/main/domain/ops/backupService').createBackupManifest;
 let previewRestore: typeof import('../../src/main/domain/ops/backupService').previewRestore;
 let applyRestore: typeof import('../../src/main/domain/ops/backupService').applyRestore;
+let previewOpsRepair: typeof import('../../src/main/domain/ops/backupService').previewOpsRepair;
 
 vi.stubGlobal('require', (id: string) => {
   if (id === 'crypto') return nodeCrypto;
@@ -46,7 +47,7 @@ vi.mock('../../src/main/storage', () => ({
 
 describe('ops backup service', () => {
   beforeAll(async () => {
-    ({ applyRestore, previewBackup, createBackupManifest, previewRestore } = await import('../../src/main/domain/ops/backupService'));
+    ({ applyRestore, previewBackup, createBackupManifest, previewRestore, previewOpsRepair } = await import('../../src/main/domain/ops/backupService'));
   });
 
   beforeEach(() => {
@@ -102,6 +103,28 @@ describe('ops backup service', () => {
     expect(collections.get('projects')).toHaveLength(1);
 
     await expect(previewRestore('{bad json')).resolves.toMatchObject({ ok: false });
+  });
+
+  it('previews repair actions without mutating collections or creating backups', async () => {
+    collections.set('projects', [{ id: 'existing' }, { id: 'existing', name: 'Duplicate' }, { name: 'Missing id' }]);
+    collections.set('providerSettings', [{ id: 'provider-1', apiKey: 'sk-secret-token', providerName: 'Secret Provider' }]);
+
+    const before = JSON.stringify([...collections.entries()]);
+    const preview = await previewOpsRepair(new Date('2026-05-13T00:00:00.000Z'));
+
+    expect(preview.ok).toBe(false);
+    expect(preview.redaction).toBe('secrets-redacted');
+    expect(preview.requiresBackup).toBe(true);
+    expect(preview.checks.map((check) => check.id)).toEqual(expect.arrayContaining([
+      'projects-missing-id',
+      'projects-duplicate-id',
+      'providerSettings-secret-risk',
+      'repair-mode',
+    ]));
+    expect(preview.actions.some((action) => action.requiresBackup)).toBe(true);
+    expect(JSON.stringify(preview)).not.toContain('sk-secret-token');
+    expect(JSON.stringify([...collections.entries()])).toBe(before);
+    expect(collections.get('backupManifests')).toBeUndefined();
   });
 
   it('creates a redacted bundle manifest and rejects unsafe restore metadata', async () => {

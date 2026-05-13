@@ -52,15 +52,26 @@ The reason the app could look unchanged to a user is that prior plan work create
 | Gateway UI skeleton | Local Gateway already exposes API Key controls and this round verifies/import status in the build-plan registry; ccs/sub2api/cc-switch import preview/apply is present locally. |
 | Shortcut | COM readback verified the desktop shortcut points to current repo Electron entry, not the old AgentFlowStudio path. |
 
+## 2026-05-13 Follow-Up Source Status
+
+This section supersedes the older completion percentages for modules 04, 05, 06, and 07 in the matrix above. The overall build-plan status is still **Partial**: these are local/source-verifiable capability gains, not full final-goal completion.
+
+| Module | Latest local/source-verifiable capability | Completion | Still incomplete |
+|---|---|---:|---|
+| 04 Agent Workflow and MCP | Workflow publish/rollback versioning now has shared types, main-process service, IPC/preload/API wiring, Workflow Studio controls, unit tests, E2E mocks, and smoke coverage. | 76 | Visual workflow canvas, external MCP tool discovery, risky tool approval modal, Workflow import/export. |
+| 05 Knowledge Prompt and Memory | Knowledge local file import now runs through a main-process dialog/read path, saves filename/extension/size source metadata, avoids renderer path arguments, and is covered by unit/API/E2E/smoke checks. | 80 | Embedding provider binding, persistent vector index, full RAG quality evaluation, multi-file parser adapters. |
+| 06 Observability Evaluation and Feedback | Observability report, trace lookup, mock evaluation runs, local evaluation dataset list/delete, admin-audit permissions, redaction, UI, unit/API/E2E/smoke checks are implemented. | 78 | Credentialed red-team suite and closed-loop feedback automation. |
+| 07 Identity Security Audit and Ops | Ops repair preview now returns preview-only checks/actions/warnings/errors, requires backup before future apply, records audit, and does not write storage, run migrations, execute scripts, or apply repair. | 84 | Repair apply, migration runner, secret rotation, destructive/full restore, full diagnostics export workflow. |
+
 ## Current Incomplete Modules By Priority
 
 1. `00 Modular Refactor Master Plan` at 45%: module boundaries are documented and partially registered, but implementation remains centralized.
-2. `04 Agent Workflow and MCP` at 70%: demo run and controls are real, but visual workflow publishing and external MCP approval are incomplete.
-3. `06 Observability Evaluation and Feedback` at 70%: local report/export evidence is stronger now, but dataset CRUD, credentialed red-team suite, and feedback automation remain.
-4. `02 AI Resources and Model Providers` at 72%: local Provider surfaces are real, but live sync/capability/key rotation need credentials and implementation.
-5. `05 Knowledge Prompt and Memory` at 76%: Knowledge Base, local index, asset graph, and quality state are real, but upload/parser/embedding/vector RAG work remains.
-6. `01 Workspace and Project Center` at 78%: project surfaces are real, but workspace import/apply and summary IPC need work.
-7. `07 Identity Security Audit and Ops` at 80%: auth/RBAC/audit and merge-only restore apply are real, but full restore, migration, and repair tooling remain.
+2. `02 AI Resources and Model Providers` at 72%: local Provider surfaces are real, but live sync/capability/key rotation need credentials and implementation.
+3. `04 Agent Workflow and MCP` at 76%: publish/rollback/version history are real locally, but visual canvas, Workflow import/export, and external MCP approval are incomplete.
+4. `06 Observability Evaluation and Feedback` at 78%: trace lookup and local dataset list/delete are real, but credentialed red-team and feedback automation remain.
+5. `01 Workspace and Project Center` at 78%: project surfaces are real, but workspace import/apply and summary IPC need work.
+6. `05 Knowledge Prompt and Memory` at 80%: local file import and local index metadata are real, but embedding/vector RAG and parser adapters remain.
+7. `07 Identity Security Audit and Ops` at 84%: auth/RBAC/audit, restore preview/apply, and repair preview are real, but repair apply/migration tooling remains.
 8. `03 Local Gateway and API Keys` at 90%: strongest local module; credentialed upstream streaming and additional endpoint adapters remain.
 
 ## Latest Verification Snapshot
@@ -68,12 +79,12 @@ The reason the app could look unchanged to a user is that prior plan work create
 | Check | Result |
 |---|---:|
 | `npm.cmd run typecheck` | PASS |
-| `npm.cmd run test` | PASS, 32 files / 217 tests |
-| `npm.cmd run smoke` | PASS, 228/228 |
+| `npm.cmd run test` | PASS, 34 files / 230 tests |
+| `npm.cmd run smoke` | PASS, 239/239 |
 | `npm.cmd run lint` | PASS, 0 errors / 21 existing warnings |
-| `npm.cmd run scan:mojibake` | PASS, 178 files checked / 3 legacy docs allowlisted |
+| `npm.cmd run scan:mojibake` | PASS, 182 files checked / 3 legacy docs allowlisted |
 | `npm.cmd run build` | PASS |
-| `npm.cmd run verify` | PASS, 143/143 plus smoke 228/228 |
+| `npm.cmd run verify` | PASS, 143/143 plus smoke 239/239 |
 | `npm.cmd run test:e2e` | PASS, 20/20 |
 | `git diff --check` | PASS, CRLF normalization warnings only |
 

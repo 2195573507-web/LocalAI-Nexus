@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, Memory, MemoryType, NexusGatewayApiKey, NexusGatewayApiKeyCreateRequest, NexusGatewayConfigApplyResult, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, NexusWorkspaceSummary, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SavedPrompt, PromptVersion, SkillRegistryEntry, Task } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, Memory, MemoryType, NexusGatewayApiKey, NexusGatewayApiKeyCreateRequest, NexusGatewayConfigApplyResult, NexusKnowledgeDocumentPreview, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, NexusWorkspaceSummary, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SavedPrompt, PromptVersion, SkillRegistryEntry, Task } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import { buildAuditExportManifest } from '../shared/auditCore.js';
 import { PROVIDER_PRESETS } from '../shared/providerPresets.js';
@@ -51,11 +51,12 @@ import { evaluateTokenPolicy, listTokenPolicies, upsertTokenPolicy } from './dom
 import { generateRuntimeProfiles } from './domain/runtime/runtimeProfileService.js';
 import { createPromptSkill, testPromptSkill } from './domain/skills/skillService.js';
 import { generateSecurityReport } from './domain/security/securityReportService.js';
-import { generateObservabilityReport, runMockEvaluation } from './domain/observability/observabilityService.js';
+import { deleteEvaluationRun, generateObservabilityReport, getTraceDetail, listEvaluationDataset, runMockEvaluation } from './domain/observability/observabilityService.js';
 import { saveKnowledgeDocumentPreview, summarizeKnowledgeAssets, testKnowledgeRetrieval } from './domain/knowledge/knowledgeService.js';
-import { applyRestore, createBackupManifest, previewBackup, previewRestore } from './domain/ops/backupService.js';
+import { applyRestore, createBackupManifest, previewBackup, previewOpsRepair, previewRestore } from './domain/ops/backupService.js';
 import { buildRecoveryPack, previewContextPack } from './domain/memory/contextPackService.js';
 import { listTemplateBundles, toggleTemplateBundle, upsertTemplateBundle } from './domain/ecosystem/bundleRegistryService.js';
+import { publishWorkflowVersion, rollbackWorkflowVersion } from './domain/workflow/workflowVersionService.js';
 import { createDemoExecution } from '../shared/agentCore.js';
 
 // ---------------------------------------------------------------------------
@@ -124,6 +125,8 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.WORKFLOW_RUN]: 'run:write',
   [IPC_CHANNELS.WORKFLOW_RUN_CONTROL]: 'run:write',
   [IPC_CHANNELS.WORKFLOW_VERSION_LIST]: 'project:read',
+  [IPC_CHANNELS.WORKFLOW_PUBLISH]: 'project:write',
+  [IPC_CHANNELS.WORKFLOW_ROLLBACK]: 'project:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_LIST]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_CHECK]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_UPSERT]: 'mcp:write',
@@ -175,15 +178,20 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.RUNTIME_PROFILES_GENERATE]: 'provider:read',
   [IPC_CHANNELS.ROUTER_DECISIONS_LIST]: 'provider:read',
   [IPC_CHANNELS.SECURITY_REPORT_GENERATE]: 'admin:audit',
-  [IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE]: 'provider:read',
-  [IPC_CHANNELS.EVAL_MOCK_RUN]: 'provider:read',
+  [IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE]: 'admin:audit',
+  [IPC_CHANNELS.OBSERVABILITY_TRACE_GET]: 'admin:audit',
+  [IPC_CHANNELS.EVAL_MOCK_RUN]: 'admin:audit',
+  [IPC_CHANNELS.EVAL_DATASET_LIST]: 'admin:audit',
+  [IPC_CHANNELS.EVAL_DATASET_DELETE]: 'admin:audit',
   [IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY]: 'memory:read',
   [IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW]: 'memory:write',
+  [IPC_CHANNELS.KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE]: 'memory:write',
   [IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST]: 'memory:read',
   [IPC_CHANNELS.OPS_BACKUP_PREVIEW]: 'ops:backup',
   [IPC_CHANNELS.OPS_BACKUP_CREATE]: 'ops:backup',
   [IPC_CHANNELS.OPS_RESTORE_PREVIEW]: 'ops:restore',
   [IPC_CHANNELS.OPS_RESTORE_APPLY]: 'ops:restore',
+  [IPC_CHANNELS.OPS_REPAIR_PREVIEW]: 'ops:restore',
   [IPC_CHANNELS.CONTEXT_PACK_PREVIEW]: 'memory:read',
   [IPC_CHANNELS.CONTEXT_RECOVERY_PACK]: 'memory:export',
   [IPC_CHANNELS.TEMPLATE_BUNDLES_LIST]: 'skill:read',
@@ -433,6 +441,9 @@ const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
 
 type ProviderRecord = { id: string; providerName?: string; apiKey?: unknown; [key: string]: unknown };
 
+const KNOWLEDGE_IMPORT_EXTENSIONS = new Set(['md', 'markdown', 'txt', 'json', 'csv', 'log']);
+const KNOWLEDGE_IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+
 function assertAllowedCollection(collection: string): void {
   if (!ALLOWED_STORAGE_COLLECTIONS.has(collection)) {
     throw new Error(`Storage collection is not allowed: ${collection}`);
@@ -451,6 +462,46 @@ function sanitizeForCollection(collection: string, value: unknown): unknown {
     return sanitizeObject(value);
   }
   return value;
+}
+
+async function importKnowledgeLocalFile(context: SessionContext | undefined): Promise<NexusKnowledgeDocumentPreview | { canceled: true }> {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) throw new Error('No focused window for open dialog.');
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Import local knowledge file',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Text knowledge files', extensions: [...KNOWLEDGE_IMPORT_EXTENSIONS] },
+    ],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true };
+  }
+  const selectedPath = result.filePaths[0].replace(/\0/g, '');
+  const extension = path.extname(selectedPath).replace('.', '').toLowerCase();
+  if (!KNOWLEDGE_IMPORT_EXTENSIONS.has(extension)) {
+    throw new Error(`Unsupported knowledge file type: ${extension || 'unknown'}.`);
+  }
+  const stat = await fs.stat(selectedPath);
+  if (!stat.isFile()) throw new Error('Knowledge import requires a file.');
+  if (stat.size > KNOWLEDGE_IMPORT_MAX_BYTES) {
+    throw new Error(`Knowledge file is too large. Limit is ${Math.round(KNOWLEDGE_IMPORT_MAX_BYTES / 1024 / 1024)} MB.`);
+  }
+  const filename = path.basename(selectedPath);
+  const content = await fs.readFile(selectedPath, 'utf-8');
+  const preview = await saveKnowledgeDocumentPreview({
+    title: filename,
+    content,
+    source: { type: 'local-file', filename, extension, sizeBytes: stat.size },
+  });
+  await recordMutationAudit(context, 'knowledge.document.imported', { type: 'knowledge_document', id: preview.id, label: preview.title }, {
+    filename,
+    extension,
+    sizeBytes: stat.size,
+    chunkCount: preview.chunkCount,
+    redaction: preview.redaction,
+  });
+  return preview;
 }
 
 function sanitizeStorageWriteForCollection(collection: string, value: unknown): unknown {
@@ -1851,6 +1902,67 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_PUBLISH, async (_event, workflowId: string, message?: string, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const workflow = await storage.getById<Workflow>('workflows', workflowId);
+      if (!workflow) throw new Error('Workflow not found.');
+      await assertProjectResourceAccess(context, workflow.projectId, 'write');
+      const result = await publishWorkflowVersion({
+        workflowId,
+        userId: context.user.id,
+        actor: actorFor(context),
+        message,
+      });
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        projectId: workflow.projectId,
+        workflowId,
+        type: 'run.updated',
+        status: 'info',
+        actorUserId: context.user.id,
+        title: `Workflow published: ${workflow.name}`,
+        detail: `Published v${result.workflow.publishedVersion ?? result.workflow.version} for local rollback safety.`,
+        metadata: sanitizeObject({ workflowId, version: result.workflow.publishedVersion, versionId: result.version.id }),
+        createdAt: result.workflow.publishedAt ?? new Date().toISOString(),
+      } as never).catch(() => undefined);
+      return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_ROLLBACK, async (_event, workflowId: string, versionId: string, message?: string, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const workflow = await storage.getById<Workflow>('workflows', workflowId);
+      if (!workflow) throw new Error('Workflow not found.');
+      await assertProjectResourceAccess(context, workflow.projectId, 'write');
+      const result = await rollbackWorkflowVersion({
+        workflowId,
+        versionId,
+        userId: context.user.id,
+        actor: actorFor(context),
+        message,
+      });
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        projectId: workflow.projectId,
+        workflowId,
+        type: 'run.updated',
+        status: 'info',
+        actorUserId: context.user.id,
+        title: `Workflow rollback: ${workflow.name}`,
+        detail: `Restored v${result.restoredFrom.version} into draft v${result.workflow.version}.`,
+        metadata: sanitizeObject({ workflowId, restoredFromVersion: result.restoredFrom.version, versionId: result.version.id }),
+        createdAt: result.workflow.lastRollbackAt ?? new Date().toISOString(),
+      } as never).catch(() => undefined);
+      return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.MCP_ALLOWLIST_LIST, async () => {
     try {
       return await storage.getAll('mcpAllowlist');
@@ -2522,6 +2634,19 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.OBSERVABILITY_TRACE_GET, async (_event, traceId: string, context?: SessionContext) => {
+    try {
+      const trace = await getTraceDetail(traceId);
+      await recordMutationAudit(context, 'observability.trace.get', { type: 'trace', id: traceId }, {
+        found: Boolean(trace),
+        source: trace?.source,
+      });
+      return trace ?? { error: 'Trace not found.' };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.EVAL_MOCK_RUN, async (_event, input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }, context?: SessionContext) => {
     try {
       const evaluation = await runMockEvaluation(sanitizeObject(input ?? {}) as never);
@@ -2530,6 +2655,31 @@ export function registerIpcHandlers(): void {
         status: evaluation.status,
       });
       return evaluation;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.EVAL_DATASET_LIST, async (_event, context?: SessionContext) => {
+    try {
+      const dataset = await listEvaluationDataset();
+      await recordMutationAudit(context, 'eval.dataset.list', { type: 'evaluation_dataset', id: dataset.id }, {
+        sampleCount: dataset.summary.sampleCount,
+      });
+      return dataset;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.EVAL_DATASET_DELETE, async (_event, id: string, context?: SessionContext) => {
+    try {
+      const result = await deleteEvaluationRun(id);
+      await recordMutationAudit(context, 'eval.dataset.delete', { type: 'evaluation_run', id }, {
+        deleted: result.deleted,
+        remaining: result.remaining,
+      });
+      return result;
     } catch (err) {
       return handleError(err);
     }
@@ -2563,6 +2713,14 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_IMPORT_LOCAL_FILE, async (_event, context?: SessionContext) => {
+    try {
+      return await importKnowledgeLocalFile(context);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST, async (_event, input: { query: string; content?: string; topK?: number }, context?: SessionContext) => {
     try {
       const result = await testKnowledgeRetrieval(input);
@@ -2571,6 +2729,22 @@ export function registerIpcHandlers(): void {
         latencyMs: result.latencyMs,
       });
       return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.OPS_REPAIR_PREVIEW, async (_event, context?: SessionContext) => {
+    try {
+      const preview = await previewOpsRepair();
+      await recordMutationAudit(context, 'ops.repair.previewed', { type: 'repair_preview', id: preview.id }, {
+        ok: preview.ok,
+        checkCount: preview.checks.length,
+        actionCount: preview.actions.length,
+        warningCount: preview.warnings.length,
+        errorCount: preview.errors.length,
+      });
+      return preview;
     } catch (err) {
       return handleError(err);
     }

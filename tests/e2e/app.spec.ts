@@ -127,6 +127,17 @@ function installAgentflowMock() {
         list: async () => [workflow],
         get: async () => workflow,
         versions: async () => [{ id: 'version-e2e', workflowId: workflow.id, version: 1, message: 'Initial template', createdAt: now() }],
+        publish: async () => ({
+          workflow: { ...workflow, status: 'active', publishedVersion: workflow.version, publishedAt: now() },
+          version: { id: 'version-e2e', workflowId: workflow.id, version: workflow.version, status: 'published', message: 'Published from E2E', nodes: workflow.nodes, edges: workflow.edges, createdAt: now(), publishedAt: now() },
+          message: 'Workflow published.',
+        }),
+        rollback: async () => ({
+          workflow: { ...workflow, version: workflow.version + 1, lastRollbackVersion: 1, lastRollbackAt: now() },
+          version: { id: 'version-rollback-e2e', workflowId: workflow.id, version: workflow.version + 1, status: 'rollback', message: 'Rollback from E2E', nodes: workflow.nodes, edges: workflow.edges, createdAt: now(), restoredAt: now(), restoredFromVersion: 1 },
+          restoredFrom: { id: 'version-e2e', workflowId: workflow.id, version: 1, message: 'Initial template', nodes: workflow.nodes, edges: workflow.edges, createdAt: now() },
+          message: 'Workflow rolled back.',
+        }),
         createFromTemplate: async () => workflow,
         save: async (_id: string, payload: Record<string, unknown>) => ({ ...workflow, ...payload, updatedAt: now() }),
         run: async () => ({
@@ -389,6 +400,68 @@ function installAgentflowMock() {
           mode: 'mock',
           createdAt: now(),
         }),
+        getTrace: async () => ({
+          traceId: 'trace-e2e',
+          source: 'gateway',
+          operation: '/v1/responses',
+          status: 'success',
+          startedAt: now(),
+          latencyMs: 42,
+          durationBucket: 'fast',
+          relatedRecordId: 'trace-e2e',
+          details: [
+            { label: 'source', value: 'gateway' },
+            { label: 'operation', value: '/v1/responses' },
+          ],
+          redaction: 'secrets-redacted',
+        }),
+        listEvaluationDataset: async () => ({
+          id: 'dataset-e2e',
+          generatedAt: now(),
+          summary: {
+            id: 'dataset-summary-e2e',
+            generatedAt: now(),
+            sampleCount: 1,
+            passCount: 1,
+            warningCount: 0,
+            failCount: 0,
+            averageScore: 0.9,
+            latestRuns: [{ id: 'eval-e2e', name: 'E2E mock evaluation', status: 'passed', score: 0.9, createdAt: now() }],
+            mode: 'mock-local',
+            redaction: 'secrets-redacted',
+          },
+          runs: [{
+            id: 'eval-e2e',
+            name: 'E2E mock evaluation',
+            target: 'prompt',
+            score: 0.9,
+            status: 'passed',
+            findings: ['Mock evaluation passed.'],
+            redaction: 'secrets-redacted',
+            mode: 'mock',
+            createdAt: now(),
+          }],
+          redaction: 'secrets-redacted',
+        }),
+        deleteEvaluationRun: async () => ({
+          ok: true,
+          id: 'eval-e2e',
+          deleted: true,
+          remaining: 0,
+          summary: {
+            id: 'dataset-summary-e2e',
+            generatedAt: now(),
+            sampleCount: 0,
+            passCount: 0,
+            warningCount: 0,
+            failCount: 0,
+            averageScore: 0,
+            latestRuns: [],
+            mode: 'mock-local',
+            redaction: 'secrets-redacted',
+          },
+          redaction: 'secrets-redacted',
+        }),
       },
       knowledge: {
         assetsSummary: async () => ({
@@ -410,6 +483,15 @@ function installAgentflowMock() {
           title: input.title || 'Preview',
           chunkCount: 1,
           chunks: [{ id: 'chunk-1', text: input.content.replace(/sk-[\w-]+/g, '[REDACTED]'), tokenEstimate: 20 }],
+          redaction: 'secrets-redacted',
+          createdAt: now(),
+        }),
+        importLocalFile: async () => ({
+          id: 'doc-import-e2e',
+          title: 'local-notes.md',
+          chunkCount: 1,
+          chunks: [{ id: 'chunk-1', text: 'Imported local note.', tokenEstimate: 10 }],
+          source: { type: 'local-file', filename: 'local-notes.md', extension: 'md', sizeBytes: 120 },
           redaction: 'secrets-redacted',
           createdAt: now(),
         }),
@@ -450,6 +532,17 @@ function installAgentflowMock() {
           errors: [],
           changes: [{ collection: 'projects', incoming: 1, existing: 1, action: 'merge-preview' }],
           applyToken: 'fnv1a-restore',
+        }),
+        repairPreview: async () => ({
+          id: 'repair-preview-e2e',
+          generatedAt: now(),
+          ok: true,
+          checks: [{ id: 'repair-mode', name: 'Repair execution mode', status: 'pass', detail: 'Preview-only.' }],
+          actions: [],
+          warnings: [],
+          errors: [],
+          requiresBackup: true,
+          redaction: 'secrets-redacted',
         }),
         restoreApply: async () => ({
           ok: true,
@@ -863,6 +956,8 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page.locator('main')).toContainText(/Document Indexing|document/i)
     await page.getByRole('button', { name: /Save Indexed Document|预览并保存/ }).click()
     await expect(page.locator('main')).toContainText(/Saved .*chunks|已保存/)
+    await page.getByRole('button', { name: /Import Local File/ }).click()
+    await expect(page.locator('main')).toContainText(/Imported local-notes\.md/)
     await page.getByRole('button', { name: /Test Retrieval|测试检索/ }).click()
     await expect(page.locator('main')).toContainText(/Retrieval finished|检索完成|Local retrieval/)
 
@@ -872,6 +967,8 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page.locator('main')).toContainText(/本地评测数据集/)
     await expect(page.locator('main')).toContainText(/本地 Red-Team 提示/)
     await expect(page.locator('main')).toContainText(/Restore Apply/)
+    await page.getByRole('button', { name: /Repair Preview/ }).click()
+    await expect(page.locator('main')).toContainText(/Repair Preview: OK/)
     await page.evaluate(() => {
       Object.assign(window, { __agentflowExports: [] })
     })

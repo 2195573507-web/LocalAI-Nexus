@@ -83,6 +83,10 @@ Current completion boundary: all seven rounds are completed to the local, creden
 - Real upstream streaming pass-through and cancellation accounting.
 - Live proof of token policy enforcement against real provider traffic beyond local unit/router coverage.
 - External-tool approval gates beyond current controlled Agent/Workflow run records.
+- Workflow visual canvas, workflow import/export, external MCP tool discovery, and risky tool approval modal.
+- Embedding provider binding, persistent vector index, full RAG quality evaluation, and multi-file parser adapters.
+- Credentialed red-team evaluation and closed-loop feedback automation.
+- Ops repair apply, migration runner, secret rotation, destructive/full restore, and full diagnostics export workflow.
 - Live external config writes remain intentionally manual; Gateway import/export hardening now covers redacted preview, merge record, backup checkpoint, and audit metadata without overwriting external Codex/Claude Code files.
 - Memory graph/recovery-pack polish and richer security risk scoring.
 
@@ -114,9 +118,9 @@ Current completion boundary: all seven rounds are completed to the local, creden
 |---|---:|
 | `npm.cmd run typecheck` | PASS |
 | `npm.cmd run lint` | PASS, warnings under threshold |
-| `npm.cmd run test` | PASS, 32 files / 217 tests |
-| `npm.cmd run smoke` | PASS, 228/228 |
-| `npm.cmd run verify` | PASS, 143/143 plus smoke 228/228 |
+| `npm.cmd run test` | PASS, 34 files / 230 tests |
+| `npm.cmd run smoke` | PASS, 239/239 |
+| `npm.cmd run verify` | PASS, 143/143 plus smoke 239/239 |
 | `npm.cmd run build` | PASS |
 | `npm.cmd run test:e2e` | PASS, 20/20 |
 | `npm.cmd run test:static-browser` | PASS |
@@ -158,7 +162,17 @@ fix: repair language and theme settings behavior
 - Added safe Gateway config import/export coverage for ccs, sub2api, cc-switch, claude-code, codex, and openai-env inputs. The import path produces a redacted preview, merge plan, local backup checkpoint, and audit metadata; it does not write external Codex or Claude Code config files silently.
 - Added/verified Knowledge, Observability, and Ops module services for redacted document preview/retrieval, persistent local index metadata, asset graph, quality state, mock evaluation/reporting, backup manifest creation, restore preview, and merge-only restore apply.
 - Updated smoke coverage so the static verifier checks Gateway import preview/merge/backup/audit, redaction, Ops backup schema, and the module IPC/preload/API surfaces.
-- Latest local evidence after these changes: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (32 files / 217 tests), `npm.cmd run smoke` PASS (228/228), `npm.cmd run lint` PASS (0 errors / 21 warnings), `npm.cmd run scan:mojibake` PASS (178 files checked), `npm.cmd run build` PASS, `npm.cmd run verify` PASS (143/143 plus smoke 228/228), `npm.cmd run test:e2e` PASS (20/20), and `git diff --check` PASS with CRLF warnings only.
+- 2026-05-12 local evidence after these changes: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (32 files / 217 tests), `npm.cmd run smoke` PASS (228/228), `npm.cmd run lint` PASS (0 errors / 21 warnings), `npm.cmd run scan:mojibake` PASS (178 files checked), `npm.cmd run build` PASS, `npm.cmd run verify` PASS (143/143 plus smoke 228/228), `npm.cmd run test:e2e` PASS (20/20), and `git diff --check` PASS with CRLF warnings only.
 - Final local verification also passed `npm.cmd run lint`, `npm.cmd run scan:mojibake` (177 files checked), `npm.cmd run build`, `npm.cmd run test:static-browser`, `npm.cmd run test:launch-static`, `npm.cmd run test:electron-startup`, `npm.cmd run test:electron-auth-bridge`, `npm.cmd run test:gateway-http`, `npm.cmd run test:long-run`, and `npm.cmd run shortcut`.
 - The latest `npm.cmd run dist` attempt rebuilt source output and produced `release/win-unpacked/LocalAI Nexus.exe`; final installer packaging remains blocked by the local `winCodeSign` symlink privilege failure.
 - Git delivery closed with implementation commit `52585d9` pushed to `origin/refactor-localai-nexus`; local HEAD, tracking branch, and `git ls-remote` all resolved to `52585d9681b02008d421ad8098197c2cc7740a51`.
+
+## Workflow/Knowledge/Observability/Ops Partial Implementation Pass - 2026-05-13
+
+- Added Workflow publish/rollback versioning with shared workflow version types, a main-process version service, project-write IPC guards, audit records, preload/API wrappers, Workflow Studio controls, unit tests, E2E mocks, and smoke checks.
+- Added Knowledge local file import through a main-process dialog/read flow. The renderer does not send a local path; saved source metadata is limited to filename, extension, and size.
+- Added Observability trace lookup plus local evaluation dataset list/delete with admin-audit permissions, redacted service output, Diagnostics UI coverage, unit tests, E2E mocks, and static permission tests.
+- Added Ops repair preview that returns checks/actions/warnings/errors only, records `ops.repair.previewed`, requires backup before any future apply, and does not mutate storage, run migrations, execute scripts, or implement repair apply.
+- Expanded `src/shared/moduleRegistry.ts`, `REQUIRED_BUILD_PLAN_CHANNELS`, `scripts/smoke-test.js`, and unit/E2E tests so the new Workflow/Knowledge/Observability/Ops contracts are source-verifiable.
+- Current verification after this pass: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (34 files / 230 tests), `npm.cmd run smoke` PASS (239/239), `npm.cmd run lint` PASS (0 errors / 21 warnings), `npm.cmd run scan:mojibake` PASS (182 files checked / 3 allowlisted), `npm.cmd run build` PASS, `npm.cmd run verify` PASS (143/143 plus smoke 239/239), `npm.cmd run test:e2e` PASS (20/20 after sandbox `EPERM` retry through the approved runner), and `git diff --check` PASS with CRLF warnings only.
+- This improves modules 04/05/06/07 but does not make the overall build-plan complete. Remaining limits are credentialed provider behavior, real upstream streaming, external MCP/tool approvals, embedding/vector RAG, workflow import/export/canvas, repair apply/migration runner, and final installer packaging.

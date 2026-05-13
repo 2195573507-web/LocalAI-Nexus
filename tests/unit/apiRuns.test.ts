@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../src/renderer/lib/api'
-import type { NexusKnowledgeAssetSummary, NexusRestoreApplyResult, NexusWorkspaceSummary, ReleaseStatus, Run } from '../../src/shared/types'
+import type { NexusKnowledgeAssetSummary, NexusKnowledgeDocumentPreview, NexusOpsRepairPreview, NexusRestoreApplyResult, NexusWorkspaceSummary, ReleaseStatus, Run } from '../../src/shared/types'
 import type { AgentRecord } from '../../src/shared/types'
 import type { ResourceAcl } from '../../src/shared/authTypes'
 
@@ -334,6 +334,43 @@ describe('api knowledge and ops bridges', () => {
 
     await expect(api.knowledge.assetsSummary()).resolves.toEqual(summary)
     expect(assetsSummary).toHaveBeenCalledTimes(1)
+  })
+
+  it('bridges main-process knowledge local file import without a path argument', async () => {
+    const imported: NexusKnowledgeDocumentPreview = {
+      id: 'doc-imported',
+      title: 'notes.md',
+      chunkCount: 1,
+      chunks: [{ id: 'chunk-1', text: 'Imported text', tokenEstimate: 4 }],
+      source: { type: 'local-file', filename: 'notes.md', extension: 'md', sizeBytes: 32 },
+      redaction: 'secrets-redacted',
+      createdAt: '2026-05-13T00:00:00.000Z',
+    }
+    const importLocalFile = vi.fn(async () => imported)
+    setAgentflowBridge({ knowledge: { importLocalFile } })
+
+    await expect(api.knowledge.importLocalFile()).resolves.toEqual(imported)
+    expect(importLocalFile).toHaveBeenCalledTimes(1)
+    expect(importLocalFile).toHaveBeenCalledWith()
+  })
+
+  it('bridges ops repair preview without applying repairs', async () => {
+    const preview: NexusOpsRepairPreview = {
+      id: 'repair-preview',
+      generatedAt: '2026-05-13T00:00:00.000Z',
+      ok: true,
+      checks: [{ id: 'repair-mode', name: 'Repair execution mode', status: 'pass', detail: 'Preview-only.' }],
+      actions: [],
+      warnings: [],
+      errors: [],
+      requiresBackup: true,
+      redaction: 'secrets-redacted',
+    }
+    const repairPreview = vi.fn(async () => preview)
+    setAgentflowBridge({ ops: { repairPreview } })
+
+    await expect(api.ops.repairPreview()).resolves.toEqual(preview)
+    expect(repairPreview).toHaveBeenCalledTimes(1)
   })
 
   it('bridges restore apply with explicit preview token', async () => {

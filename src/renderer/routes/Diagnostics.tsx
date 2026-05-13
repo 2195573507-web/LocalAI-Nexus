@@ -6,18 +6,23 @@ import {
   FileJson,
   RefreshCw,
   RotateCcw,
+  Search,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { Badge, Button, SurfaceCard, Textarea } from '../components';
 import { api } from '../lib/api';
 import type {
   NexusBackupManifest,
   NexusContextPackPreview,
+  NexusEvaluationDataset,
   NexusGatewayStatus,
   NexusObservabilityReport,
+  NexusOpsRepairPreview,
   NexusRestoreApplyResult,
   NexusRestorePreview,
   NexusSecurityReport,
+  NexusTraceDetail,
 } from '../lib/types';
 
 function hasError(value: unknown): value is { error: string } {
@@ -31,12 +36,21 @@ function statusVariant(status?: string) {
   return 'default';
 }
 
+function getEvaluationFindings(run: unknown): string[] {
+  const findings = (run as { findings?: unknown }).findings;
+  return Array.isArray(findings) ? findings.filter((item): item is string => typeof item === 'string') : [];
+}
+
 export default function Diagnostics() {
   const [gateway, setGateway] = React.useState<NexusGatewayStatus | null>(null);
   const [contextPack, setContextPack] = React.useState<NexusContextPackPreview | null>(null);
   const [security, setSecurity] = React.useState<NexusSecurityReport | null>(null);
   const [observability, setObservability] = React.useState<NexusObservabilityReport | null>(null);
+  const [evaluationDataset, setEvaluationDataset] = React.useState<NexusEvaluationDataset | null>(null);
+  const [selectedTrace, setSelectedTrace] = React.useState<NexusTraceDetail | null>(null);
+  const [traceQuery, setTraceQuery] = React.useState('');
   const [backup, setBackup] = React.useState<NexusBackupManifest | null>(null);
+  const [repairPreview, setRepairPreview] = React.useState<NexusOpsRepairPreview | null>(null);
   const [restoreRaw, setRestoreRaw] = React.useState('');
   const [restorePreview, setRestorePreview] = React.useState<NexusRestorePreview | null>(null);
   const [restoreResult, setRestoreResult] = React.useState<NexusRestoreApplyResult | null>(null);
@@ -45,17 +59,19 @@ export default function Diagnostics() {
 
   const load = React.useCallback(async () => {
     setLoading(true);
-    const [gatewayResult, contextResult, securityResult, observabilityResult, backupResult] = await Promise.all([
+    const [gatewayResult, contextResult, securityResult, observabilityResult, datasetResult, backupResult] = await Promise.all([
       api.gateway.status().catch(() => null),
       api.contextPack.preview().catch(() => null),
       api.security.report().catch(() => null),
       api.observability.report({ includeMockEvaluation: true, evaluationOutput: 'Local diagnostic output' }).catch(() => null),
+      api.observability.listEvaluationDataset().catch(() => null),
       api.ops.backupPreview().catch(() => null),
     ]);
     if (gatewayResult && !hasError(gatewayResult)) setGateway(gatewayResult);
     if (contextResult && !hasError(contextResult)) setContextPack(contextResult);
     if (securityResult && !hasError(securityResult)) setSecurity(securityResult);
     if (observabilityResult && !hasError(observabilityResult)) setObservability(observabilityResult);
+    if (datasetResult && !hasError(datasetResult)) setEvaluationDataset(datasetResult);
     if (backupResult && !hasError(backupResult)) setBackup(backupResult);
     setLoading(false);
   }, []);
@@ -70,6 +86,30 @@ export default function Diagnostics() {
     setMessage('观测报告已导出，内容已脱敏。');
   };
 
+  const lookupTrace = async (id?: string) => {
+    const target = String(id ?? traceQuery).trim();
+    if (!target) return;
+    const result = await api.observability.getTrace(target);
+    if (hasError(result)) {
+      setMessage(result.error);
+      return;
+    }
+    setSelectedTrace(result);
+    setTraceQuery(result.traceId);
+    setMessage(`Trace detail loaded: ${result.traceId}`);
+  };
+
+  const deleteEvaluationRun = async (id: string) => {
+    const result = await api.observability.deleteEvaluationRun(id);
+    if (hasError(result)) {
+      setMessage(result.error);
+      return;
+    }
+    const dataset = await api.observability.listEvaluationDataset();
+    if (!hasError(dataset)) setEvaluationDataset(dataset);
+    setMessage(result.deleted ? `Evaluation run deleted: ${id}` : `Evaluation run not found: ${id}`);
+  };
+
   const createBackup = async () => {
     setLoading(true);
     const result = await api.ops.createBackup();
@@ -80,6 +120,18 @@ export default function Diagnostics() {
     }
     setBackup(result);
     setMessage(`已创建备份清单：${result.checksum}`);
+  };
+
+  const previewRepair = async () => {
+    setLoading(true);
+    const result = await api.ops.repairPreview();
+    setLoading(false);
+    if (hasError(result)) {
+      setMessage(result.error);
+      return;
+    }
+    setRepairPreview(result);
+    setMessage(result.ok ? 'Repair preview passed. No writes were applied.' : 'Repair preview found issues. Review the plan before any future apply step.');
   };
 
   const previewRestore = async () => {
@@ -159,9 +211,41 @@ export default function Diagnostics() {
             <h2 className="text-base font-semibold">Trace 详情</h2>
             <Badge>{observability?.exportSummary?.traceCount ?? 0} traces</Badge>
           </div>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              className="control-input min-w-0 flex-1"
+              value={traceQuery}
+              onChange={(event) => setTraceQuery(event.target.value)}
+              placeholder="trace id / run id / execution id"
+            />
+            <Button variant="secondary" onClick={() => lookupTrace()} icon={<Search className="h-4 w-4" />}>
+              Trace Lookup
+            </Button>
+          </div>
+          {selectedTrace && (
+            <div className="mt-4 rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="font-semibold">{selectedTrace.source} / {selectedTrace.operation}</span>
+                <Badge variant={statusVariant(selectedTrace.status)}>{selectedTrace.durationBucket}</Badge>
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {selectedTrace.details.map((item) => (
+                  <div key={`${selectedTrace.traceId}-${item.label}`} className="rounded-tool border border-[var(--border)] bg-[var(--surface)] p-2">
+                    <div className="text-[var(--text-muted)]">{item.label}</div>
+                    <div className="mt-1 break-all font-mono text-[var(--text-primary)]">{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-4 space-y-2">
             {(observability?.traces ?? []).slice(0, 12).map((trace) => (
-              <div key={trace.traceId} className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+              <button
+                key={trace.traceId}
+                type="button"
+                onClick={() => void lookupTrace(trace.traceId)}
+                className="w-full rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-left text-xs hover:bg-[var(--surface-hover)]"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="font-semibold">{trace.source} / {trace.operation}</span>
                   <Badge variant={statusVariant(trace.status)}>{trace.status}</Badge>
@@ -171,7 +255,7 @@ export default function Diagnostics() {
                   <span>{new Date(trace.startedAt).toLocaleString()}</span>
                   <span>{trace.latencyMs ? `${trace.latencyMs}ms` : 'latency n/a'}</span>
                 </div>
-              </div>
+              </button>
             ))}
             {(observability?.traces.length ?? 0) === 0 && <div className="text-sm text-[var(--text-muted)]">暂无 trace。</div>}
           </div>
@@ -189,36 +273,50 @@ export default function Diagnostics() {
         <SurfaceCard className="p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold">本地评测数据集</h2>
-            <Badge variant="info">{observability?.evaluationDataset.mode ?? 'mock-local'}</Badge>
+            <Badge variant="info">{evaluationDataset?.summary.mode ?? observability?.evaluationDataset.mode ?? 'mock-local'}</Badge>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
             <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3">
               <div className="text-xs text-[var(--text-muted)]">样本</div>
-              <div className="mt-1 text-lg font-bold">{observability?.evaluationDataset.sampleCount ?? 0}</div>
+              <div className="mt-1 text-lg font-bold">{evaluationDataset?.summary.sampleCount ?? observability?.evaluationDataset.sampleCount ?? 0}</div>
             </div>
             <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3">
               <div className="text-xs text-[var(--text-muted)]">平均分</div>
-              <div className="mt-1 text-lg font-bold">{observability?.evaluationDataset.averageScore ?? 0}</div>
+              <div className="mt-1 text-lg font-bold">{evaluationDataset?.summary.averageScore ?? observability?.evaluationDataset.averageScore ?? 0}</div>
             </div>
             <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3">
               <div className="text-xs text-[var(--text-muted)]">通过</div>
-              <div className="mt-1 text-lg font-bold">{observability?.evaluationDataset.passCount ?? 0}</div>
+              <div className="mt-1 text-lg font-bold">{evaluationDataset?.summary.passCount ?? observability?.evaluationDataset.passCount ?? 0}</div>
             </div>
             <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3">
               <div className="text-xs text-[var(--text-muted)]">警告/失败</div>
               <div className="mt-1 text-lg font-bold">
-                {(observability?.evaluationDataset.warningCount ?? 0) + (observability?.evaluationDataset.failCount ?? 0)}
+                {(evaluationDataset?.summary.warningCount ?? observability?.evaluationDataset.warningCount ?? 0) + (evaluationDataset?.summary.failCount ?? observability?.evaluationDataset.failCount ?? 0)}
               </div>
             </div>
           </div>
           <div className="mt-4 space-y-2">
-            {(observability?.evaluationDataset.latestRuns ?? []).map((run) => (
+            {(evaluationDataset?.runs ?? observability?.evaluationDataset.latestRuns ?? []).slice(0, 8).map((run) => (
               <div key={run.id} className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-semibold">{run.name}</span>
-                  <Badge variant={statusVariant(run.status)}>{run.status}</Badge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant={statusVariant(run.status)}>{run.status}</Badge>
+                    {'findings' in run && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => void deleteEvaluationRun(run.id)}
+                        icon={<Trash2 className="h-3.5 w-3.5" />}
+                        aria-label={`Delete evaluation run ${run.name}`}
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className="mt-1 text-[var(--text-muted)]">score {run.score} · {new Date(run.createdAt).toLocaleString()}</div>
+                {getEvaluationFindings(run).length > 0 && (
+                  <p className="mt-2 text-[var(--text-secondary)]">{getEvaluationFindings(run)[0]}</p>
+                )}
               </div>
             ))}
           </div>
@@ -255,11 +353,36 @@ export default function Diagnostics() {
           <Button variant="secondary" loading={loading} onClick={createBackup} icon={<RotateCcw className="h-4 w-4" />}>
             创建备份清单
           </Button>
+          <Button variant="secondary" loading={loading} onClick={previewRepair} icon={<ShieldCheck className="h-4 w-4" />}>
+            Repair Preview
+          </Button>
         </div>
         <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-sm">
             <div className="font-semibold">当前备份预览</div>
             <div className="mt-2 text-xs text-[var(--text-muted)]">checksum: {backup?.checksum ?? 'n/a'}</div>
+            {repairPreview && (
+              <div className="mt-3 rounded-tool border border-[var(--border)] bg-[var(--surface)] p-3 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">Repair Preview: {repairPreview.ok ? 'OK' : 'Needs review'}</span>
+                  <Badge variant={repairPreview.ok ? 'success' : 'warning'}>{repairPreview.actions.length} actions</Badge>
+                </div>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  Preview-only, requires backup before any future repair apply. Redaction: {repairPreview.redaction}
+                </p>
+                <div className="mt-3 space-y-2">
+                  {repairPreview.checks.slice(0, 6).map((check) => (
+                    <div key={check.id} className="rounded-tool border border-[var(--border)] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold">{check.name}</span>
+                        <Badge variant={check.status === 'fail' ? 'danger' : check.status === 'warning' ? 'warning' : 'success'}>{check.status}</Badge>
+                      </div>
+                      <p className="mt-1 text-[var(--text-muted)]">{check.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-3 grid grid-cols-2 gap-2">
               {(backup?.collections ?? []).slice(0, 10).map((collection) => (
                 <div key={collection.name} className="rounded-tool border border-[var(--border)] bg-[var(--surface)] p-2">

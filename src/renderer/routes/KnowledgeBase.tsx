@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, FilePlus2, GitBranch, Search, ShieldCheck } from 'lucide-react';
+import { Database, FilePlus2, GitBranch, Search, ShieldCheck, Upload } from 'lucide-react';
 import { Badge, Button, Input, SurfaceCard, Textarea } from '../components';
 import { api } from '../lib/api';
 import type {
@@ -82,6 +82,10 @@ function hasError(value: unknown): value is { error: string } {
   return Boolean(value && typeof value === 'object' && 'error' in value);
 }
 
+function isCanceled(value: unknown): value is { canceled: true } {
+  return Boolean(value && typeof value === 'object' && 'canceled' in value);
+}
+
 function qualityVariant(state?: QualityState): 'success' | 'warning' | 'default' {
   if (state === 'ready') return 'success';
   if (state === 'needs-review') return 'warning';
@@ -128,6 +132,25 @@ export default function KnowledgeBase() {
     const indexed = result as unknown as IndexedPreview;
     setPreview(indexed);
     setMessage(`Saved ${result.chunkCount} chunks with a persistent local index.`);
+    await loadSummary();
+  };
+
+  const importLocalFile = async () => {
+    setLoading(true);
+    setMessage('');
+    const result = await api.knowledge.importLocalFile();
+    setLoading(false);
+    if (hasError(result)) {
+      setMessage(result.error);
+      return;
+    }
+    if (isCanceled(result)) {
+      setMessage('Local file import was canceled.');
+      return;
+    }
+    const indexed = result as unknown as IndexedPreview;
+    setPreview(indexed);
+    setMessage(`Imported ${indexed.source?.filename ?? indexed.title}: ${indexed.chunkCount} chunks indexed locally.`);
     await loadSummary();
   };
 
@@ -212,6 +235,9 @@ export default function KnowledgeBase() {
           <div className="flex flex-wrap gap-2">
             <Button loading={loading} onClick={previewDocument} icon={<FilePlus2 className="h-4 w-4" />}>
               Save Indexed Document
+            </Button>
+            <Button variant="secondary" loading={loading} onClick={importLocalFile} icon={<Upload className="h-4 w-4" />}>
+              Import Local File
             </Button>
             <Button variant="secondary" loading={loading} onClick={testRetrieval} icon={<Search className="h-4 w-4" />}>
               Test Retrieval

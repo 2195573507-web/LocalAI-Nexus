@@ -64,8 +64,27 @@ describe('knowledge service', () => {
     expect(indexedPreview.assetGraph.summary.chunkNodes).toBe(preview.chunkCount);
     expect(indexedPreview.assetGraph.summary.edgeCount).toBeGreaterThanOrEqual(preview.chunkCount);
     expect(indexedPreview.quality.signals).toContain('persistent-index');
+    expect(preview.source).toMatchObject({ type: 'pasted-text' });
     expect(JSON.stringify(preview)).not.toContain('sk-secret');
     expect(preview.redaction).toBe('secrets-redacted');
+  });
+
+  it('carries local file source metadata without storing full paths', async () => {
+    const saved = await saveKnowledgeDocumentPreview({
+      title: 'ops-notes.md',
+      content: 'Gateway repair notes can be imported as local knowledge.',
+      source: { type: 'local-file', filename: 'ops-notes.md', extension: 'md', sizeBytes: 58 },
+    });
+
+    expect(saved.source).toEqual({
+      type: 'local-file',
+      filename: 'ops-notes.md',
+      extension: 'md',
+      sizeBytes: 58,
+    });
+    expect(JSON.stringify(saved.source)).not.toContain('\\');
+    expect(JSON.stringify(saved.source)).not.toContain('/');
+    expect(collections.get('knowledgeDocuments')?.[0].source).toMatchObject({ type: 'local-file' });
   });
 
   it('stores preview documents and returns scored mock retrieval matches', async () => {

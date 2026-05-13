@@ -46,6 +46,11 @@ export interface Workflow {
   status: WorkflowStatus;
   templateId?: string;
   version: number;
+  publishedVersion?: number;
+  publishedAt?: string;
+  publishedByUserId?: string;
+  lastRollbackVersion?: number;
+  lastRollbackAt?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   createdAt: string;
@@ -57,10 +62,28 @@ export interface WorkflowVersion {
   workflowId: string;
   version: number;
   message: string;
+  status?: 'draft' | 'published' | 'rollback';
+  publishedAt?: string;
+  publishedByUserId?: string;
+  restoredFromVersion?: number;
+  restoredAt?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   createdByUserId?: string;
   createdAt: string;
+}
+
+export interface WorkflowPublishResult {
+  workflow: Workflow;
+  version: WorkflowVersion;
+  message: string;
+}
+
+export interface WorkflowRollbackResult {
+  workflow: Workflow;
+  version: WorkflowVersion;
+  restoredFrom: WorkflowVersion;
+  message: string;
 }
 
 export interface AgentWorkflowTemplate {
