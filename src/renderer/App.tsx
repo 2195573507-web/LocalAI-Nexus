@@ -29,6 +29,7 @@ const PromptLab = lazy(() => import('./routes/PromptLab'));
 const LogAnalyzer = lazy(() => import('./routes/LogAnalyzer'));
 const GitTimeline = lazy(() => import('./routes/GitTimeline'));
 const SafetyBox = lazy(() => import('./routes/SafetyBox'));
+const KnowledgeBase = lazy(() => import('./routes/KnowledgeBase'));
 const SharedMemoryHub = lazy(() => import('./routes/SharedMemoryHub'));
 const Skills = lazy(() => import('./routes/Skills'));
 const Settings = lazy(() => import('./routes/Settings'));
@@ -197,6 +198,7 @@ function AppRoutes() {
           <Route path="/git-timeline" element={routeElement('Git Timeline', <GitTimeline />)} />
           <Route path="/safety" element={routeElement('Safety Guard', <SafetyBox />)} />
           <Route path="/safety-box" element={routeElement('Safety Guard', <SafetyBox />)} />
+          <Route path="/knowledge" element={routeElement('Knowledge Base', <KnowledgeBase />)} />
           <Route path="/memory" element={routeElement('Shared Memory', <SharedMemoryHub />)} />
           <Route path="/shared-memory-hub" element={routeElement('Shared Memory', <SharedMemoryHub />)} />
           <Route path="/skills" element={routeElement('Skills', <Skills />)} />

@@ -1,6 +1,6 @@
-import http from 'http';
-import { randomUUID } from 'crypto';
-import type { IncomingMessage, ServerResponse } from 'http';
+import http from 'node:http';
+import { randomUUID } from 'node:crypto';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { NexusFailureCategory, NexusGatewayForwardResult, NexusGatewayRequestKind, NexusGatewayStatus } from '../../../shared/types.js';
 import storage from '../../storage.js';
 import { recordAudit } from '../../audit.js';
@@ -372,6 +372,11 @@ export async function stopGateway(): Promise<NexusGatewayStatus> {
   server = null;
   startedAt = '';
   return getGatewayStatus();
+}
+
+export async function restartGateway(): Promise<NexusGatewayStatus> {
+  if (server) await stopGateway();
+  return startGateway();
 }
 
 export async function getGatewayStatus(): Promise<NexusGatewayStatus> {

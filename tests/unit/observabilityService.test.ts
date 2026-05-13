@@ -82,11 +82,36 @@ describe('observability service', () => {
       },
     ] satisfies RunEvent[]);
 
-    const report = await generateObservabilityReport({ includeMockEvaluation: true, evaluationOutput: 'structured answer' });
+    const report = await generateObservabilityReport({
+      includeMockEvaluation: true,
+      evaluationOutput: 'structured answer with enough local diagnostic detail to cross the mock evaluator pass threshold and keep the dataset sample in the passed bucket',
+    });
     expect(report.traces.map((trace) => trace.traceId)).toEqual(expect.arrayContaining(['trace-ok', 'trace-denied', 'event-1']));
     expect(report.errorCategories).toContainEqual({ category: '403', count: 1 });
     expect(report.slowRequests[0].requestId).toBe('trace-ok');
     expect(report.evaluation?.mode).toBe('mock');
+    expect(report.exportSummary).toMatchObject({
+      traceCount: 3,
+      slowRequestCount: 1,
+      errorCategoryCount: 1,
+      redaction: 'secrets-redacted',
+    });
+    expect(report.traceDetails.map((trace) => trace.traceId)).toEqual(expect.arrayContaining(['trace-ok', 'trace-denied']));
+    expect(report.traceDetails.find((trace) => trace.traceId === 'trace-ok')).toMatchObject({
+      durationBucket: 'normal',
+      relatedRecordId: 'trace-ok',
+    });
+    expect(report.evaluationDataset).toMatchObject({
+      sampleCount: 1,
+      passCount: 1,
+      mode: 'mock-local',
+      redaction: 'secrets-redacted',
+    });
+    expect(report.redTeamFindings.some((finding) => finding.title.includes('auth denial'))).toBe(true);
+    expect(report.exportSummary?.markdown).toContain('LocalAI Nexus Observability Report');
+    expect(report.exportSummary?.markdown).toContain('Trace Detail');
+    expect(report.exportSummary?.markdown).toContain('Local Red-Team Findings');
+    expect(report.exportSummary?.suggestedFilename).toMatch(/localai-nexus-observability-/);
     expect(JSON.stringify(report)).not.toContain('sk-');
   });
 

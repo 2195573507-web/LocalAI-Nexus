@@ -43,6 +43,8 @@ type CollectionName =
   | 'knowledgeDocuments'
   | 'backupManifests';
 
+export type StorageCollectionName = CollectionName;
+
 type Identifiable = { id: string };
 type DataRecord = Identifiable;
 
@@ -146,6 +148,28 @@ class Storage {
     items.splice(idx, 1);
     await this.enqueueWrite(collection, items);
     return true;
+  }
+
+  async mergeMany<T extends DataRecord>(
+    collection: CollectionName,
+    incoming: T[],
+  ): Promise<{ inserted: number; skipped: number; existingBefore: number }> {
+    const items = await this.readCollection<T>(collection);
+    const seen = new Set(items.map((item) => item.id));
+    const merged = [...items];
+    let inserted = 0;
+    let skipped = 0;
+    for (const item of incoming) {
+      if (!item?.id || seen.has(item.id)) {
+        skipped += 1;
+        continue;
+      }
+      merged.push(item);
+      seen.add(item.id);
+      inserted += 1;
+    }
+    if (inserted > 0) await this.enqueueWrite(collection, merged);
+    return { inserted, skipped, existingBefore: items.length };
   }
 }
 

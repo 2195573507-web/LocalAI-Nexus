@@ -24,11 +24,13 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { EmptyState, SurfaceCard, StatCard } from '../components/';
+import { LOCALAI_MODULE_REGISTRY } from '../../shared/moduleRegistry';
 import type {
   Memory,
   NexusGatewayStatus,
   NexusHealthCheckResult,
   NexusUsageSummary,
+  NexusWorkspaceSummary,
   Project,
   ProviderSetting,
   SavedPrompt,
@@ -101,6 +103,29 @@ const ONE_MINUTE_STEPS = [
   { title: '保存第一个 Prompt', body: '把任务变成可复制给 Codex/Claude Code 的交接说明。', route: '/prompts', icon: Wand2 },
 ];
 
+const moduleDisplayName: Record<string, string> = {
+  '00-modular-refactor': '00 模块化重构',
+  '01-workspace': '01 工作区 / 项目中心',
+  '02-providers': '02 Provider / 模型资源',
+  '03-gateway': '03 Gateway / API Key',
+  '04-agents-workflow': '04 Agent / Workflow / MCP',
+  '05-knowledge-memory': '05 Knowledge / Prompt / Memory',
+  '06-observability': '06 Observability / Evaluation',
+  '07-security-ops': '07 Identity / Security / Ops',
+};
+
+const moduleStatusLabel = {
+  implemented: '已完成',
+  partial: '部分落地',
+  planned: '仅计划',
+} as const;
+
+const moduleStatusClass = {
+  implemented: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  partial: 'border-amber-400/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  planned: 'border-slate-400/30 bg-slate-500/10 text-[var(--text-secondary)] dark:text-slate-300',
+} as const;
+
 const statusLabel: Record<string, string> = {
   active: '进行中',
   planning: '规划中',
@@ -127,6 +152,7 @@ export default function Dashboard() {
   const [gatewayStatus, setGatewayStatus] = useState<NexusGatewayStatus | null>(null);
   const [usageSummary, setUsageSummary] = useState<NexusUsageSummary | null>(null);
   const [healthState, setHealthState] = useState<{ latest: NexusHealthCheckResult[]; byStatus: Record<string, number> } | null>(null);
+  const [workspaceSummary, setWorkspaceSummary] = useState<NexusWorkspaceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [apiAvailable, setApiAvailable] = useState(true);
   const [gatewayBusy, setGatewayBusy] = useState(false);
@@ -143,6 +169,7 @@ export default function Dashboard() {
     setGatewayStatus(null);
     setUsageSummary(null);
     setHealthState(null);
+    setWorkspaceSummary(null);
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -163,6 +190,7 @@ export default function Dashboard() {
         gatewayResult,
         usageResult,
         healthResult,
+        workspaceSummaryResult,
       ] = await Promise.all([
         api.projects.list(),
         api.tasks.list(),
@@ -173,6 +201,7 @@ export default function Dashboard() {
         api.gateway.status().catch(() => null),
         api.usage.summary().catch(() => null),
         api.health.summary().catch(() => null),
+        api.projects.summary().catch(() => null),
       ]);
 
       const projectList = Array.isArray(projectResult) ? projectResult : [];
@@ -197,6 +226,9 @@ export default function Dashboard() {
       }
       if (healthResult && typeof healthResult === 'object' && !('error' in healthResult)) {
         setHealthState(healthResult);
+      }
+      if (workspaceSummaryResult && typeof workspaceSummaryResult === 'object' && !('error' in workspaceSummaryResult)) {
+        setWorkspaceSummary(workspaceSummaryResult);
       }
       setRiskCount(
         memoryList.filter((memory) => memory.type === 'safety_check' || (memory.tags || []).includes('safety')).length,
@@ -232,6 +264,16 @@ export default function Dashboard() {
   const providerHealth = healthState?.latest[0]?.status ?? '未知';
   const recentFailure = usageSummary?.recentFailureReason ?? '暂无';
   const gatewayOnline = Boolean(gatewayStatus?.online);
+  const buildPlanAverage = workspaceSummary?.buildPlans.averageCompletionPercent ?? Math.round(
+    LOCALAI_MODULE_REGISTRY.reduce((sum, module) => sum + module.completionPercent, 0) / LOCALAI_MODULE_REGISTRY.length,
+  );
+  const partialModuleCount = workspaceSummary?.buildPlans.incompleteModuleCount ?? LOCALAI_MODULE_REGISTRY.filter((module) => module.status !== 'implemented').length;
+  const workspaceMetricItems = [
+    { label: '项目', value: workspaceSummary?.projects.total ?? projects.length },
+    { label: 'Provider', value: workspaceSummary?.providers.enabled ?? providers.filter((provider) => provider.enabled !== false).length },
+    { label: 'Gateway Key', value: workspaceSummary?.gateway.activeKeyCount ?? 0 },
+    { label: 'Memory', value: workspaceSummary?.memory.active ?? memories.filter((memory) => memory.status === 'active').length },
+  ];
 
   const startGateway = async () => {
     setGatewayBusy(true);
@@ -439,6 +481,68 @@ export default function Dashboard() {
         </div>
       </SurfaceCard>
 
+      <SurfaceCard className="p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-muted)]">
+              <ClipboardCheck className="h-4 w-4" />
+              Build Plan Audit
+            </div>
+            <h2 className="mt-2 text-base font-semibold text-[var(--text-primary)]">构建计划落地状态</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
+              这里直接展示 docs/build-plans 的真实落地边界：不是所有计划都已完成，黄色模块代表已有代码和界面，但仍存在未完成能力。
+            </p>
+          </div>
+          <div className="grid min-w-[260px] grid-cols-2 gap-2 text-sm">
+            <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
+              <div className="text-xs text-[var(--text-muted)]">平均完成度</div>
+              <div className="mt-1 text-xl font-bold tabular-nums text-[var(--text-primary)]">{buildPlanAverage}%</div>
+            </div>
+            <div className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
+              <div className="text-xs text-[var(--text-muted)]">未完全完成</div>
+              <div className="mt-1 text-xl font-bold tabular-nums text-[var(--text-primary)]">{partialModuleCount}</div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+          {workspaceMetricItems.map((item) => (
+            <div key={item.label} className="rounded-tool border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+              <div className="text-xs text-[var(--text-muted)]">{item.label}</div>
+              <div className="mt-1 text-lg font-semibold tabular-nums text-[var(--text-primary)]">{item.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {LOCALAI_MODULE_REGISTRY.map((module) => (
+            <button
+              key={module.id}
+              type="button"
+              onClick={() => navigate(module.routes[0] || '/')}
+              className="focus-ring min-h-[184px] rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-left transition-colors hover:bg-[var(--surface-hover)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-sm font-semibold leading-5 text-[var(--text-primary)]">
+                  {moduleDisplayName[module.id] ?? module.name}
+                </h3>
+                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${moduleStatusClass[module.status]}`}>
+                  {moduleStatusLabel[module.status]}
+                </span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface)]">
+                <div className="h-full rounded-full bg-accent-600" style={{ width: `${module.completionPercent}%` }} />
+              </div>
+              <div className="mt-2 text-xs font-semibold tabular-nums text-[var(--text-primary)]">{module.completionPercent}%</div>
+              <p className="mt-2 line-clamp-3 text-xs leading-5 text-[var(--text-secondary)]">{module.summary}</p>
+              {module.incompleteCapabilities.length > 0 && (
+                <p className="mt-2 truncate text-[11px] text-amber-700 dark:text-amber-300">
+                  未完成：{module.incompleteCapabilities[0]}
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+      </SurfaceCard>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SurfaceCard className="p-4">
           <div className="flex items-start justify-between gap-3">
@@ -505,7 +609,7 @@ export default function Dashboard() {
         <StatCard icon={Brain} label="记忆" value={memories.length} color="pink" onClick={() => navigate('/memory')} />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <div data-testid="dashboard-quick-actions" className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
         {quickActions.map((action) => (
           <button
             key={action.label}

@@ -474,6 +474,44 @@ export interface NexusUsageSummary {
   byModel: Array<{ model: string; requests: number; totalTokens: number; successRate: number }>
 }
 
+export interface NexusWorkspaceSummary {
+  generatedAt: string
+  projects: {
+    total: number
+    active: number
+    archived: number
+  }
+  tasks: {
+    total: number
+    open: number
+    done: number
+    blocked: number
+  }
+  prompts: {
+    total: number
+    starred: number
+  }
+  memory: {
+    total: number
+    active: number
+    pending: number
+  }
+  providers: {
+    total: number
+    enabled: number
+  }
+  gateway: {
+    keyCount: number
+    activeKeyCount: number
+    recentRequestCount: number
+  }
+  buildPlans: {
+    moduleCount: number
+    averageCompletionPercent: number
+    incompleteModuleCount: number
+  }
+}
+
 export interface NexusHealthCheckResult {
   id: string
   providerId?: string
@@ -738,6 +776,34 @@ export interface NexusTraceSummary {
   redaction: 'secrets-redacted'
 }
 
+export interface NexusTraceDetail extends NexusTraceSummary {
+  durationBucket: 'fast' | 'normal' | 'slow' | 'unknown'
+  relatedRecordId?: string
+  details: Array<{ label: string; value: string }>
+}
+
+export interface NexusEvaluationDatasetSummary {
+  id: string
+  generatedAt: string
+  sampleCount: number
+  passCount: number
+  warningCount: number
+  failCount: number
+  averageScore: number
+  latestRuns: Array<{ id: string; name: string; status: NexusEvaluationRun['status']; score: number; createdAt: string }>
+  mode: 'mock-local'
+  redaction: 'secrets-redacted'
+}
+
+export interface NexusRedTeamFinding {
+  id: string
+  risk: 'prompt-injection' | 'secret-exposure' | 'unsafe-tooling' | 'none'
+  severity: 'info' | 'warning' | 'critical'
+  title: string
+  detail: string
+  recommendation: string
+}
+
 export interface NexusEvaluationRun {
   id: string
   name: string
@@ -760,16 +826,66 @@ export interface NexusObservabilityReport {
   traces: NexusTraceSummary[]
   slowRequests: NexusUsageRecord[]
   errorCategories: Array<{ category: NexusFailureCategory; count: number }>
+  traceDetails: NexusTraceDetail[]
   evaluation?: NexusEvaluationRun
+  evaluationDataset: NexusEvaluationDatasetSummary
+  redTeamFindings: NexusRedTeamFinding[]
+  exportSummary?: NexusObservabilityExportSummary
   reportRedaction: 'secrets-redacted'
   compatibility: 'legacy-usage-and-run-events'
+}
+
+export interface NexusObservabilityExportSummary {
+  id: string
+  generatedAt: string
+  traceCount: number
+  slowRequestCount: number
+  errorCategoryCount: number
+  evaluationStatus?: NexusEvaluationRun['status']
+  suggestedFilename: string
+  markdown: string
+  redaction: 'secrets-redacted'
 }
 
 export interface NexusKnowledgeDocumentPreview {
   id: string
   title: string
   chunkCount: number
-  chunks: Array<{ id: string; text: string; tokenEstimate: number }>
+  chunks: Array<{
+    id: string
+    text: string
+    tokenEstimate: number
+    charStart?: number
+    charEnd?: number
+    keywords?: string[]
+    tags?: string[]
+    quality?: { state: 'empty' | 'needs-review' | 'ready'; score: number; signals: string[] }
+    qualityScore?: number
+  }>
+  index?: {
+    schemaVersion: 1
+    indexId: string
+    source: 'local-document'
+    persisted: true
+    builtAt: string
+    chunkIds: string[]
+    totalTokens: number
+    keywords: string[]
+    tags: string[]
+    qualityState: 'empty' | 'needs-review' | 'ready'
+  }
+  assetGraph?: {
+    nodes: Array<{ id: string; type: 'document' | 'chunk' | 'tag' | 'quality'; label: string }>
+    edges: Array<{ from: string; to: string; relation: 'contains' | 'tagged' | 'rated' }>
+    summary: {
+      documentNodes: number
+      chunkNodes: number
+      tagNodes: number
+      qualityNodes: number
+      edgeCount: number
+    }
+  }
+  quality?: { state: 'empty' | 'needs-review' | 'ready'; score: number; signals: string[] }
   redaction: 'secrets-redacted'
   createdAt: string
 }
@@ -777,9 +893,54 @@ export interface NexusKnowledgeDocumentPreview {
 export interface NexusKnowledgeRetrievalResult {
   query: string
   topK: number
-  matches: Array<{ chunkId: string; title: string; text: string; score: number }>
+  matches: Array<{
+    chunkId: string
+    title: string
+    text: string
+    score: number
+    tokenEstimate?: number
+    chunkTokenEstimate?: number
+    tags?: string[]
+    keywords?: string[]
+    qualityState?: 'empty' | 'needs-review' | 'ready'
+    qualityScore?: number
+  }>
   latencyMs: number
   mode: 'mock-local'
+  redaction: 'secrets-redacted'
+}
+
+export interface NexusKnowledgeAssetSummary {
+  id: string
+  generatedAt: string
+  documentCount: number
+  chunkCount: number
+  tokenEstimate: number
+  promptCount: number
+  memoryCount: number
+  staleMemoryCount: number
+  topTags: Array<{ tag: string; count: number }>
+  latestDocuments: Array<{ id: string; title: string; chunkCount: number; createdAt: string }>
+  indexedChunkCount?: number
+  averageQualityScore?: number
+  indexStatus?: {
+    persisted: boolean
+    indexedDocumentCount: number
+    indexedChunkCount: number
+    qualityReadyCount: number
+    qualityNeedsReviewCount: number
+  }
+  assetGraph?: {
+    documentNodes: number
+    chunkNodes: number
+    promptNodes: number
+    memoryNodes: number
+    tagNodes: number
+    edgeCount: number
+    topRelations: Array<{ label: string; count: number }>
+  }
+  qualityState?: { state: 'empty' | 'needs-review' | 'ready'; score: number; signals: string[] }
+  retrievalReady: boolean
   redaction: 'secrets-redacted'
 }
 
@@ -806,6 +967,20 @@ export interface NexusRestorePreview {
   errors: string[]
   manifest?: NexusBackupManifest
   changes: Array<{ collection: string; incoming: number; existing: number; action: 'merge-preview' | 'skip' }>
+  applyToken?: string
+}
+
+export interface NexusRestoreApplyResult {
+  ok: boolean
+  appliedAt: string
+  manifestId?: string
+  before: NexusBackupManifest
+  collections: Array<{ collection: string; inserted: number; skipped: number; existingBefore: number }>
+  checksum: string
+  mode?: 'merge-only'
+  summary?: { inserted: number; skipped: number; touchedCollections: number }
+  auditRedaction: 'secrets-redacted'
+  warnings: string[]
 }
 
 export interface NexusTemplateBundle {
@@ -1016,6 +1191,7 @@ export const IPC_CHANNELS = {
   PROJECT_DELETE: 'project:delete',
   PROJECT_ACL_GET: 'project:acl:get',
   PROJECT_ACL_UPDATE: 'project:acl:update',
+  WORKSPACE_SUMMARY: 'workspace:summary',
 
   // Tasks
   TASK_LIST: 'task:list',
@@ -1083,6 +1259,7 @@ export const IPC_CHANNELS = {
   GATEWAY_STATUS: 'gateway:status',
   GATEWAY_START: 'gateway:start',
   GATEWAY_STOP: 'gateway:stop',
+  GATEWAY_RESTART: 'gateway:restart',
   GATEWAY_KEY_LIST: 'gateway:key:list',
   GATEWAY_KEY_CREATE: 'gateway:key:create',
   GATEWAY_KEY_DISABLE: 'gateway:key:disable',
@@ -1105,11 +1282,13 @@ export const IPC_CHANNELS = {
   SECURITY_REPORT_GENERATE: 'security:report:generate',
   OBSERVABILITY_REPORT_GENERATE: 'observability:report:generate',
   EVAL_MOCK_RUN: 'eval:mock:run',
+  KNOWLEDGE_ASSETS_SUMMARY: 'knowledge:assets:summary',
   KNOWLEDGE_DOCUMENT_PREVIEW: 'knowledge:document:preview',
   KNOWLEDGE_RETRIEVAL_TEST: 'knowledge:retrieval:test',
   OPS_BACKUP_PREVIEW: 'ops:backup:preview',
   OPS_BACKUP_CREATE: 'ops:backup:create',
   OPS_RESTORE_PREVIEW: 'ops:restore:preview',
+  OPS_RESTORE_APPLY: 'ops:restore:apply',
   CONTEXT_PACK_PREVIEW: 'contextPack:preview',
   CONTEXT_RECOVERY_PACK: 'contextPack:recoveryPack',
   TEMPLATE_BUNDLES_LIST: 'templateBundles:list',

@@ -1,6 +1,6 @@
 # Project Progress
 
-Date: 2026-05-12
+Date: 2026-05-13
 Workspace: `D:\LocalAI Nexus`
 Branch: `refactor-localai-nexus`
 Product: LocalAI Nexus
@@ -114,11 +114,11 @@ Current completion boundary: all seven rounds are completed to the local, creden
 |---|---:|
 | `npm.cmd run typecheck` | PASS |
 | `npm.cmd run lint` | PASS, warnings under threshold |
-| `npm.cmd run test` | PASS, 32 files / 208 tests |
-| `npm.cmd run smoke` | PASS, 227/227 |
-| `npm.cmd run verify` | PASS, 143/143 plus smoke 227/227 |
+| `npm.cmd run test` | PASS, 32 files / 217 tests |
+| `npm.cmd run smoke` | PASS, 228/228 |
+| `npm.cmd run verify` | PASS, 143/143 plus smoke 228/228 |
 | `npm.cmd run build` | PASS |
-| `npm.cmd run test:e2e` | PASS, 19/19 |
+| `npm.cmd run test:e2e` | PASS, 20/20 |
 | `npm.cmd run test:static-browser` | PASS |
 | `npm.cmd run test:launch-static` | PASS |
 | `npm.cmd run test:electron-startup` | PASS |
@@ -156,9 +156,9 @@ fix: repair language and theme settings behavior
 
 - Implemented the Gateway/API key acceptance gaps: key-level daily/monthly quota, rate limit, concurrency limit, endpoint/model whitelist enforcement, request attribution, and copy-once env/Codex/Claude export.
 - Added safe Gateway config import/export coverage for ccs, sub2api, cc-switch, claude-code, codex, and openai-env inputs. The import path produces a redacted preview, merge plan, local backup checkpoint, and audit metadata; it does not write external Codex or Claude Code config files silently.
-- Added/verified Knowledge, Observability, and Ops module services for redacted document preview/retrieval, mock evaluation/reporting, backup manifest creation, and restore preview rejection.
+- Added/verified Knowledge, Observability, and Ops module services for redacted document preview/retrieval, persistent local index metadata, asset graph, quality state, mock evaluation/reporting, backup manifest creation, restore preview, and merge-only restore apply.
 - Updated smoke coverage so the static verifier checks Gateway import preview/merge/backup/audit, redaction, Ops backup schema, and the module IPC/preload/API surfaces.
-- Latest local evidence after these changes: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (32 files / 208 tests), `npm.cmd run smoke` PASS (227/227), `npm.cmd run verify` PASS (143/143 plus smoke 227/227), and `npm.cmd run test:e2e` PASS (19/19).
+- Latest local evidence after these changes: `npm.cmd run typecheck` PASS, `npm.cmd run test` PASS (32 files / 217 tests), `npm.cmd run smoke` PASS (228/228), `npm.cmd run lint` PASS (0 errors / 21 warnings), `npm.cmd run scan:mojibake` PASS (178 files checked), `npm.cmd run build` PASS, `npm.cmd run verify` PASS (143/143 plus smoke 228/228), `npm.cmd run test:e2e` PASS (20/20), and `git diff --check` PASS with CRLF warnings only.
 - Final local verification also passed `npm.cmd run lint`, `npm.cmd run scan:mojibake` (177 files checked), `npm.cmd run build`, `npm.cmd run test:static-browser`, `npm.cmd run test:launch-static`, `npm.cmd run test:electron-startup`, `npm.cmd run test:electron-auth-bridge`, `npm.cmd run test:gateway-http`, `npm.cmd run test:long-run`, and `npm.cmd run shortcut`.
 - The latest `npm.cmd run dist` attempt rebuilt source output and produced `release/win-unpacked/LocalAI Nexus.exe`; final installer packaging remains blocked by the local `winCodeSign` symlink privilege failure.
 - Git delivery closed with implementation commit `52585d9` pushed to `origin/refactor-localai-nexus`; local HEAD, tracking branch, and `git ls-remote` all resolved to `52585d9681b02008d421ad8098197c2cc7740a51`.

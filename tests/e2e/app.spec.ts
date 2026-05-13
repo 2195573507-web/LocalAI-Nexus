@@ -30,6 +30,8 @@ function installAgentflowMock() {
       'export:write',
       'settings:read',
       'settings:write',
+      'ops:backup',
+      'ops:restore',
       'dialog:open',
       'admin:users',
       'admin:audit',
@@ -280,6 +282,197 @@ function installAgentflowMock() {
           externalUrlPolicy: 'confirm-before-open',
         }),
       },
+      observability: {
+        report: async () => ({
+          id: 'observability-e2e',
+          generatedAt: now(),
+          usage: {
+            todayRequests: 1,
+            weekRequests: 2,
+            monthRequests: 3,
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            successRate: 1,
+            failureRate: 0,
+            averageLatencyMs: 42,
+            p95LatencyMs: 60,
+            byProvider: [],
+            byModel: [],
+            recentFailureReason: 'None',
+          },
+          traces: [
+            {
+              traceId: 'trace-e2e',
+              source: 'gateway',
+              operation: '/v1/responses',
+              status: 'success',
+              startedAt: now(),
+              latencyMs: 42,
+              redaction: 'secrets-redacted',
+            },
+          ],
+          slowRequests: [],
+          errorCategories: [],
+          traceDetails: [
+            {
+              traceId: 'trace-e2e',
+              source: 'gateway',
+              operation: '/v1/responses',
+              status: 'success',
+              startedAt: now(),
+              latencyMs: 42,
+              durationBucket: 'fast',
+              relatedRecordId: 'trace-e2e',
+              details: [
+                { label: 'source', value: 'gateway' },
+                { label: 'operation', value: '/v1/responses' },
+              ],
+              redaction: 'secrets-redacted',
+            },
+          ],
+          evaluation: {
+            id: 'eval-e2e',
+            name: 'E2E mock evaluation',
+            target: 'prompt',
+            score: 0.9,
+            status: 'passed',
+            findings: ['Mock evaluation passed.'],
+            redaction: 'secrets-redacted',
+            mode: 'mock',
+            createdAt: now(),
+          },
+          evaluationDataset: {
+            id: 'dataset-e2e',
+            generatedAt: now(),
+            sampleCount: 1,
+            passCount: 1,
+            warningCount: 0,
+            failCount: 0,
+            averageScore: 0.9,
+            latestRuns: [{ id: 'eval-e2e', name: 'E2E mock evaluation', status: 'passed', score: 0.9, createdAt: now() }],
+            mode: 'mock-local',
+            redaction: 'secrets-redacted',
+          },
+          redTeamFindings: [
+            {
+              id: 'redteam-e2e',
+              risk: 'none',
+              severity: 'info',
+              title: 'No local red-team issue detected',
+              detail: 'E2E mock report is clean.',
+              recommendation: 'Run credentialed red-team tests only with user-approved keys.',
+            },
+          ],
+          exportSummary: {
+            id: 'export-e2e',
+            generatedAt: now(),
+            traceCount: 1,
+            slowRequestCount: 0,
+            errorCategoryCount: 0,
+            evaluationStatus: 'passed',
+            suggestedFilename: 'localai-nexus-observability-e2e.md',
+            markdown: '# LocalAI Nexus Observability Report\n\nTrace count: 1',
+            redaction: 'secrets-redacted',
+          },
+          reportRedaction: 'secrets-redacted',
+          compatibility: 'legacy-usage-and-run-events',
+        }),
+        runMockEvaluation: async () => ({
+          id: 'eval-e2e',
+          name: 'E2E mock evaluation',
+          target: 'prompt',
+          score: 0.9,
+          status: 'passed',
+          findings: ['Mock evaluation passed.'],
+          redaction: 'secrets-redacted',
+          mode: 'mock',
+          createdAt: now(),
+        }),
+      },
+      knowledge: {
+        assetsSummary: async () => ({
+          id: 'knowledge-summary-e2e',
+          generatedAt: now(),
+          documentCount: 1,
+          chunkCount: 2,
+          tokenEstimate: 80,
+          promptCount: 1,
+          memoryCount: 2,
+          staleMemoryCount: 0,
+          topTags: [{ tag: 'gateway', count: 1 }],
+          latestDocuments: [{ id: 'doc-e2e', title: 'E2E knowledge note', chunkCount: 2, createdAt: now() }],
+          retrievalReady: true,
+          redaction: 'secrets-redacted',
+        }),
+        previewDocument: async (input: { title?: string; content: string }) => ({
+          id: 'doc-preview-e2e',
+          title: input.title || 'Preview',
+          chunkCount: 1,
+          chunks: [{ id: 'chunk-1', text: input.content.replace(/sk-[\w-]+/g, '[REDACTED]'), tokenEstimate: 20 }],
+          redaction: 'secrets-redacted',
+          createdAt: now(),
+        }),
+        testRetrieval: async (input: { query: string }) => ({
+          query: input.query,
+          topK: 5,
+          matches: [{ chunkId: 'doc-e2e:chunk-1', title: 'E2E knowledge note', text: 'Local retrieval redaction note.', score: 0.95 }],
+          latencyMs: 2,
+          mode: 'mock-local',
+          redaction: 'secrets-redacted',
+        }),
+      },
+      ops: {
+        backupPreview: async () => ({
+          id: 'backup-e2e',
+          createdAt: now(),
+          mode: 'dry-run',
+          schemaVersion: 1,
+          collections: [{ name: 'projects', count: 1, redacted: true }],
+          checksum: 'fnv1a-backup',
+          redaction: 'secrets-redacted',
+          restoreRequiresPreview: true,
+        }),
+        createBackup: async () => ({
+          id: 'backup-created-e2e',
+          createdAt: now(),
+          mode: 'created',
+          schemaVersion: 1,
+          collections: [{ name: 'projects', count: 1, redacted: true }],
+          checksum: 'fnv1a-created',
+          redaction: 'secrets-redacted',
+          restoreRequiresPreview: true,
+          bundle: { collections: ['projects'], bytes: 120, hash: 'fnv1a-created', redaction: 'secrets-redacted' },
+        }),
+        restorePreview: async () => ({
+          ok: true,
+          warnings: [],
+          errors: [],
+          changes: [{ collection: 'projects', incoming: 1, existing: 1, action: 'merge-preview' }],
+          applyToken: 'fnv1a-restore',
+        }),
+        restoreApply: async () => ({
+          ok: true,
+          appliedAt: now(),
+          manifestId: 'manifest-e2e',
+          before: {
+            id: 'backup-before-e2e',
+            createdAt: now(),
+            mode: 'created',
+            schemaVersion: 1,
+            collections: [],
+            checksum: 'fnv1a-before',
+            redaction: 'secrets-redacted',
+            restoreRequiresPreview: true,
+          },
+          collections: [{ collection: 'projects', inserted: 1, skipped: 0, existingBefore: 1 }],
+          checksum: 'fnv1a-apply',
+          mode: 'merge-only',
+          summary: { inserted: 1, skipped: 0, touchedCollections: 1 },
+          auditRedaction: 'secrets-redacted',
+          warnings: [],
+        }),
+      },
       contextPack: {
         preview: async () => ({
           id: 'context-e2e',
@@ -426,6 +619,12 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page).toHaveTitle(/LocalAI Nexus/)
     await expect(page.locator('main').getByRole('heading', { name: /LocalAI Nexus/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
+    await expect(page.getByRole('navigation')).toContainText(/工作台|Workspace/)
+    await expect(page.getByRole('navigation')).toContainText(/模型|Models/)
+    await expect(page.getByRole('navigation')).toContainText(/网关|Gateway/)
+    await expect(page.locator('main').getByRole('heading', { name: /构建计划落地状态|Build Plan Audit/ })).toBeVisible()
+    await expect(page.getByText('00 模块化重构')).toBeVisible()
+    await expect(page.getByText('部分落地').first()).toBeVisible()
     await expect(page.getByText(/1 分钟快速开始/).first()).toBeVisible()
     await expect(page.getByRole('button', { name: /打开新手示例项目/ })).toBeVisible()
     await expect(page.getByRole('button', { name: /运行示例 Workflow/ }).first()).toBeVisible()
@@ -479,6 +678,7 @@ test.describe('LocalAI Nexus React web entry', () => {
       ['/#/gateway', /gateway/],
       ['/#/runtime', /runtime/],
       ['/#/diagnostics', /diagnostics/],
+      ['/#/knowledge', /knowledge/],
       ['/#/projects', /projects/],
       ['/#/agents', /agents/],
       ['/#/workflows', /workflows/],
@@ -512,7 +712,7 @@ test.describe('LocalAI Nexus React web entry', () => {
 
     for (const action of quickActions) {
       await page.goto('/', { waitUntil: 'networkidle' })
-      await page.getByRole('button', { name: action.name }).first().click()
+      await page.getByTestId('dashboard-quick-actions').getByRole('button', { name: action.name }).click()
       await expect(page).toHaveURL(action.url)
       await expect(page.getByRole('main').first()).not.toBeEmpty()
     }
@@ -526,7 +726,8 @@ test.describe('LocalAI Nexus React web entry', () => {
       ['/#/router', /模型路由|Model Router|最近决策|Recent decisions/],
       ['/#/gateway', /本地 Gateway|Local Gateway|支持的端点|Supported endpoints/],
       ['/#/runtime', /Runtime 切换器|Runtime Switcher|Codex profile/],
-      ['/#/diagnostics', /诊断中心|Diagnostics|恢复 Prompt 预览|Recovery prompt preview/],
+      ['/#/diagnostics', /诊断中心|Diagnostics|恢复 Prompt 预览|Recovery prompt preview|Restore Apply/],
+      ['/#/knowledge', /知识库|Knowledge Base|检索测试|retrieval/i],
       ['/#/agents', /Agent 工作台|Agent Studio|执行时间线|Execution timeline/],
       ['/#/security', /安全中心|Security Center|风险发现|Findings/],
       ['/#/ecosystem', /本地生态|Local Ecosystem|Desktop App Pack/],
@@ -654,6 +855,32 @@ test.describe('LocalAI Nexus React web entry', () => {
     await expect(page.locator('main')).toContainText(/暂无共享记忆/)
     await expect(page.locator('main')).toContainText(/项目目标、技术栈选择、已修复的问题、模型偏好/)
     await expect(page.getByRole('button', { name: /创建第一条记忆|Create first memory/ })).toBeVisible()
+  })
+
+  test('knowledge and diagnostics expose local build-plan capabilities', async ({ page }) => {
+    await page.goto('/#/knowledge', { waitUntil: 'networkidle' })
+    await expect(page.locator('main').getByRole('heading', { name: /知识库|Knowledge Base/ })).toBeVisible()
+    await expect(page.locator('main')).toContainText(/Document Indexing|document/i)
+    await page.getByRole('button', { name: /Save Indexed Document|预览并保存/ }).click()
+    await expect(page.locator('main')).toContainText(/Saved .*chunks|已保存/)
+    await page.getByRole('button', { name: /Test Retrieval|测试检索/ }).click()
+    await expect(page.locator('main')).toContainText(/Retrieval finished|检索完成|Local retrieval/)
+
+    await page.goto('/#/diagnostics', { waitUntil: 'networkidle' })
+    await expect(page.locator('main').getByRole('heading', { name: /诊断中心|Diagnostics/ })).toBeVisible()
+    await expect(page.locator('main')).toContainText(/Trace 详情/)
+    await expect(page.locator('main')).toContainText(/本地评测数据集/)
+    await expect(page.locator('main')).toContainText(/本地 Red-Team 提示/)
+    await expect(page.locator('main')).toContainText(/Restore Apply/)
+    await page.evaluate(() => {
+      Object.assign(window, { __agentflowExports: [] })
+    })
+    await page.getByRole('button', { name: /导出观测报告/ }).click()
+    const exported = await page.evaluate(() => (window as unknown as { __agentflowExports: Array<{ content: string; filename: string }> }).__agentflowExports.at(-1))
+    expect(exported).toBeTruthy()
+    if (!exported) throw new Error('Observability export was not captured')
+    expect(exported.filename).toMatch(/observability.*\.md$/)
+    expect(exported.content).toContain('LocalAI Nexus Observability Report')
   })
 
   test('opens new projects on detail with plan as the next step', async ({ page }) => {

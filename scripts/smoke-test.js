@@ -199,6 +199,8 @@ const bundleRegistryService = readText('src/main/domain/ecosystem/bundleRegistry
 const gatewayKeyService = readText('src/main/domain/gateway/gatewayKeyService.ts')
 const usageService = readText('src/main/domain/usage/usageService.ts')
 const backupService = readText('src/main/domain/ops/backupService.ts')
+const knowledgeService = readText('src/main/domain/knowledge/knowledgeService.ts')
+const moduleRegistry = readText('src/shared/moduleRegistry.ts')
 check('contextIsolation enabled', main.includes('contextIsolation: true'))
 check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
 check('preload uses contextBridge', preload.includes('contextBridge.exposeInMainWorld'))
@@ -248,8 +250,10 @@ check('LocalAI Nexus IPC permissions declared', [
   'GATEWAY_KEY_CREATE',
   'GATEWAY_KEY_RESET',
   'OBSERVABILITY_REPORT_GENERATE',
+  'KNOWLEDGE_ASSETS_SUMMARY',
   'KNOWLEDGE_DOCUMENT_PREVIEW',
   'OPS_BACKUP_PREVIEW',
+  'OPS_RESTORE_APPLY',
   'CONTEXT_PACK_PREVIEW',
   'TEMPLATE_BUNDLES_LIST',
   'TEMPLATE_BUNDLES_UPSERT',
@@ -275,10 +279,11 @@ check('security report service is redacted', securityReportService.includes('sec
 check('context pack preview includes redacted sources', contextPackService.includes('sanitizeObject') && contextPackService.includes('staleMemoryCount') && contextPackService.includes('provider_trace'))
 check('context recovery pack includes graph and trace ids', contextPackService.includes('buildRecoveryPack') && contextPackService.includes('relatedMemoryPairs') && contextPackService.includes('providerTraceIds') && contextPackService.includes('workflowRunIds'))
 check('local template bundle registry is local-only', bundleRegistryService.includes('localOnly === false') && bundleRegistryService.includes('BUILTIN_TEMPLATE_BUNDLES') && bundleRegistryService.includes('toggleTemplateBundle'))
-check('knowledge preview and retrieval IPC exist', ['KNOWLEDGE_DOCUMENT_PREVIEW', 'KNOWLEDGE_RETRIEVAL_TEST', 'knowledgeDocuments'].every((keyword) => `${sharedTypes}\n${mainIpc}`.includes(keyword)))
-check('observability report and mock eval IPC exist', ['OBSERVABILITY_REPORT_GENERATE', 'EVAL_MOCK_RUN', 'observability.report.generate'].every((keyword) => `${sharedTypes}\n${mainIpc}`.includes(keyword)))
-check('ops backup and restore preview IPC exist', ['OPS_BACKUP_PREVIEW', 'OPS_BACKUP_CREATE', 'OPS_RESTORE_PREVIEW', 'backupManifests'].every((keyword) => `${sharedTypes}\n${mainIpc}`.includes(keyword)))
-check('ops backup bundle is redacted and schema versioned', ['schemaVersion', 'buildRedactedBundle', 'restoreRequiresPreview', 'secrets-redacted'].every((keyword) => `${sharedTypes}\n${backupService}`.includes(keyword)))
+check('knowledge assets summary, preview, and retrieval IPC exist', ['KNOWLEDGE_ASSETS_SUMMARY', 'KNOWLEDGE_DOCUMENT_PREVIEW', 'KNOWLEDGE_RETRIEVAL_TEST', 'knowledgeDocuments'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${knowledgeService}\n${moduleRegistry}`.includes(keyword)))
+check('knowledge local index persists graph and quality metadata', ['persistent-index', 'assetGraph', 'qualityState', 'IndexedKnowledgeChunk', 'tokenEstimate', 'tags', 'keywords'].every((keyword) => knowledgeService.includes(keyword)))
+check('observability report, trace detail, and mock eval IPC exist', ['OBSERVABILITY_REPORT_GENERATE', 'EVAL_MOCK_RUN', 'exportSummary', 'observability.report.generate'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${readText('src/main/domain/observability/observabilityService.ts')}`.includes(keyword)))
+check('ops backup, restore preview, and restore apply IPC exist', ['OPS_BACKUP_PREVIEW', 'OPS_BACKUP_CREATE', 'OPS_RESTORE_PREVIEW', 'OPS_RESTORE_APPLY', 'backupManifests'].every((keyword) => `${sharedTypes}\n${mainIpc}\n${moduleRegistry}`.includes(keyword)))
+check('ops backup bundle is redacted, schema versioned, and explicit-apply guarded', ['schemaVersion', 'buildRedactedBundle', 'restoreRequiresPreview', 'applyToken', 'mergeMany', 'secrets-redacted'].every((keyword) => `${sharedTypes}\n${backupService}\n${readText('src/main/storage.ts')}`.includes(keyword)))
 check('prompt append-only versions are preserved', sharedTypes.includes('PromptVersion') && mainIpc.includes('buildPromptVersion') && mainIpc.includes('versionCreated'))
 
 console.log('\n[Shared Memory Safety]')
@@ -307,13 +312,14 @@ check('memory context marker exists', memoryInjection.includes('[Shared Memory C
 check('memory context canonical sections exist', ['项目背景', '已做决策', '当前进度', '已知问题', '用户偏好', 'API Provider 注意事项'].every((keyword) => memoryInjection.includes(keyword)))
 const appTsx = readText('src/renderer/App.tsx')
 check('route ErrorBoundary wrapper exists', appTsx.includes('ErrorBoundary') && appTsx.includes('routeElement'))
-check('LocalAI Nexus primary routes exist', ['/providers', '/tokens', '/health', '/router', '/gateway', '/runtime', '/diagnostics', '/agents', '/security', '/ecosystem'].every((route) => appTsx.includes(`path="${route}"`)))
+check('LocalAI Nexus primary routes exist', ['/providers', '/tokens', '/health', '/router', '/gateway', '/runtime', '/diagnostics', '/agents', '/security', '/ecosystem', '/knowledge'].every((route) => appTsx.includes(`path="${route}"`)))
 
 console.log('\n[Flat Surface UI]')
 const rendererStyles = readText('src/renderer/styles.css')
 const surfaceCard = readText('src/renderer/components/SurfaceCard.tsx')
 const dashboard = readText('src/renderer/routes/Dashboard.tsx')
 const sidebar = readText('src/renderer/components/Sidebar.tsx')
+const navigationGroups = readText('src/renderer/navigation/moduleGroups.tsx')
 const tailwindConfig = readText('tailwind.config.ts')
 check('renderer flat surface token set exists', ['--surface', '--surface-muted', '--surface-hover', '--border', '--focus-ring'].every((keyword) => rendererStyles.includes(keyword)) && !rendererStyles.includes('--gla' + 'ss-') && !rendererStyles.includes('backdrop-filter'))
 check('renderer SurfaceCard uses shared surface primitive', surfaceCard.includes('surface-card') && surfaceCard.includes('focus-ring'))
@@ -321,7 +327,7 @@ check('Tailwind accent palette supports used shades', ['400', '500', '600', '700
 check('Dashboard Nexus first-run path exists', ['Provider', 'Gateway', 'Workflow', 'Prompt', 'Guard', 'Memory'].every((keyword) => dashboard.includes(keyword)))
 check('Dashboard one-minute onboarding exists', dashboard.includes('ONE_MINUTE_STEPS') && dashboard.includes('/projects/onboarding-demo-project') && dashboard.includes('/workflows'))
 check('Dashboard quick actions target beginner modules', ['/projects/onboarding-demo-project', '/agents', '/workflows', '/providers', '/runtime', '/memory'].every((route) => dashboard.includes(route)))
-check('Sidebar includes Nexus IA modules', ['Provider Hub', 'Token Center', 'Health Monitor', 'Model Router', 'Local Gateway', 'Runtime Switcher', 'Diagnostics', 'Agent Studio', 'Security Center', 'Ecosystem'].every((label) => sidebar.includes(label)))
+check('Sidebar includes Nexus IA modules', ['Provider Hub', 'Token Center', 'Health Monitor', 'Model Router', 'Local Gateway', 'Runtime Switcher', 'Diagnostics', 'Agent Studio', 'Security Center', 'Ecosystem', 'Knowledge Base'].every((label) => `${sidebar}\n${navigationGroups}`.includes(label)))
 check('renderer API wraps Nexus domains', ['gateway:', 'usage:', 'health:', 'runtimeProfiles:', 'router:', 'security:', 'contextPack:', 'templateBundles:'].every((keyword) => rendererApi.includes(keyword)))
 
 const promptLab = readText('src/renderer/routes/PromptLab.tsx')

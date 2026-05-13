@@ -3,11 +3,12 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, MemoryType, NexusGatewayApiKey, NexusGatewayApiKeyCreateRequest, NexusGatewayConfigApplyResult, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SavedPrompt, PromptVersion, SkillRegistryEntry } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, Memory, MemoryType, NexusGatewayApiKey, NexusGatewayApiKeyCreateRequest, NexusGatewayConfigApplyResult, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, NexusWorkspaceSummary, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SavedPrompt, PromptVersion, SkillRegistryEntry, Task } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import { buildAuditExportManifest } from '../shared/auditCore.js';
 import { PROVIDER_PRESETS } from '../shared/providerPresets.js';
 import { buildConfigBundle, previewConfigImport, previewGatewayConfigImport, simpleHash } from '../shared/configPortability.js';
+import { getAllRegisteredStorageCollections, LOCALAI_MODULE_REGISTRY } from '../shared/moduleRegistry.js';
 import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
@@ -36,7 +37,7 @@ import { evaluateMcpGatewayRequest } from './mcpGateway.js';
 import { runWorkflow } from '../core/workflowRuntime.js';
 import { BEGINNER_WORKFLOW_TEMPLATES } from '../templates/workflowTemplates.js';
 import type { Workflow, WorkflowVersion } from '../shared/workflowTypes.js';
-import { getGatewayStatus, startGateway, stopGateway } from './domain/gateway/gatewayService.js';
+import { getGatewayStatus, restartGateway, startGateway, stopGateway } from './domain/gateway/gatewayService.js';
 import {
   buildGatewayEnvExport,
   createGatewayApiKey,
@@ -51,8 +52,8 @@ import { generateRuntimeProfiles } from './domain/runtime/runtimeProfileService.
 import { createPromptSkill, testPromptSkill } from './domain/skills/skillService.js';
 import { generateSecurityReport } from './domain/security/securityReportService.js';
 import { generateObservabilityReport, runMockEvaluation } from './domain/observability/observabilityService.js';
-import { saveKnowledgeDocumentPreview, testKnowledgeRetrieval } from './domain/knowledge/knowledgeService.js';
-import { createBackupManifest, previewBackup, previewRestore } from './domain/ops/backupService.js';
+import { saveKnowledgeDocumentPreview, summarizeKnowledgeAssets, testKnowledgeRetrieval } from './domain/knowledge/knowledgeService.js';
+import { applyRestore, createBackupManifest, previewBackup, previewRestore } from './domain/ops/backupService.js';
 import { buildRecoveryPack, previewContextPack } from './domain/memory/contextPackService.js';
 import { listTemplateBundles, toggleTemplateBundle, upsertTemplateBundle } from './domain/ecosystem/bundleRegistryService.js';
 import { createDemoExecution } from '../shared/agentCore.js';
@@ -103,6 +104,7 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.PROJECT_DELETE]: 'project:write',
   [IPC_CHANNELS.PROJECT_ACL_GET]: 'project:read',
   [IPC_CHANNELS.PROJECT_ACL_UPDATE]: 'project:write',
+  [IPC_CHANNELS.WORKSPACE_SUMMARY]: 'project:read',
   [IPC_CHANNELS.TASK_LIST]: 'project:read',
   [IPC_CHANNELS.TASK_CREATE]: 'task:write',
   [IPC_CHANNELS.TASK_UPDATE]: 'task:write',
@@ -152,6 +154,7 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.GATEWAY_STATUS]: 'gateway:read',
   [IPC_CHANNELS.GATEWAY_START]: 'gateway:write',
   [IPC_CHANNELS.GATEWAY_STOP]: 'gateway:write',
+  [IPC_CHANNELS.GATEWAY_RESTART]: 'gateway:write',
   [IPC_CHANNELS.GATEWAY_KEY_LIST]: 'gateway:read',
   [IPC_CHANNELS.GATEWAY_KEY_CREATE]: 'gateway:write',
   [IPC_CHANNELS.GATEWAY_KEY_DISABLE]: 'gateway:write',
@@ -174,11 +177,13 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.SECURITY_REPORT_GENERATE]: 'admin:audit',
   [IPC_CHANNELS.OBSERVABILITY_REPORT_GENERATE]: 'provider:read',
   [IPC_CHANNELS.EVAL_MOCK_RUN]: 'provider:read',
+  [IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY]: 'memory:read',
   [IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW]: 'memory:write',
   [IPC_CHANNELS.KNOWLEDGE_RETRIEVAL_TEST]: 'memory:read',
   [IPC_CHANNELS.OPS_BACKUP_PREVIEW]: 'ops:backup',
   [IPC_CHANNELS.OPS_BACKUP_CREATE]: 'ops:backup',
   [IPC_CHANNELS.OPS_RESTORE_PREVIEW]: 'ops:restore',
+  [IPC_CHANNELS.OPS_RESTORE_APPLY]: 'ops:restore',
   [IPC_CHANNELS.CONTEXT_PACK_PREVIEW]: 'memory:read',
   [IPC_CHANNELS.CONTEXT_RECOVERY_PACK]: 'memory:export',
   [IPC_CHANNELS.TEMPLATE_BUNDLES_LIST]: 'skill:read',
@@ -422,32 +427,7 @@ function installIpcOriginGuard(): void {
   }) as typeof ipcMain.handle;
 }
 
-const ALLOWED_STORAGE_COLLECTIONS = new Set([
-  'projects',
-  'tasks',
-  'prompts',
-  'runs',
-  'workflows',
-  'workflowVersions',
-  'diagnosticReports',
-  'tokenUsage',
-  'tokenPolicies',
-  'activeGatewayRequests',
-  'healthChecks',
-  'runtimeProfiles',
-  'modelRoutes',
-  'templateBundles',
-  'skills',
-  'skillRuns',
-  'gatewayRequests',
-  'gatewayApiKeys',
-  'evaluationRuns',
-  'knowledgeDocuments',
-  'backupManifests',
-  'memories',
-  'riskChecks',
-  'settings',
-]);
+const ALLOWED_STORAGE_COLLECTIONS = new Set(getAllRegisteredStorageCollections());
 
 const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
 
@@ -884,6 +864,76 @@ async function getSettingValue<T = unknown>(key: string): Promise<T | undefined>
   return all.find((s) => s.id === key)?.value;
 }
 
+async function buildWorkspaceSummary(context?: SessionContext): Promise<NexusWorkspaceSummary> {
+  const [
+    projects,
+    tasks,
+    prompts,
+    memories,
+    providers,
+    gatewayKeys,
+    gatewayRequests,
+  ] = await Promise.all([
+    storage.getAll<Project>('projects').catch(() => []),
+    storage.getAll<Task>('tasks').catch(() => []),
+    storage.getAll<SavedPrompt>('prompts').catch(() => []),
+    storage.getAll<Memory>('memories').catch(() => []),
+    storage.getAll<ProviderSetting>('providerSettings').catch(() => []),
+    storage.getAll<NexusGatewayApiKey>('gatewayApiKeys').catch(() => []),
+    storage.getAll<{ id: string; createdAt?: string }>('gatewayRequests').catch(() => []),
+  ]);
+  const visibleProjects = !context || context.user.role === 'admin'
+    ? projects
+    : projects.filter((project) => canAccessProjectResource(context, project, 'read'));
+  const visibleProjectIds = new Set(visibleProjects.map((project) => project.id));
+  const isVisibleProjectItem = (item: { projectId?: string }) => !item.projectId || visibleProjectIds.has(item.projectId);
+  const visibleTasks = !context || context.user.role === 'admin' ? tasks : tasks.filter(isVisibleProjectItem);
+  const visiblePrompts = !context || context.user.role === 'admin' ? prompts : prompts.filter(isVisibleProjectItem);
+  const visibleMemories = !context || context.user.role === 'admin' ? memories : memories.filter(isVisibleProjectItem);
+  const moduleCount = LOCALAI_MODULE_REGISTRY.length;
+  const averageCompletionPercent = Math.round(
+    LOCALAI_MODULE_REGISTRY.reduce((sum, module) => sum + module.completionPercent, 0) / moduleCount,
+  );
+
+  return {
+    generatedAt: new Date().toISOString(),
+    projects: {
+      total: visibleProjects.length,
+      active: visibleProjects.filter((project) => project.status !== 'archived').length,
+      archived: visibleProjects.filter((project) => project.status === 'archived').length,
+    },
+    tasks: {
+      total: visibleTasks.length,
+      open: visibleTasks.filter((task) => !['done', 'blocked'].includes(task.status)).length,
+      done: visibleTasks.filter((task) => task.status === 'done').length,
+      blocked: visibleTasks.filter((task) => task.status === 'blocked').length,
+    },
+    prompts: {
+      total: visiblePrompts.length,
+      starred: visiblePrompts.filter((prompt) => Boolean(prompt.starred || prompt.favorite)).length,
+    },
+    memory: {
+      total: visibleMemories.length,
+      active: visibleMemories.filter((memory) => memory.status === 'active').length,
+      pending: visibleMemories.filter((memory) => memory.status === 'pending').length,
+    },
+    providers: {
+      total: providers.length,
+      enabled: providers.filter((provider) => provider.enabled !== false).length,
+    },
+    gateway: {
+      keyCount: gatewayKeys.filter((key) => key.status !== 'deleted').length,
+      activeKeyCount: gatewayKeys.filter((key) => key.status === 'active').length,
+      recentRequestCount: gatewayRequests.length,
+    },
+    buildPlans: {
+      moduleCount,
+      averageCompletionPercent,
+      incompleteModuleCount: LOCALAI_MODULE_REGISTRY.filter((module) => module.status !== 'implemented').length,
+    },
+  };
+}
+
 async function createGatewayConfigImportRecord(raw: string, context?: SessionContext): Promise<NexusGatewayConfigApplyResult> {
   const preview = previewGatewayConfigImport(raw);
   if (!preview.ok || !preview.normalized) {
@@ -1238,6 +1288,20 @@ export function registerIpcHandlers(): void {
       const projects = await storage.getAll<{ id: string; [key: string]: unknown }>('projects');
       if (!context || context.user.role === 'admin') return projects;
       return projects.filter((project) => canAccessProjectResource(context, project as never, 'read'));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKSPACE_SUMMARY, async (_event, context?: SessionContext) => {
+    try {
+      const summary = await buildWorkspaceSummary(context);
+      await recordMutationAudit(context, 'workspace.summary.viewed', { type: 'workspace_summary' }, {
+        projects: summary.projects.total,
+        modules: summary.buildPlans.moduleCount,
+        averageCompletionPercent: summary.buildPlans.averageCompletionPercent,
+      });
+      return summary;
     } catch (err) {
       return handleError(err);
     }
@@ -2216,6 +2280,19 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_RESTART, async (_event, context?: SessionContext) => {
+    try {
+      const status = await restartGateway();
+      await recordMutationAudit(context, 'gateway.restarted', { type: 'gateway', label: status.baseUrl }, {
+        online: status.online,
+        port: status.port,
+      });
+      return status;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.GATEWAY_KEY_LIST, async () => {
     try {
       return await listGatewayApiKeys();
@@ -2458,6 +2535,21 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY, async (_event, context?: SessionContext) => {
+    try {
+      const summary = await summarizeKnowledgeAssets();
+      await recordMutationAudit(context, 'knowledge.assets.summary', { type: 'knowledge_assets', id: summary.id }, {
+        documentCount: summary.documentCount,
+        chunkCount: summary.chunkCount,
+        promptCount: summary.promptCount,
+        memoryCount: summary.memoryCount,
+      });
+      return summary;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW, async (_event, input: { title?: string; content: string }, context?: SessionContext) => {
     try {
       const preview = await saveKnowledgeDocumentPreview(input);
@@ -2520,6 +2612,25 @@ export function registerIpcHandlers(): void {
         errorCount: preview.errors.length,
       });
       return preview;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.OPS_RESTORE_APPLY, async (_event, input: { raw?: string; confirmToken?: string }, context?: SessionContext) => {
+    try {
+      const result = await applyRestore({
+        raw: String(input?.raw ?? ''),
+        confirmToken: String(input?.confirmToken ?? ''),
+      });
+      await recordMutationAudit(context, result.ok ? 'ops.restore.applied' : 'ops.restore.rejected', { type: 'restore_apply', id: result.manifestId }, {
+        ok: result.ok,
+        checksum: result.checksum,
+        inserted: result.collections.reduce((total, item) => total + item.inserted, 0),
+        skipped: result.collections.reduce((total, item) => total + item.skipped, 0),
+        redaction: result.auditRedaction,
+      });
+      return result;
     } catch (err) {
       return handleError(err);
     }

@@ -31,6 +31,7 @@ export interface AgentFlowAPI {
   };
   projects: {
     list(): Promise<unknown>;
+    summary(): Promise<unknown>;
     get(id: string): Promise<unknown>;
     create(data: unknown): Promise<unknown>;
     update(id: string, data: unknown): Promise<unknown>;
@@ -108,6 +109,7 @@ export interface AgentFlowAPI {
     status(): Promise<unknown>;
     start(): Promise<unknown>;
     stop(): Promise<unknown>;
+    restart(): Promise<unknown>;
     keys(): Promise<unknown>;
     createKey(request: NexusGatewayApiKeyCreateRequest): Promise<unknown>;
     disableKey(id: string): Promise<unknown>;
@@ -146,6 +148,7 @@ export interface AgentFlowAPI {
     runMockEvaluation(input?: unknown): Promise<unknown>;
   };
   knowledge: {
+    assetsSummary(): Promise<unknown>;
     previewDocument(input: { title?: string; content: string }): Promise<unknown>;
     testRetrieval(input: { query: string; content?: string; topK?: number }): Promise<unknown>;
   };
@@ -153,6 +156,7 @@ export interface AgentFlowAPI {
     backupPreview(): Promise<unknown>;
     createBackup(): Promise<unknown>;
     restorePreview(raw: string): Promise<unknown>;
+    restoreApply(input: { raw: string; confirmToken: string }): Promise<unknown>;
   };
   contextPack: {
     preview(options?: unknown): Promise<unknown>;
@@ -245,6 +249,7 @@ const api: AgentFlowAPI = {
 
   projects: {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_LIST, buildAuthEnvelope()),
+    summary: () => ipcRenderer.invoke(IPC_CHANNELS.WORKSPACE_SUMMARY, buildAuthEnvelope()),
     get: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_GET, buildAuthEnvelope(), id),
     create: (data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_CREATE, buildAuthEnvelope(), data),
     update: (id: string, data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_UPDATE, buildAuthEnvelope(), id, data),
@@ -339,6 +344,7 @@ const api: AgentFlowAPI = {
     status: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_STATUS, buildAuthEnvelope()),
     start: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_START, buildAuthEnvelope()),
     stop: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_STOP, buildAuthEnvelope()),
+    restart: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_RESTART, buildAuthEnvelope()),
     keys: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_LIST, buildAuthEnvelope()),
     createKey: (request: NexusGatewayApiKeyCreateRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_KEY_CREATE, buildAuthEnvelope(), request),
@@ -389,6 +395,7 @@ const api: AgentFlowAPI = {
   },
 
   knowledge: {
+    assetsSummary: () => ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_ASSETS_SUMMARY, buildAuthEnvelope()),
     previewDocument: (input: { title?: string; content: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.KNOWLEDGE_DOCUMENT_PREVIEW, buildAuthEnvelope(), input),
     testRetrieval: (input: { query: string; content?: string; topK?: number }) =>
@@ -399,6 +406,8 @@ const api: AgentFlowAPI = {
     backupPreview: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_BACKUP_PREVIEW, buildAuthEnvelope()),
     createBackup: () => ipcRenderer.invoke(IPC_CHANNELS.OPS_BACKUP_CREATE, buildAuthEnvelope()),
     restorePreview: (raw: string) => ipcRenderer.invoke(IPC_CHANNELS.OPS_RESTORE_PREVIEW, buildAuthEnvelope(), raw),
+    restoreApply: (input: { raw: string; confirmToken: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.OPS_RESTORE_APPLY, buildAuthEnvelope(), input),
   },
 
   contextPack: {

@@ -9,17 +9,18 @@ The current workspace is rooted at `D:\LocalAI Nexus`, preserving Git history, J
 | Area | Status | Notes |
 |---|---:|---|
 | Product identity and shell | Completed | Package/window/UI/static fallback/icon/shortcut use LocalAI Nexus. |
-| Dashboard and navigation | Completed | Primary pages are visible and covered by smoke/E2E checks. |
-| Provider Hub | Completed | Provider presets, masked credentials, CRUD/test surfaces, active provider/model switching, and audit-oriented flows exist. Live credential smoke requires user keys. |
-| Token Center | Completed | Usage, trends, failure categories, quota/cooldown/concurrency surfaces, and router impact views exist. Deeper enforcement continues next. |
-| Health Monitor | Completed | Local diagnostics, repair hints, failure categories, trends, and router impact surfaces exist. Live remote probes require credentials/network. |
-| Model Router | Completed | Health/tags/quota/cooldown/fallback decisions and trace IDs are present. |
-| Local Gateway | Completed | Required local endpoints, mock/non-streaming path, route diagnostics, usage/audit recording, and HTTP smoke passed. Real upstream streaming still requires credentialed provider validation. |
-| Runtime Switcher | Completed | `.env`, JSON, TOML, YAML, and CLI snippets with root vs `/v1` diagnostics are available. No external config is silently written. |
-| Skill Hub / Ecosystem | Completed | Prompt skill and local bundle registry surfaces with validation/risk metadata are present. |
-| Agent / Workflow | Completed | First-class execution-record surfaces, node traces, Chinese failure guidance, and pause/cancel/retry/resume control records exist. Real external-tool approval remains opt-in future hardening. |
-| Shared Memory | Completed | Filters, provenance/stale/context-pack preview/recovery surfaces and redaction-oriented flows exist. |
-| Security Center | Completed | RBAC/ACL visibility, audit/report surface, secret/risk prompts, and redaction surfaces exist. |
+| Build-plan implementation | Partial | See `docs/build-plans/BUILD_PLAN_COMPLETION_AUDIT.md`; all 8 build-plan modules have real code evidence but none are fully complete against their final goals. |
+| Dashboard and navigation | Partial | Primary pages are visible and covered by smoke/E2E checks; Dashboard now exposes build-plan completion status and sidebar module groups. |
+| Provider Hub | Partial | Provider presets, masked credentials, CRUD/test surfaces, active provider/model switching, and audit-oriented flows exist. Live credential smoke, model sync, and full capability matrix remain next-stage. |
+| Token Center | Partial | Usage, trends, failure categories, quota/cooldown/concurrency surfaces, and router impact views exist. Deeper live enforcement evidence continues next. |
+| Health Monitor | Partial | Local diagnostics, repair hints, failure categories, trends, and router impact surfaces exist. Live remote probes require credentials/network. |
+| Model Router | Partial | Health/tags/quota/cooldown/fallback decisions and trace IDs are present; live routing confidence requires credentialed providers. |
+| Local Gateway | Partial | Required local endpoints, local key policy enforcement, route diagnostics, usage/audit recording, and HTTP smoke passed. Real upstream streaming still requires credentialed provider validation. |
+| Runtime Switcher | Partial | `.env`, JSON, TOML, YAML, and CLI snippets with root vs `/v1` diagnostics are available. No external config is silently written. |
+| Skill Hub / Ecosystem | Partial | Prompt skill and local bundle registry surfaces with validation/risk metadata are present; external plugin/tool flows remain future work. |
+| Agent / Workflow | Partial | First-class execution-record surfaces, node traces, Chinese failure guidance, and pause/cancel/retry/resume control records exist. Real external-tool approval remains opt-in future hardening. |
+| Knowledge / Shared Memory | Partial | Knowledge Base route, local document preview/save, persistent chunk index, asset graph, quality state, retrieval metadata, memory filters, context-pack preview/recovery, and redaction-oriented flows exist; upload/parsing, embedding binding, vector RAG rebuild, and memory graph polish remain next-stage. |
+| Security Center | Partial | RBAC/ACL visibility, audit/report surface, secret/risk prompts, redaction surfaces, backup/restore preview, and merge-only restore apply exist; destructive/full restore and migration/repair tooling remain incomplete. |
 | Packaging | Environment-limited | `npm.cmd run dist` builds the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but final packaging is blocked by electron-builder `winCodeSign` symlink extraction privileges on this machine. |
 
 ## Quick Start
@@ -65,6 +66,7 @@ POST /v1/chat/completions
 POST /v1/responses
 POST /responses
 POST /v1/messages
+POST /v1/embeddings
 ```
 
 `/responses` returns Base URL guidance instead of an unexplained 404. Live credentialed provider forwarding is skipped unless the user supplies provider credentials.
@@ -100,7 +102,7 @@ The sidebar is grouped into 7 first-level modules while preserving all 22 previo
 | Models | Provider Hub, Model Router, Runtime Switcher, Health Monitor |
 | Gateway | Local Gateway, Token Center, Diagnostics |
 | Agents | Agent Studio, Agent Flows, Skills, Prompt Lab |
-| Memory | Shared Memory |
+| Memory | Knowledge Base, Shared Memory |
 | Security | Security Center, Safety Guard, Admin Users, Audit Logs |
 | Operations | Ecosystem, Git Timeline, Log Analyzer |
 
@@ -132,11 +134,11 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 
 - `npm.cmd run typecheck`: PASS
 - `npm.cmd run lint`: PASS
-- `npm.cmd run test`: PASS
-- `npm.cmd run smoke`: PASS
-- `npm.cmd run verify`: PASS
+- `npm.cmd run test`: PASS, 32 files / 217 tests
+- `npm.cmd run smoke`: PASS, 228/228
+- `npm.cmd run verify`: PASS, 143/143 plus smoke 228/228
 - `npm.cmd run build`: PASS
-- `npm.cmd run test:e2e`: PASS
+- `npm.cmd run test:e2e`: PASS, 20/20
 - `npm.cmd run test:static-browser`: PASS
 - `npm.cmd run test:launch-static`: PASS
 - `npm.cmd run test:electron-startup`: PASS
@@ -151,6 +153,7 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 
 - Current progress: `PROJECT_PROGRESS.md`
 - Test report: `handoff/TEST_REPORT.md`
+- Build-plan completion audit: `docs/build-plans/BUILD_PLAN_COMPLETION_AUDIT.md`
 - Navigation restructure: `handoff/NAVIGATION_RESTRUCTURE.md`
 - Next steps: `handoff/NEXT_STEPS.md`
 - Cleanup review: `docs/cleanup/cleanup-review.md`

@@ -17,6 +17,7 @@ const navigationSmokeLabels = [
   'Runtime Switcher',
   'Diagnostics',
   'Agent Studio',
+  'Knowledge Base',
   'Security Center',
   'Ecosystem',
 ];
@@ -100,6 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
         <div className={classNames('space-y-3', collapsed && 'space-y-2')}>
           {visibleModuleGroups.map((group) => {
             const activeGroup = group.items.some(isItemActive);
+            const groupLabel = t(group.labelKey, language);
 
             return (
               <div key={group.id} className="space-y-1">
@@ -110,14 +112,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
                       activeGroup ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]',
                     )}
                   >
-                    {group.label}
+                    {groupLabel}
                   </div>
                 )}
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const label = t(item.labelKey, language);
                   const isActive = isItemActive(item);
-                  const title = collapsed ? `${group.label} / ${label}` : undefined;
+                  const title = collapsed ? `${groupLabel} / ${label}` : undefined;
 
                   return (
                     <NavLink

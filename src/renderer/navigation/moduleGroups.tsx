@@ -4,6 +4,7 @@ import {
   Brain,
   Coins,
   FileSearch,
+  Files,
   FolderKanban,
   GitBranch,
   KeyRound,
@@ -42,6 +43,7 @@ export interface NavigationModuleGroup {
     | 'security-admin'
     | 'operations-ecosystem';
   label: string;
+  labelKey: string;
   items: NavigationItem[];
 }
 
@@ -49,6 +51,7 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'workspace',
     label: 'Workspace',
+    labelKey: 'navGroup.workspace',
     items: [
       { to: '/', icon: LayoutDashboard, label: 'Nexus Home', labelKey: 'nav.dashboard' },
       { to: '/projects', icon: FolderKanban, label: 'Project Hub', labelKey: 'nav.projects' },
@@ -58,6 +61,7 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'models',
     label: 'Models',
+    labelKey: 'navGroup.models',
     items: [
       { to: '/providers', icon: KeyRound, label: 'Provider Hub', labelKey: 'nav.providers' },
       { to: '/router', icon: Route, label: 'Model Router', labelKey: 'nav.router' },
@@ -68,6 +72,7 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'gateway',
     label: 'Gateway',
+    labelKey: 'navGroup.gateway',
     items: [
       { to: '/gateway', icon: Server, label: 'Local Gateway', labelKey: 'nav.gateway' },
       { to: '/tokens', icon: Coins, label: 'Token Center', labelKey: 'nav.tokens' },
@@ -77,6 +82,7 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'agents-workflow',
     label: 'Agents',
+    labelKey: 'navGroup.agentsWorkflow',
     items: [
       { to: '/agents', icon: Bot, label: 'Agent Studio', labelKey: 'nav.agents' },
       { to: '/workflows', icon: Workflow, label: 'Agent Flows', labelKey: 'nav.workflows' },
@@ -93,7 +99,14 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'memory-assets',
     label: 'Memory',
+    labelKey: 'navGroup.memoryAssets',
     items: [
+      {
+        to: '/knowledge',
+        icon: Files,
+        label: 'Knowledge Base',
+        labelKey: 'nav.knowledge',
+      },
       {
         to: '/memory',
         icon: Brain,
@@ -106,6 +119,7 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'security-admin',
     label: 'Security',
+    labelKey: 'navGroup.securityAdmin',
     items: [
       { to: '/security', icon: Shield, label: 'Security Center', labelKey: 'nav.security' },
       {
@@ -134,6 +148,7 @@ export const moduleGroups: NavigationModuleGroup[] = [
   {
     id: 'operations-ecosystem',
     label: 'Operations',
+    labelKey: 'navGroup.operationsEcosystem',
     items: [
       { to: '/ecosystem', icon: PackageCheck, label: 'Ecosystem', labelKey: 'nav.ecosystem' },
       {

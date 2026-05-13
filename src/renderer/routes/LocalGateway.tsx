@@ -65,6 +65,12 @@ export default function LocalGateway() {
     await load();
   };
 
+  const restart = async () => {
+    const result = await api.gateway.restart();
+    setMessage(hasError(result) ? result.error : 'Gateway 已重启，端口和本地 /v1 Base URL 已重新确认。');
+    await load();
+  };
+
   const createKey = async () => {
     const result = await api.gateway.createKey({ name: newKeyName });
     if (hasError(result)) {
@@ -124,13 +130,14 @@ export default function LocalGateway() {
               OpenAI 兼容入口、Provider 路由、trace 和本地 API Key 控制面。
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={load} icon={<RefreshCw className="h-4 w-4" />}>刷新</Button>
             {status?.online ? (
               <Button variant="secondary" onClick={stop} icon={<Square className="h-4 w-4" />}>停止</Button>
             ) : (
               <Button onClick={start} icon={<PlayCircle className="h-4 w-4" />}>启动</Button>
             )}
+            <Button variant="secondary" onClick={restart} icon={<RotateCcw className="h-4 w-4" />}>重启</Button>
           </div>
         </div>
       </section>

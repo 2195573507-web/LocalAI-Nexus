@@ -37,7 +37,7 @@
     --card-padding: 16px;
     --form-gap: 12px;
     --list-gap: 8px;
-    --font-sans-cn: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+    --font-sans-cn: "KaiTi", "STKaiti", "KaiTi_GB2312", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
     --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, ui-monospace, monospace;
     --border-color: var(--border);
   }

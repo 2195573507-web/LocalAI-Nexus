@@ -53,7 +53,7 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 | 2. First-use audit | complete | Audited Dashboard, Projects, Workflow, Agent, Prompt, Memory, Settings, seed data, and IPC/runtime paths. |
 | 3. Implementation | complete | Improved one-minute quick start, beginner examples, empty states, seeded run data, and demo Agent execution persistence. |
 | 4. Verification | complete | Ran current source, build, smoke, and E2E gates after the quick closeout. |
-| 5. Git closure | ready | Relevant files are ready for the final `feat: improve first-run onboarding` commit/push if requested. |
+| 5. Git closure | superseded | First-run onboarding closure was superseded by the later module build-plan implementation and final build-plan closeout recorded below. |
 
 ### 2026-05-12 Quick Closeout
 
@@ -71,8 +71,8 @@ Goal: Execute `docs/iteration-plans/LocalAI-Nexus-Multi-Round-Iteration-Plan-202
 |---|---|---:|
 | Gateway key enforcement | Key-level daily/monthly quota, rate limit, concurrency limit, endpoint/model whitelist, and request attribution are implemented in main/Gateway services and covered by unit/smoke. | complete |
 | Gateway config import/export | ccs/sub2api/cc-switch/claude-code/codex/openai-env inputs now get redacted preview, merge plan, backup checkpoint, and audit metadata; external config files are not silently overwritten. | complete |
-| Knowledge/Observability/Ops modules | Knowledge preview/retrieval, observability report/mock eval, redacted backup manifest, and restore preview rejection exist and are covered by unit/smoke. | complete |
-| Current local verification | `typecheck` PASS, `test` PASS 32 files / 208 tests, `smoke` PASS 227/227, `verify` PASS 143/143 + 227/227, and `test:e2e` PASS 19/19 after the latest Gateway import adapter and HTTP smoke changes. | complete |
+| Knowledge/Observability/Ops modules | Knowledge Base route, local index/asset graph/quality state, observability trace details/mock eval/red-team export, redacted backup manifest, restore preview, and merge-only restore apply exist and are covered by unit/smoke/E2E. | complete |
+| Current local verification | `typecheck` PASS, `test` PASS 32 files / 217 tests, `smoke` PASS 228/228, `lint` PASS 0 errors / 21 warnings, `scan:mojibake` PASS 178 files checked, `build` PASS, `verify` PASS 143/143 + 228/228, `test:e2e` PASS 20/20, and `git diff --check` PASS with CRLF warnings only. | complete |
 | Full final gate rerun | `diff --check`, lint, mojibake scan, build, static browser, static launch, Electron startup, auth bridge, Gateway HTTP, 30-minute long-run, shortcut, and dist attempt all completed with source gates passing. | complete |
 | Remaining external limits | Live provider forwarding, real upstream streaming, real external tool approval, and final installer packaging remain credential/environment-limited, not source-build blockers. | honest |
 

@@ -1,7 +1,7 @@
 # LocalAI Nexus Next Iteration Plan
 
 Date: 2026-05-11
-Workspace: `D:\AgentFlowStudio`
+Workspace: `D:\LocalAI Nexus`
 Branch target: `refactor-localai-nexus`
 
 ## 1. Purpose
@@ -13,11 +13,13 @@ The next stage focuses on replacing the remaining diagnostic or mock-only paths 
 ## 2. Current Baseline
 
 - Product identity: LocalAI Nexus.
-- Primary repo: `D:\AgentFlowStudio`.
+- Primary repo: `D:\LocalAI Nexus`.
 - Security model: renderer -> preload -> IPC -> domain service.
 - Storage strategy: local JSON files with additive collections only.
-- Verified product surfaces now include Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Workflow Studio, Shared Memory, Security Center, Local Ecosystem, Settings, and Git/Handoff.
-- Gateway has CI-safe mock forwarding and an OpenAI-compatible non-streaming path in code. Real upstream use still depends on user-supplied provider credentials.
+- Verified product surfaces now include Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Knowledge Base, Agent Studio, Workflow Studio, Shared Memory, Security Center, Local Ecosystem, Settings, and Git/Handoff.
+- Gateway has CI-safe mock forwarding, Gateway restart wiring, and an OpenAI-compatible non-streaming path in code. Real upstream use still depends on user-supplied provider credentials.
+- Knowledge Base has a local document preview/save path, persistent chunk index metadata, asset graph summary, quality state, and local retrieval testing. File upload/parsing, embedding provider binding, and vector RAG rebuild remain next-stage work.
+- Ops has backup/restore preview and merge-only restore apply wiring. Destructive/full restore, migration runner, and crash/data repair remain next-stage work.
 - Static fallback remains a recovery path, not the primary product target.
 
 ## 3. Next Stage Milestones

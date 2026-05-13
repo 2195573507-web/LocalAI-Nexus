@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../src/renderer/lib/api'
-import type { ReleaseStatus, Run } from '../../src/shared/types'
+import type { NexusKnowledgeAssetSummary, NexusRestoreApplyResult, NexusWorkspaceSummary, ReleaseStatus, Run } from '../../src/shared/types'
 import type { AgentRecord } from '../../src/shared/types'
 import type { ResourceAcl } from '../../src/shared/authTypes'
 
@@ -225,6 +225,24 @@ describe('api.projects ACL helpers', () => {
     expect(getAcl).toHaveBeenCalledWith('project-1')
     expect(updateAcl).toHaveBeenCalledWith('project-1', acl)
   })
+
+  it('bridges workspace summary through the project namespace', async () => {
+    const summary: NexusWorkspaceSummary = {
+      generatedAt: '2026-05-13T00:00:00.000Z',
+      projects: { total: 2, active: 1, archived: 1 },
+      tasks: { total: 3, open: 1, done: 1, blocked: 1 },
+      prompts: { total: 4, starred: 2 },
+      memory: { total: 5, active: 3, pending: 1 },
+      providers: { total: 2, enabled: 1 },
+      gateway: { keyCount: 2, activeKeyCount: 1, recentRequestCount: 6 },
+      buildPlans: { moduleCount: 8, averageCompletionPercent: 73, incompleteModuleCount: 8 },
+    }
+    const summaryBridge = vi.fn(async () => summary)
+    setAgentflowBridge({ projects: { summary: summaryBridge } })
+
+    await expect(api.projects.summary()).resolves.toEqual(summary)
+    expect(summaryBridge).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('api provider, agent, feedback, and config bridges', () => {
@@ -267,5 +285,81 @@ describe('api provider, agent, feedback, and config bridges', () => {
 
     await expect(api.config.exportAll()).resolves.toMatchObject({ manifest: { hash: 'fnv1a-test' } })
     await expect(api.config.importPreview('{}')).resolves.toMatchObject({ ok: true })
+  })
+
+  it('bridges gateway restart as a first-class control action', async () => {
+    const restart = vi.fn(async () => ({
+      online: true,
+      host: '127.0.0.1',
+      port: 8317,
+      baseUrl: 'http://127.0.0.1:8317',
+      providerCount: 1,
+      defaultBaseUrlHint: 'http://127.0.0.1:8317',
+      v1BaseUrlHint: 'http://127.0.0.1:8317/v1',
+    }))
+    setAgentflowBridge({ gateway: { restart } })
+
+    await expect(api.gateway.restart()).resolves.toMatchObject({ online: true, port: 8317 })
+    expect(restart).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('api knowledge and ops bridges', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    Object.defineProperty(globalThis, 'window', {
+      value: originalWindow,
+      configurable: true,
+      writable: true,
+    })
+  })
+
+  it('bridges knowledge asset summary through preload', async () => {
+    const summary: NexusKnowledgeAssetSummary = {
+      id: 'knowledge-summary',
+      generatedAt: '2026-05-13T00:00:00.000Z',
+      documentCount: 1,
+      chunkCount: 2,
+      tokenEstimate: 30,
+      promptCount: 3,
+      memoryCount: 4,
+      staleMemoryCount: 1,
+      topTags: [{ tag: 'gateway', count: 2 }],
+      latestDocuments: [{ id: 'doc-1', title: 'Doc', chunkCount: 2, createdAt: '2026-05-13T00:00:00.000Z' }],
+      retrievalReady: true,
+      redaction: 'secrets-redacted',
+    }
+    const assetsSummary = vi.fn(async () => summary)
+    setAgentflowBridge({ knowledge: { assetsSummary } })
+
+    await expect(api.knowledge.assetsSummary()).resolves.toEqual(summary)
+    expect(assetsSummary).toHaveBeenCalledTimes(1)
+  })
+
+  it('bridges restore apply with explicit preview token', async () => {
+    const applyResult: NexusRestoreApplyResult = {
+      ok: true,
+      appliedAt: '2026-05-13T00:00:00.000Z',
+      manifestId: 'manifest-1',
+      before: {
+        id: 'backup-before',
+        createdAt: '2026-05-13T00:00:00.000Z',
+        mode: 'created',
+        schemaVersion: 1,
+        collections: [],
+        checksum: 'fnv1a-before',
+        redaction: 'secrets-redacted',
+        restoreRequiresPreview: true,
+      },
+      collections: [{ collection: 'projects', inserted: 1, skipped: 0, existingBefore: 0 }],
+      checksum: 'fnv1a-apply',
+      auditRedaction: 'secrets-redacted',
+      warnings: [],
+    }
+    const restoreApply = vi.fn(async () => applyResult)
+    setAgentflowBridge({ ops: { restoreApply } })
+
+    await expect(api.ops.restoreApply({ raw: '{"projects":[]}', confirmToken: 'fnv1a-token' })).resolves.toEqual(applyResult)
+    expect(restoreApply).toHaveBeenCalledWith({ raw: '{"projects":[]}', confirmToken: 'fnv1a-token' })
   })
 })

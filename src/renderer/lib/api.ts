@@ -44,10 +44,13 @@ import type {
   NexusGatewayApiKeyCreateResult,
   NexusGatewayConfigApplyResult,
   NexusGatewayConfigImportPreview,
+  NexusKnowledgeAssetSummary,
   NexusKnowledgeDocumentPreview,
   NexusKnowledgeRetrievalResult,
   NexusObservabilityReport,
+  NexusRestoreApplyResult,
   NexusRestorePreview,
+  NexusWorkspaceSummary,
 } from '../../shared/types';
 import type {
   Workflow,
@@ -99,6 +102,7 @@ interface AgentFlowPreloadAPI {
   };
   projects?: {
     list(): Promise<Project[]>;
+    summary?(): Promise<NexusWorkspaceSummary | { error: string }>;
     get(id: string): Promise<Project | null>;
     create(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> | Project): Promise<Project>;
     update(id: string, updates: Partial<Project>): Promise<Project | null>;
@@ -181,6 +185,7 @@ interface AgentFlowPreloadAPI {
     status(): Promise<NexusGatewayStatus | { error: string }>;
     start(): Promise<NexusGatewayStatus | { error: string }>;
     stop(): Promise<NexusGatewayStatus | { error: string }>;
+    restart?(): Promise<NexusGatewayStatus | { error: string }>;
     keys?(): Promise<NexusGatewayApiKey[] | { error: string }>;
     createKey?(request: NexusGatewayApiKeyCreateRequest): Promise<NexusGatewayApiKeyCreateResult | { error: string }>;
     disableKey?(id: string): Promise<NexusGatewayApiKey | { error: string }>;
@@ -219,6 +224,7 @@ interface AgentFlowPreloadAPI {
     runMockEvaluation(input?: { name?: string; target?: 'prompt' | 'model'; promptId?: string; providerId?: string; model?: string; output?: string }): Promise<NexusEvaluationRun | { error: string }>;
   };
   knowledge?: {
+    assetsSummary?(): Promise<NexusKnowledgeAssetSummary | { error: string }>;
     previewDocument(input: { title?: string; content: string }): Promise<NexusKnowledgeDocumentPreview | { error: string }>;
     testRetrieval(input: { query: string; content?: string; topK?: number }): Promise<NexusKnowledgeRetrievalResult | { error: string }>;
   };
@@ -226,6 +232,7 @@ interface AgentFlowPreloadAPI {
     backupPreview(): Promise<NexusBackupManifest | { error: string }>;
     createBackup(): Promise<NexusBackupManifest | { error: string }>;
     restorePreview(raw: string): Promise<NexusRestorePreview | { error: string }>;
+    restoreApply?(input: { raw: string; confirmToken: string }): Promise<NexusRestoreApplyResult | { error: string }>;
   };
   contextPack?: {
     preview(options?: { projectId?: string }): Promise<NexusContextPackPreview | { error: string }>;
@@ -559,6 +566,12 @@ export const api = {
   projects: {
     list: () =>
       apiCall<Project[]>('listProjects', (a) => a.projects?.list() ?? a.listProjects(), []),
+    summary: () =>
+      apiCall<NexusWorkspaceSummary | { error: string }>(
+        'projects.summary',
+        (a) => a.projects?.summary?.() ?? Promise.resolve({ error: 'Workspace summary bridge unavailable.' }),
+        { error: 'Workspace summary bridge unavailable.' },
+      ),
     get: (id: string) =>
       apiCall<Project | null>('getProject', (a) => a.projects?.get(id) ?? a.getProject(id), null),
     create: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) =>
@@ -1062,6 +1075,12 @@ export const api = {
         (a) => a.gateway?.stop() ?? Promise.resolve({ error: 'Gateway bridge unavailable.' }),
         { error: 'Gateway bridge unavailable.' },
       ),
+    restart: () =>
+      apiCall<NexusGatewayStatus | { error: string }>(
+        'gateway.restart',
+        (a) => a.gateway?.restart?.() ?? Promise.resolve({ error: 'Gateway restart bridge unavailable.' }),
+        { error: 'Gateway restart bridge unavailable.' },
+      ),
     keys: () =>
       apiCall<NexusGatewayApiKey[] | { error: string }>(
         'gateway.keys',
@@ -1231,6 +1250,12 @@ export const api = {
   },
 
   knowledge: {
+    assetsSummary: () =>
+      apiCall<NexusKnowledgeAssetSummary | { error: string }>(
+        'knowledge.assetsSummary',
+        (a) => a.knowledge?.assetsSummary?.() ?? Promise.resolve({ error: 'Knowledge bridge unavailable.' }),
+        { error: 'Knowledge bridge unavailable.' },
+      ),
     previewDocument: (input: { title?: string; content: string }) =>
       apiCall<NexusKnowledgeDocumentPreview | { error: string }>(
         'knowledge.previewDocument',
@@ -1262,6 +1287,12 @@ export const api = {
       apiCall<NexusRestorePreview | { error: string }>(
         'ops.restorePreview',
         (a) => a.ops?.restorePreview(raw) ?? Promise.resolve({ error: 'Ops bridge unavailable.' }),
+        { error: 'Ops bridge unavailable.' },
+      ),
+    restoreApply: (input: { raw: string; confirmToken: string }) =>
+      apiCall<NexusRestoreApplyResult | { error: string }>(
+        'ops.restoreApply',
+        (a) => a.ops?.restoreApply?.(input) ?? Promise.resolve({ error: 'Ops bridge unavailable.' }),
         { error: 'Ops bridge unavailable.' },
       ),
   },
